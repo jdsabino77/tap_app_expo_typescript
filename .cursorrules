@@ -1,0 +1,152 @@
+# Cursor Rules for TAP by Yasa (Expo / React Native / TypeScript)
+
+project:
+  name: tap-by-yasa
+  stack:
+    - expo
+    - react-native
+    - typescript
+  architecture: feature-based
+  platform: mobile-first (ios-primary, android-secondary)
+
+# -----------------------------
+# 🧠 GENERAL BEHAVIOR
+# -----------------------------
+rules:
+  - Always prefer clean, production-quality code over quick hacks
+  - Do not introduce unnecessary dependencies
+  - Keep components small, modular, and reusable
+  - Avoid over-engineering — optimize for iteration speed
+  - Use strong typing everywhere (no `any` unless explicitly justified)
+  - Favor readability over cleverness
+
+# -----------------------------
+# 📁 PROJECT STRUCTURE
+# -----------------------------
+structure:
+  root_dirs:
+    - app/              # Expo Router routes
+    - components/       # reusable UI components
+    - features/         # domain-based modules
+    - services/         # API, backend, integrations
+    - hooks/            # custom hooks
+    - store/            # global state
+    - utils/            # helpers
+    - types/            # shared types
+    - constants/        # config/constants
+
+  feature_pattern:
+    description: "Each feature should be self-contained"
+    example:
+      - features/
+          - patient/
+              - components/
+              - hooks/
+              - services/
+              - types.ts
+
+# -----------------------------
+# 📱 EXPO / REACT NATIVE
+# -----------------------------
+expo_rules:
+  - Use Expo APIs whenever possible before adding native modules
+  - Prefer expo-router for navigation (file-based routing)
+  - Avoid ejecting unless absolutely necessary
+  - Use functional components only (no class components)
+  - Use React hooks for all logic
+
+# -----------------------------
+# 🎨 UI / COMPONENTS
+# -----------------------------
+ui_rules:
+  - Use consistent styling approach (StyleSheet or Tailwind via NativeWind)
+  - Keep UI components "dumb" (no business logic inside UI)
+  - Separate presentation from logic u
+  - Reuse components instead of duplicating layouts
+  - Use clear naming: ButtonPrimary, CardPatient, etc.
+
+# -----------------------------
+# 🔌 STATE MANAGEMENT
+# -----------------------------
+state:
+  preferred: zustand
+  rules:
+    - Avoid prop drilling
+    - Keep global state minimal
+    - Use local state when possible
+    - Separate UI state vs domain state
+
+# -----------------------------
+# 🌐 API / SERVICES
+# -----------------------------
+services:
+  rules:
+    - All API calls must go through services/
+    - Never call APIs directly from components
+    - Use async/await consistently
+    - Handle errors explicitly
+    - Keep API responses typed
+
+# -----------------------------
+# 🧠 AI ASSISTANT RULES
+# -----------------------------
+ai_behavior:
+  - When generating code, always follow project structure
+  - Do not create files outside defined directories
+  - Prefer updating existing files over creating duplicates
+  - When unsure, ask for clarification instead of guessing
+  - Generate minimal workplementations first, then iterate
+
+# -----------------------------
+# 🧪 TESTING (LIGHTWEIGHT)
+# -----------------------------
+testing:
+  rules:
+    - Focus on critical logic only (not UI)
+    - Prefer simple unit tests
+    - Avoid heavy test setup early in project
+
+# -----------------------------
+# ⚡ PERFORMANCE
+# -----------------------------
+performance:
+  - Avoid unnecessary re-renders
+  - Use memoization when needed (React.memo, useMemo)
+  - Lazy load heavy components if applicable
+
+# -----------------------------
+# 🔐 SECURITY / DATA
+# -----------------------------
+security:
+  - Never hardcode secrets
+  - Use environment variables
+  - Validate all external data
+
+# -----------------------------
+# 📦 NAMING CONVENTIONS
+# -----------------------------
+naming:
+  files: kebab-case
+  components: PascalCase
+  variables: camelCase
+  hooks: useSomething
+  constants: UPPER_CASE
+
+# -----------------------------
+# 🚫 ANTI-PATTERNS TO AVOID
+# -----------------------------
+anti_patterns:
+  - Massive compon lines)
+  - Business logic inside UI components
+  - Direct API calls in screens
+  - Overuse of global state
+  - Copy-paste duplication
+
+# -----------------------------
+# 🚀 DEVELOPMENT PRIORITIES
+# -----------------------------
+priorities:
+  - Ship fast, refine later
+  - Build working flows before optimizing
+  - Prioritize iOS experience first
+  - Keep Android compatibility in mind but do not block progress
