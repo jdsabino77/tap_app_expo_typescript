@@ -13,6 +13,17 @@ This document is the **single working checklist** for the rebuild. Complete phas
 
 ---
 
+## Related documentation (big picture)
+
+These docs sit **outside** strict Flutter→Expo parity but define product scope and future native work. Keep them in view while prioritizing screens and stubs.
+
+| Document | Location | Role in this migration |
+|----------|----------|-------------------------|
+| **Settings & preferences roadmap** | [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md) (copied from `tap_app`; canonical Flutter-era source: `../tap_app/docs/SETTINGS_FEATURES.md`) | Product backlog for Settings, account, theme, notifications, legal, data export, etc. Use when rebuilding **Settings** and when deciding what is MVP vs. later. |
+| **Skin analyzer → iOS app integration** | [`../../skin_analyzer_model/docs/IOS_APP_INTEGRATION.md`](../../skin_analyzer_model/docs/IOS_APP_INTEGRATION.md) (sibling of `tap_app` under `development/`) | End-to-end plan for on-device segmentation (capture → preprocess → **CoreML** → overlays/metrics → progress). Not a Flutter port item: plan **Expo dev client / native module** (or alternative ML stack) and stub the feature surface until the pipeline is chosen. |
+
+---
+
 ## Phase 1 — Analyze Flutter project structure
 
 **Goal:** Know where logic, UI, and side effects live before copying concepts into TypeScript.
@@ -25,6 +36,8 @@ This document is the **single working checklist** for the rebuild. Complete phas
 | Trace auth entry: `LoginPage` as `home`; document `pushReplacement` targets (dashboard vs. signup, etc.) | ☐ |
 | Note largest / riskiest screens (`new_treatment_page`, `dashboard`, etc.) for later ordering | ☐ |
 | Capture asset list (`assets/icon/`, any images/fonts) for porting | ☐ |
+| Read [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md); mark which items are in-scope for first Expo releases vs. backlog | ☐ |
+| Skim [IOS_APP_INTEGRATION.md](../../skin_analyzer_model/docs/IOS_APP_INTEGRATION.md) and note dependencies (camera quality, model bundle size, iOS-only CoreML vs. cross-platform options) | ☐ |
 
 **Deliverable:** Keep [FLUTTER_INVENTORY.md](./FLUTTER_INVENTORY.md) updated when you discover new modules or change assumptions.
 
@@ -90,7 +103,7 @@ Suggested **order** (adjust if product priority differs):
 6. Providers list → add provider  
 7. Medical profile  
 8. Calendar  
-9. Settings (logout / reset navigation)  
+9. Settings (logout / reset navigation) — align with [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md) for planned vs. shipped features  
 10. Terms and conditions  
 
 | Task | Done |
@@ -115,6 +128,22 @@ Suggested **order** (adjust if product priority differs):
 
 ---
 
+## Planned capability — Skin analyzer (on-device ML)
+
+**Reference:** [`skin_analyzer_model/docs/IOS_APP_INTEGRATION.md`](../../skin_analyzer_model/docs/IOS_APP_INTEGRATION.md) (training → CoreML export → Xcode bundling → inference → UI).
+
+Treat this as a **separate track** from screen-for-screen Flutter porting: it needs native ML and likely **custom dev builds** (not Expo Go alone).
+
+| Task | Done |
+|------|------|
+| Define UX entry point in T.A.P (e.g. from treatment flow or profile) and keep it behind a **feature flag** or stub screen until ML is ready | ☐ |
+| Decide stack: iOS **CoreML** (per integration guide) vs. cross-platform (e.g. ONNX / TFLite) vs. server-side fallback | ☐ |
+| Stub module: `analyzeSkinPhoto(imageUri) → Promise<AnalysisResult \| NotImplemented>` with typed result shape matching future metrics (scores, mask, percentages) | ☐ |
+| Plan bundling: model size (guide cites ~60–120 MB class of artifact), asset delivery, and EAS / Xcode integration | ☐ |
+| Validate camera + preprocessing parity with the guide (resize/normalize assumptions) before trusting clinical-style metrics in UI | ☐ |
+
+---
+
 ## Dependency checklist (high level)
 
 When you bootstrap the Expo app, verify these areas have an owner:
@@ -125,6 +154,8 @@ When you bootstrap the Expo app, verify these areas have an owner:
 - [ ] Image pick / display  
 - [ ] Network status  
 - [ ] Legal/content bootstrap (`ContentService` equivalent)  
+- [ ] Settings roadmap parity (see [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md))  
+- [ ] Skin analyzer / on-device ML (see integration guide; likely native module + dev client)  
 
 ---
 
@@ -139,3 +170,4 @@ Track parity with the Flutter app version in this repo’s `package.json` or `ap
 | Date | Change |
 |------|--------|
 | 2026-04-06 | Initial plan and inventory from `tap_app` tree and `pubspec.yaml` |
+| 2026-04-06 | Added big-picture docs: `SETTINGS_FEATURES.md` (copied), skin analyzer `IOS_APP_INTEGRATION.md`, and planned ML phase |

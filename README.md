@@ -6,6 +6,7 @@ React Native rebuild of **T.A.P by YasaLaser** (Treatment & Aesthetic Procedures
 
 - **[docs/MIGRATION_PLAN.md](docs/MIGRATION_PLAN.md)** — phased checklist, dependency mapping, and working order (one item at a time).
 - **[docs/FLUTTER_INVENTORY.md](docs/FLUTTER_INVENTORY.md)** — snapshot of the source Flutter layout and screens.
+- **[docs/SETTINGS_FEATURES.md](docs/SETTINGS_FEATURES.md)** — settings and preferences roadmap (copied from `tap_app` for product scope).
 
 ## Principles
 
