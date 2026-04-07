@@ -1,4 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("expo-crypto", () => ({
+  randomUUID: () => "550e8400-e29b-41d4-a716-446655440000",
+}));
+
 import { newUuid } from "./ids";
 
 describe("newUuid", () => {

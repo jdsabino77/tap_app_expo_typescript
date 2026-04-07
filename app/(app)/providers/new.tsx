@@ -2,13 +2,14 @@ import { router } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  Pressable,
   View,
 } from "react-native";
 import {
@@ -16,6 +17,7 @@ import {
   ProviderSpecialtyCatalogChips,
 } from "../../../src/components/catalog-suggestions";
 import { useReferenceCatalogs } from "../../../src/hooks/useReferenceCatalogs";
+import { isWriteQueuedError } from "../../../src/lib/write-queued-error";
 import { createProviderForCurrentUser } from "../../../src/repositories/provider.repository";
 import { useSession } from "../../../src/store/session";
 import { colors } from "../../../src/theme/tokens";
@@ -68,6 +70,10 @@ export default function AddProviderScreen() {
       });
       router.back();
     } catch (e) {
+      if (isWriteQueuedError(e)) {
+        Alert.alert("Saved offline", e.message, [{ text: "OK", onPress: () => router.back() }]);
+        return;
+      }
       setError(e instanceof Error ? e.message : "Could not save provider.");
     } finally {
       setSaving(false);

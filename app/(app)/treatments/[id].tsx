@@ -13,6 +13,7 @@ import {
 import type { Treatment } from "../../../src/domain/treatment";
 import { formatDisplayDateTime } from "../../../src/lib/datetime";
 import { formatCurrency } from "../../../src/lib/format";
+import { isWriteQueuedError } from "../../../src/lib/write-queued-error";
 import { deleteTreatmentForCurrentUser, fetchTreatmentById } from "../../../src/repositories/treatment.repository";
 import { useSession } from "../../../src/store/session";
 import { colors } from "../../../src/theme/tokens";
@@ -64,6 +65,10 @@ export default function TreatmentDetailScreen() {
                 router.back();
               })
               .catch((e) => {
+                if (isWriteQueuedError(e)) {
+                  Alert.alert("Queued for sync", e.message, [{ text: "OK", onPress: () => router.back() }]);
+                  return;
+                }
                 Alert.alert("Could not delete", e instanceof Error ? e.message : "Error");
               })
               .finally(() => {

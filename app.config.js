@@ -41,7 +41,7 @@ module.exports = {
     android: {
       package: "com.yasalaser.tap",
     },
-    plugins: ["expo-router", "expo-secure-store"],
+    plugins: ["expo-router", "expo-secure-store", "expo-sqlite"],
     extra: {
       supabaseUrl,
       supabaseAnonKey,

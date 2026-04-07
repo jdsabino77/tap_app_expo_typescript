@@ -1,25 +1,67 @@
-import { providerFromRemote } from "../domain/provider";
-import type { Provider } from "../domain/provider";
+import { providerFromRemote, type Provider } from "../domain/provider";
+import { newUuid } from "../lib/ids";
+import { isDeviceOffline } from "../lib/device-offline";
+import { WriteQueuedError } from "../lib/write-queued-error";
+import {
+  patchProvidersListCache,
+  readProvidersListCache,
+  syntheticProviderFromInput,
+  writeProvidersListCache,
+} from "../services/local/providers-list-cache";
+import {
+  enqueueOutboxWrite,
+  serializeProviderCreatePayload,
+  serializeProviderUpdatePayload,
+} from "../services/local/write-queue";
 import { getSupabase, isSupabaseConfigured } from "../services/supabase/client";
+
+/** Stale list from device cache (null if none). */
+export async function readCachedProvidersForCurrentUser(): Promise<Provider[] | null> {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+  const supabase = getSupabase();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) {
+    return null;
+  }
+  return readProvidersListCache(userData.user.id);
+}
 
 export async function fetchProvidersForCurrentUser(): Promise<Provider[]> {
   if (!isSupabaseConfigured()) {
     return [];
   }
   const supabase = getSupabase();
-  const { data, error } = await supabase
-    .from("providers")
-    .select("*")
-    .eq("is_active", true)
-    .order("name");
-
-  if (error) {
-    throw new Error(error.message);
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) {
+    return [];
   }
+  const uid = userData.user.id;
 
-  return (data ?? []).map((row: Record<string, unknown>) =>
-    providerFromRemote(String(row.id), row as Record<string, unknown>),
-  );
+  try {
+    const { data, error } = await supabase
+      .from("providers")
+      .select("*")
+      .eq("is_active", true)
+      .order("name");
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const list = (data ?? []).map((row: Record<string, unknown>) =>
+      providerFromRemote(String(row.id), row as Record<string, unknown>),
+    );
+    await writeProvidersListCache(uid, list);
+    return list;
+  } catch (e) {
+    const cached = await readProvidersListCache(uid);
+    if (cached != null) {
+      return cached;
+    }
+    throw e instanceof Error ? e : new Error(String(e));
+  }
 }
 
 export type CreateProviderInput = {
@@ -34,6 +76,43 @@ export type CreateProviderInput = {
   specialties: string[];
 };
 
+function payloadFields(input: CreateProviderInput) {
+  return {
+    name: input.name.trim(),
+    address: input.address.trim(),
+    city: input.city.trim(),
+    province: input.province.trim(),
+    postalCode: input.postalCode.trim(),
+    phone: input.phone.trim(),
+    email: input.email.trim(),
+    website: input.website.trim(),
+    specialties: input.specialties.map((s) => s.trim()).filter(Boolean),
+  };
+}
+
+async function queueProviderCreate(uid: string, input: CreateProviderInput): Promise<never> {
+  const id = newUuid();
+  const fields = payloadFields(input);
+  await enqueueOutboxWrite(uid, "provider_create", serializeProviderCreatePayload(id, fields));
+  const syn = syntheticProviderFromInput(id, fields);
+  await patchProvidersListCache(uid, (cur) => [syn, ...cur.filter((p) => p.id !== id)]);
+  throw new WriteQueuedError();
+}
+
+async function queueProviderUpdate(uid: string, id: string, input: CreateProviderInput): Promise<never> {
+  const fields = payloadFields(input);
+  await enqueueOutboxWrite(uid, "provider_update", serializeProviderUpdatePayload(id, fields));
+  const syn = syntheticProviderFromInput(id, fields);
+  await patchProvidersListCache(uid, (cur) => cur.map((p) => (p.id === id ? syn : p)));
+  throw new WriteQueuedError();
+}
+
+async function queueProviderDeactivate(uid: string, id: string): Promise<never> {
+  await enqueueOutboxWrite(uid, "provider_deactivate", JSON.stringify({ id }));
+  await patchProvidersListCache(uid, (cur) => cur.filter((p) => p.id !== id));
+  throw new WriteQueuedError();
+}
+
 export async function createProviderForCurrentUser(input: CreateProviderInput): Promise<Provider> {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
@@ -45,16 +124,21 @@ export async function createProviderForCurrentUser(input: CreateProviderInput): 
   }
   const uid = auth.user.id;
 
+  if (await isDeviceOffline()) {
+    await queueProviderCreate(uid, input);
+  }
+
+  const f = payloadFields(input);
   const row = {
-    name: input.name.trim(),
-    address: input.address.trim(),
-    city: input.city.trim(),
-    province: input.province.trim(),
-    postal_code: input.postalCode.trim(),
-    phone: input.phone.trim(),
-    email: input.email.trim(),
-    website: input.website.trim(),
-    specialties: input.specialties,
+    name: f.name,
+    address: f.address,
+    city: f.city,
+    province: f.province,
+    postal_code: f.postalCode,
+    phone: f.phone,
+    email: f.email,
+    website: f.website,
+    specialties: f.specialties,
     is_verified: false,
     is_global: false,
     user_id: uid,
@@ -62,13 +146,27 @@ export async function createProviderForCurrentUser(input: CreateProviderInput): 
     is_active: true,
   };
 
-  const { data, error } = await supabase.from("providers").insert(row).select("*").single();
+  try {
+    const { data, error } = await supabase.from("providers").insert(row).select("*").single();
 
-  if (error) {
-    throw new Error(error.message);
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const p = providerFromRemote(String(data.id), data as Record<string, unknown>);
+    await patchProvidersListCache(uid, (cur) => {
+      if (cur.some((x) => x.id === p.id)) {
+        return cur.map((x) => (x.id === p.id ? p : x));
+      }
+      return [...cur, p];
+    });
+    return p;
+  } catch (e) {
+    if (await isDeviceOffline()) {
+      await queueProviderCreate(uid, input);
+    }
+    throw e instanceof Error ? e : new Error(String(e));
   }
-
-  return providerFromRemote(String(data.id), data as Record<string, unknown>);
 }
 
 export type ProviderDetailResult = {
@@ -120,36 +218,50 @@ export async function updateProviderForCurrentUser(
   if (authErr || !auth.user) {
     throw new Error("Not signed in.");
   }
+  const uid = auth.user.id;
 
+  if (await isDeviceOffline()) {
+    await queueProviderUpdate(uid, id, input);
+  }
+
+  const f = payloadFields(input);
   const row = {
-    name: input.name.trim(),
-    address: input.address.trim(),
-    city: input.city.trim(),
-    province: input.province.trim(),
-    postal_code: input.postalCode.trim(),
-    phone: input.phone.trim(),
-    email: input.email.trim(),
-    website: input.website.trim(),
-    specialties: input.specialties,
+    name: f.name,
+    address: f.address,
+    city: f.city,
+    province: f.province,
+    postal_code: f.postalCode,
+    phone: f.phone,
+    email: f.email,
+    website: f.website,
+    specialties: f.specialties,
     updated_at: new Date().toISOString(),
   };
 
-  const { data, error } = await supabase
-    .from("providers")
-    .update(row)
-    .eq("id", id)
-    .eq("user_id", auth.user.id)
-    .select("*")
-    .maybeSingle();
+  try {
+    const { data, error } = await supabase
+      .from("providers")
+      .update(row)
+      .eq("id", id)
+      .eq("user_id", auth.user.id)
+      .select("*")
+      .maybeSingle();
 
-  if (error) {
-    throw new Error(error.message);
+    if (error) {
+      throw new Error(error.message);
+    }
+    if (!data) {
+      throw new Error("Provider not found or you cannot edit this entry.");
+    }
+    const p = providerFromRemote(String(data.id), data as Record<string, unknown>);
+    await patchProvidersListCache(uid, (cur) => cur.map((x) => (x.id === id ? p : x)));
+    return p;
+  } catch (e) {
+    if (await isDeviceOffline()) {
+      await queueProviderUpdate(uid, id, input);
+    }
+    throw e instanceof Error ? e : new Error(String(e));
   }
-  if (!data) {
-    throw new Error("Provider not found or you cannot edit this entry.");
-  }
-
-  return providerFromRemote(String(data.id), data as Record<string, unknown>);
 }
 
 export async function deactivateProviderForCurrentUser(id: string): Promise<void> {
@@ -161,19 +273,32 @@ export async function deactivateProviderForCurrentUser(id: string): Promise<void
   if (authErr || !auth.user) {
     throw new Error("Not signed in.");
   }
+  const uid = auth.user.id;
 
-  const { data, error } = await supabase
-    .from("providers")
-    .update({ is_active: false, updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .eq("user_id", auth.user.id)
-    .select("id")
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(error.message);
+  if (await isDeviceOffline()) {
+    await queueProviderDeactivate(uid, id);
   }
-  if (!data) {
-    throw new Error("Provider not found or you cannot remove this entry.");
+
+  try {
+    const { data, error } = await supabase
+      .from("providers")
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("user_id", auth.user.id)
+      .select("id")
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+    if (!data) {
+      throw new Error("Provider not found or you cannot remove this entry.");
+    }
+    await patchProvidersListCache(uid, (cur) => cur.filter((p) => p.id !== id));
+  } catch (e) {
+    if (await isDeviceOffline()) {
+      await queueProviderDeactivate(uid, id);
+    }
+    throw e instanceof Error ? e : new Error(String(e));
   }
 }

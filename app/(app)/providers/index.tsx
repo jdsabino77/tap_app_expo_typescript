@@ -12,7 +12,10 @@ import {
 } from "react-native";
 import type { Provider } from "../../../src/domain/provider";
 import { providerFullAddress } from "../../../src/domain/provider";
-import { fetchProvidersForCurrentUser } from "../../../src/repositories/provider.repository";
+import {
+  fetchProvidersForCurrentUser,
+  readCachedProvidersForCurrentUser,
+} from "../../../src/repositories/provider.repository";
 import { useSession } from "../../../src/store/session";
 import { colors } from "../../../src/theme/tokens";
 
@@ -31,11 +34,16 @@ export default function ProvidersScreen() {
     }
     try {
       setError(null);
+      const cached = await readCachedProvidersForCurrentUser();
+      if (cached != null) {
+        setItems(cached);
+      }
       const rows = await fetchProvidersForCurrentUser();
       setItems(rows);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load providers");
-      setItems([]);
+      const stale = await readCachedProvidersForCurrentUser();
+      setItems(stale ?? []);
     } finally {
       setLoading(false);
       setRefreshing(false);

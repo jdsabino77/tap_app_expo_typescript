@@ -182,7 +182,11 @@ Suggested **order** (adjust if product priority differs):
 
 **Deliverables — Phase 5 slice 3 (2026-04-06):** **Treatment** `updateTreatmentForCurrentUser`, `deleteTreatmentForCurrentUser` (profile `treatment_count` **adjust** +1 / −1), detail **Edit** / **Delete** + `/treatments/edit/[id]`. **Provider** `fetchProviderByIdForCurrentUser` (with **canMutate**), `updateProviderForCurrentUser`, `deactivateProviderForCurrentUser` (soft hide via `is_active`), **`/providers/[id]`** detail + **`/providers/edit/[id]`**, list rows **navigate to detail**; directory (`user_id` null) providers **read-only** in UI. **Domain:** `Provider.website`, snake_case **`is_active` / `is_global`** in `providerFromRemote`.
 
-**Deliverables — Phase 5 slice 4 (2026-04-06):** **Reference catalogs** migration [`002_reference_catalogs.sql`](../supabase/migrations/002_reference_catalogs.sql) (`laser_types`, `service_types` with **`applies_to`**, `treatment_areas`, `provider_service_catalog`), RLS (authenticated **read** active; **admin** full CRUD), **seed** rows. **`catalog.repository`** + **`useReferenceCatalogs`**; **`filterServiceTypesForTreatment`**; UI chips on **new/edit treatment** and **new/edit provider** (`src/components/catalog-suggestions.tsx`, `toggleCommaListItem`). **Still next:** face-map ML, SQLite cache, asset/string parity, content admin UI, treatment photos.
+**Deliverables — Phase 5 slice 4 (2026-04-06):** **Reference catalogs** migration [`002_reference_catalogs.sql`](../supabase/migrations/002_reference_catalogs.sql) (`laser_types`, `service_types` with **`applies_to`**, `treatment_areas`, `provider_service_catalog`), RLS (authenticated **read** active; **admin** full CRUD), **seed** rows. **`catalog.repository`** + **`useReferenceCatalogs`**; **`filterServiceTypesForTreatment`**; UI chips on **new/edit treatment** and **new/edit provider** (`src/components/catalog-suggestions.tsx`, `toggleCommaListItem`).
+
+**Deliverables — Phase 5 slice 5 (2026-04-06):** **Team Supabase dashboard** noted in [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) (`pexgbpnsuavlaejwgxnx`). **`expo-sqlite`** + `expo-sqlite` config plugin; **`src/services/local/cache-db.ts`** (KV table) + **`reference-catalog-cache.ts`**; catalog fetch **writes cache** after remote success and **falls back** to SQLite when offline / remote error (web skips cache). **`ReferenceCatalogBundle`** + **`parseReferenceCatalogBundleJson`** in domain; **Settings** About (version) + Terms link + note on cache.
+
+**Deliverables — Phase 5 slice 6 (2026-04-06):** **Treatments/providers list KV cache** (`treatments-list-cache`, `providers-list-cache`; web: `localStorage` via `kv-async`). Repositories **persist lists after successful fetch**, **fall back to cache** on fetch failure, expose **`readCached*ForCurrentUser`** for cache-first UI. **`write_outbox`** table + **`write-queue`** (web: `tap_write_outbox_v1`); offline (or failed) mutations **enqueue**, **patch list cache**, throw **`WriteQueuedError`**; **`WriteQueueSync`** + **`flushWriteOutbox`** when **`useNetworkStatus` → online**; **logout** clears list caches + outbox via **`clearUserLocalCache`**. **Still next:** face-map ML, asset/string parity, catalog admin UI, treatment photos, optional reference-cache web parity.
 
 ---
 
@@ -221,7 +225,7 @@ Treat this as a **separate track** from screen-for-screen Flutter porting: it ne
 When you bootstrap the Expo app, verify these areas have an owner:
 
 - [x] Supabase (Auth, Postgres, RLS) — Storage / full parity TBD  
-- [ ] Local cache (Expo SQLite) + SecureStore + write-retry queue  
+- [~] Local cache (Expo SQLite) — reference catalogs + treatments/providers lists + write outbox; web uses localStorage for KV/outbox  
 - [ ] Biometrics  
 - [ ] Image pick / display  
 - [ ] Network status  

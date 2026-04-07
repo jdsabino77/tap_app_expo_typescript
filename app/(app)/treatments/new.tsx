@@ -3,6 +3,7 @@ import { format, isValid, parseISO } from "date-fns";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -21,6 +22,7 @@ import {
 import { filterServiceTypesForTreatment } from "../../../src/domain/reference-content";
 import type { TreatmentType } from "../../../src/domain/treatment";
 import { useReferenceCatalogs } from "../../../src/hooks/useReferenceCatalogs";
+import { isWriteQueuedError } from "../../../src/lib/write-queued-error";
 import { fetchProvidersForCurrentUser } from "../../../src/repositories/provider.repository";
 import { createTreatmentForCurrentUser } from "../../../src/repositories/treatment.repository";
 import { useSession } from "../../../src/store/session";
@@ -130,6 +132,10 @@ export default function NewTreatmentScreen() {
       });
       router.back();
     } catch (e) {
+      if (isWriteQueuedError(e)) {
+        Alert.alert("Saved offline", e.message, [{ text: "OK", onPress: () => router.back() }]);
+        return;
+      }
       setError(e instanceof Error ? e.message : "Could not save treatment.");
     } finally {
       setSaving(false);

@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import { fetchMedicalProfileForUser } from "../repositories/medical-profile.repository";
 import { mapAuthErrorToUserMessage } from "../lib/supabase-errors";
+import { clearUserLocalCache } from "../services/local/clear-user-local-cache";
 import { getSupabase, isSupabaseConfigured } from "../services/supabase/client";
 
 export type SignUpResult = { error?: string; needsEmailConfirmation?: boolean };
@@ -182,6 +183,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setSignupDashboardBypass(false);
     if (isSupabaseConfigured()) {
       const supabase = getSupabase();
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth.user?.id;
+      if (uid) {
+        await clearUserLocalCache(uid);
+      }
       await supabase.auth.signOut();
     }
     setStubUserId(null);

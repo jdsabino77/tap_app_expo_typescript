@@ -1,4 +1,5 @@
-import { router } from "expo-router";
+import Constants from "expo-constants";
+import { Link, router } from "expo-router";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSession } from "../../src/store/session";
 import { colors } from "../../src/theme/tokens";
@@ -25,13 +26,31 @@ export default function SettingsScreen() {
     ]);
   };
 
+  const version =
+    Constants.expoConfig?.version ??
+    (typeof Constants.nativeAppVersion === "string" ? Constants.nativeAppVersion : "—");
+
   return (
     <View style={styles.container}>
+      <Text style={styles.section}>About</Text>
+      <View style={styles.rowStatic}>
+        <Text style={styles.rowLabel}>Version</Text>
+        <Text style={styles.rowValue}>{version}</Text>
+      </View>
+      <Link href="/legal/terms" asChild>
+        <Pressable style={styles.row}>
+          <Text style={styles.linkish}>Terms &amp; Conditions</Text>
+        </Pressable>
+      </Link>
+
       <Text style={styles.section}>Account</Text>
       <Pressable style={styles.row} onPress={onLogout}>
         <Text style={styles.danger}>Log out</Text>
       </Pressable>
-      <Text style={styles.muted}>Flutter settings sections — see docs/SETTINGS_FEATURES.md (Phase 5).</Text>
+      <Text style={styles.muted}>
+        More settings from Flutter are tracked in docs/SETTINGS_FEATURES.md. Reference catalogs cache locally on
+        device (SQLite) after the first successful load.
+      </Text>
     </View>
   );
 }
@@ -51,6 +70,19 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 16,
   },
+  rowStatic: {
+    backgroundColor: colors.cleanWhite,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  rowLabel: { fontSize: 16, color: colors.textPrimary, fontWeight: "500" },
+  rowValue: { fontSize: 16, color: colors.textSecondary },
+  linkish: { fontSize: 16, color: colors.primaryNavy, fontWeight: "600" },
   danger: { color: colors.errorRed, fontWeight: "600", fontSize: 16 },
   muted: { color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
 });

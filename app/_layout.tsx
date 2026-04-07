@@ -3,6 +3,7 @@ import { Stack } from "expo-router";
 import React, { Component, type ErrorInfo, type ReactNode } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { WriteQueueSync } from "../src/components/WriteQueueSync";
 import { SessionProvider } from "../src/store/session";
 import { colors } from "../src/theme/tokens";
 
@@ -58,6 +59,7 @@ export default function RootLayout() {
     <RootErrorBoundary>
       <SafeAreaProvider>
         <SessionProvider>
+          <WriteQueueSync />
           <Stack
             screenOptions={{
               headerShown: false,

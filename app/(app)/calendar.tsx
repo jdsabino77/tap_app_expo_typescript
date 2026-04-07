@@ -11,7 +11,10 @@ import {
 } from "react-native";
 import type { Treatment } from "../../src/domain/treatment";
 import { formatDisplayDate } from "../../src/lib/datetime";
-import { fetchTreatmentsForCurrentUser } from "../../src/repositories/treatment.repository";
+import {
+  fetchTreatmentsForCurrentUser,
+  readCachedTreatmentsForCurrentUser,
+} from "../../src/repositories/treatment.repository";
 import { useSession } from "../../src/store/session";
 import { colors } from "../../src/theme/tokens";
 
@@ -49,11 +52,16 @@ export default function CalendarScreen() {
     }
     try {
       setError(null);
+      const cached = await readCachedTreatmentsForCurrentUser();
+      if (cached != null) {
+        setItems(cached);
+      }
       const rows = await fetchTreatmentsForCurrentUser();
       setItems(rows);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load");
-      setItems([]);
+      const stale = await readCachedTreatmentsForCurrentUser();
+      setItems(stale ?? []);
     } finally {
       setLoading(false);
       setRefreshing(false);

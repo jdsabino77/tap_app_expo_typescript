@@ -54,6 +54,26 @@ export type ServiceType = z.infer<typeof serviceTypeSchema>;
 export type TreatmentArea = z.infer<typeof treatmentAreaSchema>;
 export type ProviderServiceCatalogItem = z.infer<typeof providerServiceCatalogSchema>;
 
+/** Serialized reference data for treatment/provider form chips (API + local cache). */
+export const referenceCatalogBundleSchema = z.object({
+  laserTypes: z.array(laserTypeSchema),
+  serviceTypes: z.array(serviceTypeSchema),
+  treatmentAreas: z.array(treatmentAreaSchema),
+  providerServices: z.array(providerServiceCatalogSchema),
+});
+
+export type ReferenceCatalogBundle = z.infer<typeof referenceCatalogBundleSchema>;
+
+export function parseReferenceCatalogBundleJson(json: string): ReferenceCatalogBundle | null {
+  try {
+    const data: unknown = JSON.parse(json);
+    const r = referenceCatalogBundleSchema.safeParse(data);
+    return r.success ? r.data : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Filter catalog service rows for the selected treatment modality. */
 export function filterServiceTypesForTreatment(
   items: ServiceType[],
