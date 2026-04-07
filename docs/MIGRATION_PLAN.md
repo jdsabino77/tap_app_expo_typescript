@@ -10,6 +10,38 @@ This document is the **single working checklist** for the rebuild. Complete phas
 2. **Source of truth** — Flutter code under `../tap_app`; this repo is the TypeScript implementation.
 3. **Stub early** — any native capability you will not wire in the current sprint gets a **typed stub module** (no silent failures in call sites).
 4. **Parity over cleverness** — match behavior and data shapes first; refactor UX after core flows work.
+5. **Online-first, cache locally** — cloud is the source of truth; local SQLite supports fast reads, offline viewing, and queued retry for failed writes.
+6. **Repository boundary required** — screens/hooks do not call Supabase or SQLite directly; all persistence goes through repository/service layers.
+
+---
+
+## Architecture decision — backend and local persistence
+
+**Chosen approach**
+
+- **Cloud backend:** Supabase
+- **Cloud database:** Supabase Postgres
+- **Auth:** Supabase Auth
+- **File/image storage:** Supabase Storage
+- **Local cache:** Expo SQLite
+- **Secure token storage:** Expo SecureStore
+- **Sync model:** Online-first with local cache and retry queue
+- **State approach:** Lightweight app state + repository-driven data fetching
+- **Future option:** background sync / richer local-first model only if product needs it later
+
+**Operating model**
+
+- App reads from **local SQLite cache first** where practical, then refreshes from Supabase.
+- App writes try **remote first**.
+- If remote write fails due to connectivity/transient issues, store a **queued write job** locally for retry.
+- UI must show clear `loading`, `synced`, `pending`, and `error` states for mutating flows where needed.
+- Do **not** attempt full bidirectional sync/conflict resolution in the first release.
+
+**Initial rule of thumb**
+
+- **Reference data / profile data:** cache locally after fetch
+- **User-generated records (treatments, providers, notes):** send to Supabase first, then mirror locally
+- **Photos/assets:** upload to Supabase Storage; cache thumbnails/metadata locally, not full originals unless explicitly needed
 
 ---
 
@@ -24,22 +56,43 @@ These docs sit **outside** strict Flutter→Expo parity but define product scope
 
 ---
 
+## Proposed TypeScript architecture
+
+```text
+app/                      # Expo Router routes
+src/
+  features/               # feature modules
+  domain/                 # domain types, validators, mappers, pure logic
+  repositories/           # orchestration layer (remote + local)
+  services/
+    supabase/             # supabase client and remote services
+    local/                # sqlite, secure storage, queued writes
+    native-stubs/         # typed native placeholders
+  hooks/                  # feature hooks
+  store/                  # lightweight app state
+  theme/                  # theme tokens
+  lib/                    # shared utilities
+docs/
+```
+
+---
+
 ## Phase 1 — Analyze Flutter project structure
 
 **Goal:** Know where logic, UI, and side effects live before copying concepts into TypeScript.
 
 | Task | Done |
 |------|------|
-| Confirm entry and bootstrap (`main.dart`: Hive, Firebase, `ContentService`) | ☐ |
-| Map each feature folder under `lib/features/*` to a future `app/` or `src/features/*` area | ☐ |
-| List all `core/services/*` and what they call (Firebase, Hive, platform APIs) | ☐ |
-| Trace auth entry: `LoginPage` as `home`; document `pushReplacement` targets (dashboard vs. signup, etc.) | ☐ |
-| Note largest / riskiest screens (`new_treatment_page`, `dashboard`, etc.) for later ordering | ☐ |
-| Capture asset list (`assets/icon/`, any images/fonts) for porting | ☐ |
-| Read [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md); mark which items are in-scope for first Expo releases vs. backlog | ☐ |
-| Skim [IOS_APP_INTEGRATION.md](../../skin_analyzer_model/docs/IOS_APP_INTEGRATION.md) and note dependencies (camera quality, model bundle size, iOS-only CoreML vs. cross-platform options) | ☐ |
+| Confirm entry and bootstrap (`main.dart`: Hive, Firebase, `ContentService`) | ☑ |
+| Map each feature folder under `lib/features/*` to a future `app/` or `src/features/*` area | ☑ |
+| List all `core/services/*` and what they call (Firebase, Hive, platform APIs) | ☑ |
+| Trace auth entry: `LoginPage` as `home`; document `pushReplacement` targets (dashboard vs. signup, etc.) | ☑ |
+| Note largest / riskiest screens (`new_treatment_page`, `dashboard`, etc.) for later ordering | ☑ |
+| Capture asset list (`assets/icon/`, any images/fonts) for porting | ☑ |
+| Read [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md); mark which items are in-scope for first Expo releases vs. backlog | ☑ |
+| Skim [IOS_APP_INTEGRATION.md](../../skin_analyzer_model/docs/IOS_APP_INTEGRATION.md) and note dependencies (camera quality, model bundle size, iOS-only CoreML vs. cross-platform options) | ☑ |
 
-**Deliverable:** Keep [FLUTTER_INVENTORY.md](./FLUTTER_INVENTORY.md) updated when you discover new modules or change assumptions.
+**Deliverable:** [FLUTTER_INVENTORY.md](./FLUTTER_INVENTORY.md) — Phase 1 analysis (2026-04-06). Update when the Flutter app or target architecture changes.
 
 ---
 
@@ -49,13 +102,20 @@ These docs sit **outside** strict Flutter→Expo parity but define product scope
 
 | Task | Done |
 |------|------|
-| Port Dart models (e.g. `medical_profile.dart`, `provider.dart`) to TypeScript interfaces/types + validators if needed | ☐ |
-| Document Firestore document paths and field names from services (`*_service.dart`) | ☐ |
-| Extract calculations, mappers, and constants that are not widget-specific into `src/domain` or `src/lib` | ☐ |
-| Decide state approach (e.g. Zustand + hooks) and where each “bloc” boundary from Flutter maps | ☐ |
-| Add minimal unit tests for serializers and pure functions where Flutter had implicit assumptions | ☐ |
+| Port Dart models (e.g. `medical_profile.dart`, `provider.dart`) to TypeScript interfaces/types + validators if needed | ☑ |
+| Map Firestore document paths and fields from services (`*_service.dart`) to **Supabase tables/columns** and RLS rules | ☑ |
+| Extract calculations, mappers, and constants that are not widget-specific into `src/domain` or `src/lib` | ☑ |
+| Decide state approach (e.g. Zustand + hooks) and where each “bloc” boundary from Flutter maps | ☑ |
+| Add minimal unit tests for serializers and pure functions where Flutter had implicit assumptions | ☑ |
 
 **Rule:** UI components import from these modules; avoid duplicating shape definitions in screens.
+
+**Deliverables (2026-04-06):**
+
+- Domain + Zod: `src/domain/*`, shared `calculateAge` in `src/lib/age.ts`, theme hex tokens in `src/theme/tokens.ts`
+- Supabase draft: [SUPABASE_SCHEMA.md](./SUPABASE_SCHEMA.md)
+- State plan: [STATE_AND_BLOC_MAPPING.md](./STATE_AND_BLOC_MAPPING.md)
+- Tests: `npm test` (Vitest) — age, medical profile parse/labels, treatment stats, provider `specialties` → `services`
 
 ---
 
@@ -65,13 +125,15 @@ These docs sit **outside** strict Flutter→Expo parity but define product scope
 
 | Task | Done |
 |------|------|
-| Scaffold Expo Router: `app/_layout.tsx`, group layouts e.g. `(auth)` vs. `(app)` | ☐ |
-| Map Flutter stacks: splash/welcome/login/signup → auth group; post-login → tabs or stack | ☐ |
-| Replace `Navigator.push` flows with `router.push`, modal routes, or nested stacks as appropriate | ☐ |
-| Handle `pushAndRemoveUntil`-style resets (e.g. logout in settings) with `router.replace` / dismissAll patterns | ☐ |
-| Deep-link parity: only add URLs where product needs them; document in code comments | ☐ |
+| Scaffold Expo Router: `app/_layout.tsx`, group layouts e.g. `(auth)` vs. `(app)` | ☑ |
+| Map Flutter stacks: splash/welcome/login/signup → auth group; post-login → tabs or stack | ☑ |
+| Replace `Navigator.push` flows with `router.push`, modal routes, or nested stacks as appropriate | ☑ |
+| Handle `pushAndRemoveUntil`-style resets (e.g. logout in settings) with `router.replace` / dismissAll patterns | ☑ |
+| Deep-link parity: only add URLs where product needs them; document in code comments | ☑ |
 
 **Note:** Flutter currently uses imperative navigation, not `go_router`. Expo Router should encode the **intended** product IA, which may tidy overlapping patterns.
+
+**Deliverables (2026-04-06):** Expo SDK 52 + `expo-router` ~4, `app/` route tree, `SessionProvider` stub, `legal` stack for terms, [EXPO_ROUTES.md](./EXPO_ROUTES.md), `src/navigation/deep-linking.ts`. Run **`npm start`** for Expo Go / simulator.
 
 ---
 
@@ -81,17 +143,19 @@ These docs sit **outside** strict Flutter→Expo parity but define product scope
 
 | Task | Done |
 |------|------|
-| Date/number formatting (`intl` → chosen TS libs); keep timezone behavior explicit | ☐ |
-| UUID generation; secure random if needed for tokens | ☐ |
-| HTTP/Firebase error mapping to user-visible messages (mirror Flutter `debugPrint` vs. UI errors) | ☐ |
-| Connectivity: subscribe in a small module; expose hook or store | ☐ |
-| Theme tokens from `app_theme.dart` → theme object (colors, typography, spacing) | ☐ |
+| Date/number formatting (`intl` → chosen TS libs); keep timezone behavior explicit | ☑ |
+| UUID generation; secure random if needed for tokens | ☑ |
+| HTTP/Supabase error mapping to user-visible messages (mirror Flutter `debugPrint` vs. UI errors) | ☑ |
+| Connectivity: subscribe in a small module; expose hook or store | ☑ |
+| Theme tokens from `app_theme.dart` → theme object (colors, typography, spacing) | ☑ |
+
+**Deliverables (2026-04-06):** `src/lib/datetime.ts` (date-fns + locale + TZ notes), `format.ts` (Intl), `ids.ts` + `crypto-bridge.ts` (uuid / expo-crypto), `supabase-errors.ts`, `src/hooks/useNetworkStatus.ts` (NetInfo), `src/theme/theme.ts` (light/dark from Flutter), dashboard offline banner; Vitest for format/datetime/errors/uuid.
 
 ---
 
 ## Phase 5 — Rebuild one screen at a time
 
-**Goal:** Vertical slices that connect navigation → UI → services → Firestore/Hive substitutes.
+**Goal:** Vertical slices that connect navigation → UI → repositories → **Supabase + local SQLite** (replacing Firestore/Hive behavior).
 
 Suggested **order** (adjust if product priority differs):
 
@@ -108,9 +172,13 @@ Suggested **order** (adjust if product priority differs):
 
 | Task | Done |
 |------|------|
-| Define “done” per screen: loads data, handles empty/error, matches critical Flutter actions | ☐ |
+| Define “done” per screen: loads data, handles empty/error, matches critical Flutter actions | ☑ (slice 1: auth + gate + dashboard header + treatments list/detail + providers list + medical save + settings logout) |
 | Copy assets and strings as needed per screen | ☐ |
-| Track deviations from Flutter in a short `docs/SCREEN_PARITY.md` (optional, add when first gap appears) | ☐ |
+| Track deviations from Flutter in a short `docs/SCREEN_PARITY.md` (optional, add when first gap appears) | ☑ |
+
+**Deliverables — Phase 5 slice 1 (2026-04-06):** `@supabase/supabase-js` + **SecureStore** client, `supabase/migrations/001_phase5_core.sql`, repositories (`medical-profile`, `treatments`, `providers`, `profile`), real **login/signup/logout**, **medical profile upsert**, **treatments** list/detail, **providers** list, [SUPABASE_SETUP.md](./SUPABASE_SETUP.md), [SCREEN_PARITY.md](./SCREEN_PARITY.md), `.env.example`.
+
+**Deliverables — Phase 5 slice 2 (2026-04-06):** **New treatment** (`createTreatmentForCurrentUser`, profile `treatment_count` bump), **add provider** (`createProviderForCurrentUser`, RLS-aligned `created_by` / `user_id`), nested stacks for **treatments** and **providers**, **calendar** (treatments by day), **face map** product shell + link to treatments, **terms** placeholder sections (replace with legal), **Supabase `postal_code`** mapping in `providerFromRemote`, **focus refresh** on dashboard / lists / calendar after saves. **Still next:** treatment edit, provider detail/edit, face-map ML, SQLite cache, reference catalogs (`laser_types`, etc.), asset/string parity.
 
 ---
 
@@ -123,8 +191,8 @@ Suggested **order** (adjust if product priority differs):
 | Create `src/native-stubs/` (or similar) with typed facades: `localAuth`, `permissions`, `storage`, etc. | ☐ |
 | Each stub: same async API as the real module; return safe defaults or throw a **`NotImplementedError` with message** in dev if misused | ☐ |
 | Replace stubs with Expo modules incrementally (`expo-local-authentication`, `expo-image-picker`, etc.) | ☐ |
-| Document Firebase choice: **JS SDK vs. React Native Firebase** and EAS build profiles | ☐ |
-| List Hive replacements per service (`preferences_service` → AsyncStorage/MMKV, etc.) | ☐ |
+| Confirm Supabase client setup, EAS env (URL, anon key), and **no direct DB access from screens** (repositories only) | ☐ |
+| List SQLite + SecureStore mappings per service (`preferences_service` default provider → local cache + sync rules) | ☐ |
 
 ---
 
@@ -148,8 +216,8 @@ Treat this as a **separate track** from screen-for-screen Flutter porting: it ne
 
 When you bootstrap the Expo app, verify these areas have an owner:
 
-- [ ] Firebase (Auth, Firestore, Storage, Analytics)  
-- [ ] Offline / local persistence (Hive parity)  
+- [x] Supabase (Auth, Postgres, RLS) — Storage / full parity TBD  
+- [ ] Local cache (Expo SQLite) + SecureStore + write-retry queue  
 - [ ] Biometrics  
 - [ ] Image pick / display  
 - [ ] Network status  
@@ -171,3 +239,8 @@ Track parity with the Flutter app version in this repo’s `package.json` or `ap
 |------|--------|
 | 2026-04-06 | Initial plan and inventory from `tap_app` tree and `pubspec.yaml` |
 | 2026-04-06 | Added big-picture docs: `SETTINGS_FEATURES.md` (copied), skin analyzer `IOS_APP_INTEGRATION.md`, and planned ML phase |
+| 2026-04-06 | Phase 1 complete: expanded `FLUTTER_INVENTORY.md`; fixed architecture code fence; aligned Phases 5–6 and dependency checklist with Supabase + SQLite |
+| 2026-04-06 | Phase 2 complete: `src/domain`, `SUPABASE_SCHEMA.md`, `STATE_AND_BLOC_MAPPING.md`, Vitest + Zod, `package.json` / `tsconfig` |
+| 2026-04-06 | Phase 3 complete: Expo Router `(auth)` / `(app)` / `legal`, session stub, dashboard hub stubs, `EXPO_ROUTES.md` |
+| 2026-04-06 | Phase 4 complete: shared lib (dates, Intl, ids, Supabase error mappers), NetInfo hook, expanded theme, `expo-crypto` |
+| 2026-04-06 | Phase 5 slice 1: Supabase auth + RLS schema migration + repositories + core screens wired |

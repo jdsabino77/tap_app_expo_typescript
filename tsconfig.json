@@ -1,0 +1,27 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@domain/*": [
+        "src/domain/*"
+      ],
+      "@lib/*": [
+        "src/lib/*"
+      ],
+      "@theme/*": [
+        "src/theme/*"
+      ],
+      "@hooks/*": [
+        "src/hooks/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "vitest.config.ts"
+  ]
+}
