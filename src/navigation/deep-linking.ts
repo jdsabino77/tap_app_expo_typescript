@@ -1,14 +1,18 @@
 /**
- * Deep linking — Phase 3
+ * Deep linking
  *
- * Scheme: `tap://` (see `app.json` → `expo.scheme`).
- * Expo Router builds paths from `app/`; groups like `(app)` are omitted from URLs.
+ * Scheme: `tap://` (see `app.config` / `expo.scheme`).
+ * Expo Router builds paths from `app/`; groups like `(app)` are omitted from URL paths.
+ *
+ * **Canonical route table:** `docs/EXPO_ROUTES.md`
  *
  * Examples (when universal links are configured later):
  * - `tap:///login` → `/(auth)/login`
- * - `tap:///treatments` → `/(app)/treatments`
+ * - `tap:///treatments` → treatments list
+ * - `tap:///calendar` → calendar (treatments + scheduled appointments)
+ * - `tap:///appointments/new` → new appointment
  *
- * No custom URL policies are required for MVP; add `+native-intent` or
- * `expo-linking` config when marketing pages need to open specific screens.
+ * No custom URL policies are required for the POC; extend when adding marketing
+ * links or EMR handoff URLs post-POC.
  */
 export const LINKING_SCHEME = "tap";

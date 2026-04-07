@@ -30,7 +30,7 @@ Implementation details and checklist: **[SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
 
 - **Consult** is a first-class visit type (typical for new patients).
 - **Treatment** reuses the same catalog-driven patterns as **New treatment** (service type, brand/device fields) but represents a **future** booking, not a completed log line in **`treatments`**.
-- Completing a scheduled visit could later be modeled as: create/update a **`treatments`** row and set **`appointments.status = completed`** (not required for the first slice).
+- **Appointment detail (mobile):** users can **cancel** (`status = cancelled`), **mark completed** (consult-only or when not logging a procedure), or **Log treatment from this visit** → **New treatment** with date/provider (and treatment-style fields when applicable) prefilled; a successful online save sets **`appointments.status = completed`**. Offline-queued treatment saves do not auto-complete the linked appointment.
 
 ### EMR / clinic scheduling (future API)
 

@@ -52,6 +52,7 @@ These docs sit **outside** strict Flutter→Expo parity but define product scope
 | Document | Location | Role in this migration |
 |----------|----------|-------------------------|
 | **Settings & preferences roadmap** | [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md) (copied from `tap_app`; canonical Flutter-era source: `../tap_app/docs/SETTINGS_FEATURES.md`) | Product backlog for Settings, account, theme, notifications, legal, data export, etc. Use when rebuilding **Settings** and when deciding what is MVP vs. later. |
+| **Expo Router map** | [EXPO_ROUTES.md](./EXPO_ROUTES.md) | Canonical **`app/`** routes, query params, nested stacks (`treatments`, `providers`, `appointments`), and deep-link notes. Maintain alongside [SCREEN_PARITY.md](./SCREEN_PARITY.md). |
 | **Skin analyzer → iOS app integration** | [`../../skin_analyzer_model/docs/IOS_APP_INTEGRATION.md`](../../skin_analyzer_model/docs/IOS_APP_INTEGRATION.md) (sibling of `tap_app` under `development/`) | End-to-end plan for on-device segmentation (capture → preprocess → **CoreML** → overlays/metrics → progress). Not a Flutter port item: plan **Expo dev client / native module** (or alternative ML stack) and stub the feature surface until the pipeline is chosen. |
 
 ---
@@ -196,10 +197,12 @@ Suggested **order** (adjust if product priority differs):
 
 **Deliverables — Phase 5 slice 10 (2026-04-07):** **Appointments** — migration [`006_appointments.sql`](../supabase/migrations/006_appointments.sql): `public.appointments` (consult vs treatment, optional **`provider_id`**, **`external_ref`** for clinic/EMR correlation). Repos: list + upcoming + create + **`fetchAppointmentByIdForCurrentUser`** + **`updateAppointmentForCurrentUser`**; queries use **`*, providers(name)`** embed → domain **`providerName`**. **Calendar:** logged treatments + **scheduled** appointments by day, **Add appointment**, rows show **provider** under date/time; tap → **`/appointments/[id]`** detail. **Dashboard:** **Upcoming appointments** (before recent treatments), tap → detail. **Navigation:** **`appointments/_layout`** nested stack (`new`, `[id]`, **`edit/[id]`**); parent **`(app)/_layout`** registers **`appointments`** with `headerShown: false`. Strategy notes: [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md) (calendar + EMR push). Schema/setup: [SUPABASE_SCHEMA.md](./SUPABASE_SCHEMA.md), [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) step for `006`.
 
+**Deliverables — Phase 5 slice 11 (2026-04-07):** **Appointment lifecycle (client):** **`setAppointmentStatusForCurrentUser`** (`cancelled` \| `completed`, only from **`scheduled`**). **Detail screen:** confirm dialogs, **Log treatment from this visit** → **`/treatments/new?fromAppointment=`** with prefill (date, provider, notes; treatment visits also modality / service / brand hydrate); online save runs **`setAppointmentStatusForCurrentUser(..., completed)`** after **`createTreatmentForCurrentUser`**; offline queue shows extra copy so users know the appointment stays **scheduled**. Docs: [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md), [SCREEN_PARITY.md](./SCREEN_PARITY.md).
+
 ### What’s next (recommended order)
 
-1. **Appointments — lifecycle & EMR:** In-app **cancel** / **mark complete** (and optional **“log visit”** → new **`treatments`** row + completed appointment). Server-side **ingest** (Edge Function + **service role**, idempotent upsert by **`external_ref`**) when product is ready.
-2. **Parity & docs:** Keep [SCREEN_PARITY.md](./SCREEN_PARITY.md) in sync; extend **`EXPO_ROUTES.md`** if you add public deep links.
+1. **Appointments — EMR ingest (server):** Supabase **Edge Function** (or other backend) with **service role**, idempotent **upsert** by **`external_ref`** + **`user_id`** resolution (see [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md)). Optional: show **cancelled/completed** appointments on Calendar for history (filter/grouping).
+2. **Parity & docs:** Keep [SCREEN_PARITY.md](./SCREEN_PARITY.md) + [EXPO_ROUTES.md](./EXPO_ROUTES.md) aligned with `app/` (2026-04-07 upkeep: appointments stack, query params, nested stacks, EMR deferred); extend when adding universal links or EMR handoff URLs.
 3. **Phase 6 checklist:** Typed **`src/native-stubs/`** (or incremental Expo modules) so missing native APIs fail loudly; confirm repositories-only DB access in new code.
 4. **Settings / product backlog:** Work through [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md) (notifications, export, theme, account, etc.).
 5. **Face map / skin analyzer:** Separate track — dev client / native ML (see **Planned capability — Skin analyzer** below and `IOS_APP_INTEGRATION.md`).
@@ -275,3 +278,5 @@ Track parity with the Flutter app version in this repo’s `package.json` or `ap
 | 2026-04-06 | Supabase CLI: `supabase init` + `config.toml`; `db:push` / `db:link` scripts; SUPABASE_SETUP clarifies schema not auto-applied by Expo |
 | 2026-04-06 | Phase 5: treatment photos (`003` column + `treatment-photos` bucket RLS); admin user list + `admin_set_user_admin` (`004`); `/admin-users` + Settings link |
 | 2026-04-07 | Phase 5 slice 10: **`006_appointments`**, calendar + dashboard upcoming visits, appointment detail/edit, **`providers(name)`** join, nested **`appointments`** stack; [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md) strategy updated |
+| 2026-04-07 | Phase 5 slice 11: appointment **cancel/complete**, **log visit** → new treatment + auto-complete when online; **`setAppointmentStatusForCurrentUser`** |
+| 2026-04-07 | Docs: [EXPO_ROUTES.md](./EXPO_ROUTES.md) + [SCREEN_PARITY.md](./SCREEN_PARITY.md) overhaul (appointments, query params, upkeep checklist); EMR integration explicitly **post-POC** |

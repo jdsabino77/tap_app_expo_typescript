@@ -1,5 +1,5 @@
 import { useFocusEffect } from "@react-navigation/native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { format, isValid, parseISO } from "date-fns";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -19,12 +19,23 @@ import { CatalogItemSelect } from "../../../src/components/catalog-item-select";
 import { TreatmentBrandFields } from "../../../src/components/treatment-brand-fields";
 import { CatalogLoadState, TreatmentAreaCatalogChips } from "../../../src/components/catalog-suggestions";
 import { filterServiceTypesForTreatment } from "../../../src/domain/reference-content";
-import { brandsForServiceTypeName, buildTreatmentBrandValue } from "../../../src/lib/treatment-brand-form";
+import {
+  brandsForServiceTypeName,
+  buildTreatmentBrandValue,
+  resolveBrandPickFromSaved,
+} from "../../../src/lib/treatment-brand-form";
 import type { TreatmentType } from "../../../src/domain/treatment";
 import { useReferenceCatalogs } from "../../../src/hooks/useReferenceCatalogs";
 import { pickTreatmentImages } from "../../../src/lib/pick-treatment-photos";
 import { isWriteQueuedError } from "../../../src/lib/write-queued-error";
-import { fetchProvidersForCurrentUser } from "../../../src/repositories/provider.repository";
+import {
+  fetchAppointmentByIdForCurrentUser,
+  setAppointmentStatusForCurrentUser,
+} from "../../../src/repositories/appointment.repository";
+import {
+  fetchProviderByIdForCurrentUser,
+  fetchProvidersForCurrentUser,
+} from "../../../src/repositories/provider.repository";
 import { createTreatmentForCurrentUser } from "../../../src/repositories/treatment.repository";
 import { MAX_TREATMENT_PHOTOS } from "../../../src/services/supabase/treatment-photos";
 import { appStrings } from "../../../src/strings/appStrings";
@@ -42,6 +53,14 @@ function parseDateInput(s: string): Date | null {
 }
 
 export default function NewTreatmentScreen() {
+  const params = useLocalSearchParams<{ fromAppointment?: string }>();
+  const fromAppointmentId =
+    typeof params.fromAppointment === "string"
+      ? params.fromAppointment
+      : Array.isArray(params.fromAppointment)
+        ? params.fromAppointment[0]
+        : undefined;
+
   const { supabaseEnabled } = useSession();
   const catalogs = useReferenceCatalogs();
   useFocusEffect(
@@ -66,6 +85,15 @@ export default function NewTreatmentScreen() {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [prefillLoading, setPrefillLoading] = useState(false);
+  const [prefillError, setPrefillError] = useState<string | null>(null);
+
+  const treatmentBrandSnapshotRef = useRef<{
+    savedBrand: string;
+    treatmentType: TreatmentType;
+    serviceType: string;
+  } | null>(null);
+  const lastBrandHydrateKeyRef = useRef("");
 
   const filteredServiceTypes = useMemo(
     () => filterServiceTypesForTreatment(catalogs.serviceTypes, treatmentType),
@@ -104,24 +132,146 @@ export default function NewTreatmentScreen() {
     [serviceType, catalogs.serviceTypes, catalogs.serviceTypeBrands],
   );
 
-  const loadProviders = useCallback(async () => {
-    if (!supabaseEnabled) {
-      return;
-    }
-    setLoadingProviders(true);
-    try {
-      const list = await fetchProvidersForCurrentUser();
-      setProviders(list);
-    } catch {
-      setProviders([]);
-    } finally {
-      setLoadingProviders(false);
-    }
-  }, [supabaseEnabled]);
+  const mergeProviderForPicker = useCallback(
+    async (list: Provider[], currentPid: string | null) => {
+      if (!currentPid || list.some((p) => p.id === currentPid)) {
+        return list;
+      }
+      try {
+        const extra = await fetchProviderByIdForCurrentUser(currentPid);
+        if (extra) {
+          return [...list, extra.provider];
+        }
+      } catch {
+        /* ignore */
+      }
+      return list;
+    },
+    [],
+  );
+
+  const loadProviders = useCallback(
+    async (ensureProviderId: string | null = null) => {
+      if (!supabaseEnabled) {
+        return;
+      }
+      setLoadingProviders(true);
+      try {
+        const list = await fetchProvidersForCurrentUser();
+        setProviders(await mergeProviderForPicker(list, ensureProviderId));
+      } catch {
+        setProviders([]);
+      } finally {
+        setLoadingProviders(false);
+      }
+    },
+    [supabaseEnabled, mergeProviderForPicker],
+  );
 
   useEffect(() => {
-    void loadProviders();
-  }, [loadProviders]);
+    if (fromAppointmentId) {
+      return;
+    }
+    void loadProviders(null);
+  }, [fromAppointmentId, loadProviders]);
+
+  useEffect(() => {
+    lastBrandHydrateKeyRef.current = "";
+  }, [fromAppointmentId]);
+
+  useEffect(() => {
+    if (!fromAppointmentId || !supabaseEnabled) {
+      treatmentBrandSnapshotRef.current = null;
+      return;
+    }
+    let cancelled = false;
+    setPrefillLoading(true);
+    setPrefillError(null);
+    void fetchAppointmentByIdForCurrentUser(fromAppointmentId)
+      .then(async (appt) => {
+        if (cancelled || !appt) {
+          if (!cancelled && !appt) {
+            setPrefillError("That appointment could not be loaded.");
+          }
+          return;
+        }
+        if (appt.status !== "scheduled") {
+          setPrefillError("Only a scheduled appointment can start this treatment log.");
+          return;
+        }
+        setDateStr(format(appt.scheduledAt, "yyyy-MM-dd"));
+        setProviderId(appt.providerId);
+        if (appt.notes.trim() !== "") {
+          setNotes(appt.notes.trim());
+        }
+        if (appt.appointmentKind === "treatment" && appt.treatmentType) {
+          const tt = appt.treatmentType;
+          setTreatmentType(tt);
+          setServiceType(appt.serviceType);
+          treatmentBrandSnapshotRef.current = {
+            savedBrand: appt.brand,
+            treatmentType: tt,
+            serviceType: appt.serviceType,
+          };
+          setBrandRowId("");
+          setBrandOtherDetail("");
+        } else {
+          treatmentBrandSnapshotRef.current = null;
+        }
+        await loadProviders(appt.providerId);
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setPrefillError(e instanceof Error ? e.message : "Failed to load appointment.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setPrefillLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fromAppointmentId, supabaseEnabled, loadProviders]);
+
+  useEffect(() => {
+    if (!fromAppointmentId || catalogs.loading) {
+      return;
+    }
+    const snap = treatmentBrandSnapshotRef.current;
+    if (!snap) {
+      return;
+    }
+    if (snap.serviceType !== serviceType || snap.treatmentType !== treatmentType) {
+      return;
+    }
+    const inj = injectableBrandOptions;
+    const brandIdsKey =
+      treatmentType === "laser"
+        ? catalogs.laserTypes.map((l) => l.id).join(",")
+        : inj.map((b) => b.id).join(",");
+    const hydrateKey = `${fromAppointmentId}:${brandIdsKey}:${snap.savedBrand}`;
+    if (lastBrandHydrateKeyRef.current === hydrateKey) {
+      return;
+    }
+    const { rowId, otherDetail } = resolveBrandPickFromSaved(
+      snap.savedBrand,
+      inj,
+      catalogs.laserTypes,
+      treatmentType,
+    );
+    setBrandRowId(rowId);
+    setBrandOtherDetail(otherDetail);
+    lastBrandHydrateKeyRef.current = hydrateKey;
+  }, [
+    fromAppointmentId,
+    catalogs.loading,
+    catalogs.laserTypes,
+    serviceType,
+    treatmentType,
+    injectableBrandOptions,
+  ]);
 
   const onSave = async () => {
     setError(null);
@@ -184,10 +334,20 @@ export default function NewTreatmentScreen() {
         },
         localPicks.length ? { addLocal: localPicks } : undefined,
       );
+      if (fromAppointmentId) {
+        try {
+          await setAppointmentStatusForCurrentUser(fromAppointmentId, "completed");
+        } catch {
+          Alert.alert("Appointment", appStrings.appointmentCompleteAfterTreatmentWarning);
+        }
+      }
       router.back();
     } catch (e) {
       if (isWriteQueuedError(e)) {
-        Alert.alert("Saved offline", e.message, [{ text: "OK", onPress: () => router.back() }]);
+        const msg = fromAppointmentId
+          ? `${e.message}\n\n${appStrings.appointmentOfflineLinkedAppointmentNote}`
+          : e.message;
+        Alert.alert("Saved offline", msg, [{ text: "OK", onPress: () => router.back() }]);
         return;
       }
       setError(e instanceof Error ? e.message : "Could not save treatment.");
@@ -211,6 +371,16 @@ export default function NewTreatmentScreen() {
     >
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <CatalogLoadState loading={catalogs.loading} error={catalogs.error} />
+        {prefillLoading ? (
+          <View style={styles.prefillRow}>
+            <ActivityIndicator color={colors.primaryNavy} />
+            <Text style={styles.prefillText}>Loading appointment…</Text>
+          </View>
+        ) : null}
+        {prefillError ? <Text style={styles.prefillErr}>{prefillError}</Text> : null}
+        {fromAppointmentId && !prefillLoading && !prefillError ? (
+          <Text style={styles.prefillOk}>{appStrings.appointmentLogVisitHint}</Text>
+        ) : null}
         <Text style={styles.label}>Type</Text>
         <View style={styles.row}>
           {(["injectable", "laser"] as const).map((t) => (
@@ -382,6 +552,10 @@ const styles = StyleSheet.create({
   padded: { flex: 1, padding: 16, backgroundColor: colors.lightGray },
   scroll: { padding: 16, paddingBottom: 40 },
   muted: { color: colors.textSecondary, lineHeight: 22 },
+  prefillRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
+  prefillText: { fontSize: 14, color: colors.textSecondary },
+  prefillErr: { color: colors.errorRed, marginBottom: 8, lineHeight: 20 },
+  prefillOk: { fontSize: 13, color: colors.textSecondary, marginBottom: 8, lineHeight: 18 },
   label: { fontSize: 13, fontWeight: "600", color: colors.textSecondary, marginBottom: 6, marginTop: 12 },
   catalogWarn: {
     fontSize: 13,

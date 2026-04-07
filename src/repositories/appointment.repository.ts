@@ -108,6 +108,38 @@ export type UpdateAppointmentInput = {
   notes: string;
 };
 
+/** Set status to **`cancelled`** or **`completed`** only when current status is **`scheduled`**. */
+export async function setAppointmentStatusForCurrentUser(
+  id: string,
+  status: "cancelled" | "completed",
+): Promise<Appointment> {
+  if (!isSupabaseConfigured()) {
+    throw new Error("Supabase not configured");
+  }
+  const supabase = getSupabase();
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) {
+    throw new Error("Not signed in");
+  }
+
+  const { data, error } = await supabase
+    .from("appointments")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("user_id", userData.user.id)
+    .eq("status", "scheduled")
+    .select(APPOINTMENT_SELECT)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  if (!data) {
+    throw new Error("Appointment not found or is no longer scheduled.");
+  }
+  return appointmentFromRow(data as AppointmentRowFromDb);
+}
+
 export async function updateAppointmentForCurrentUser(
   id: string,
   input: UpdateAppointmentInput,

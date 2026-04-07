@@ -48,6 +48,20 @@ export const appStrings = {
   appointmentNotesLabel: "Notes",
   appointmentDurationLabel: "Duration",
   appointmentStatusLabel: "Status",
+  appointmentCancelCta: "Cancel appointment",
+  appointmentCancelTitle: "Cancel this appointment?",
+  appointmentCancelMessage: "It will be removed from your upcoming visits. You can add a new one anytime.",
+  appointmentCompleteCta: "Mark as completed",
+  appointmentCompleteTitle: "Mark this visit completed?",
+  appointmentCompleteMessage:
+    "Use this when the visit happened and you are not logging a treatment in the app (for example, a consult only).",
+  appointmentLogVisitCta: "Log treatment from this visit",
+  appointmentLogVisitHint:
+    "Opens new treatment with date and provider prefilled. Saving marks this appointment completed.",
+  appointmentCompleteAfterTreatmentWarning:
+    "Treatment saved, but the appointment could not be marked completed. Open the appointment and tap Mark as completed.",
+  appointmentOfflineLinkedAppointmentNote:
+    "The linked appointment stays scheduled until you are online—then mark it completed from appointment details.",
   calendarListHint: "Logged treatments and upcoming visits by day. Add clinic visits from the button above.",
   calendarEmpty: "Nothing on your calendar yet. Log a past treatment or add an upcoming appointment.",
 
