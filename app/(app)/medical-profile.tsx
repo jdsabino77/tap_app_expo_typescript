@@ -1,5 +1,7 @@
+import { useFocusEffect } from "@react-navigation/native";
+import { format } from "date-fns";
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,7 +17,11 @@ import {
   genderSchema,
   skinTypeSchema,
 } from "../../src/domain/medical-profile";
-import { upsertMedicalProfile } from "../../src/repositories/medical-profile.repository";
+import {
+  fetchMedicalProfileForUser,
+  upsertMedicalProfile,
+} from "../../src/repositories/medical-profile.repository";
+import { appStrings } from "../../src/strings/appStrings";
 import { useSession } from "../../src/store/session";
 import { colors } from "../../src/theme/tokens";
 
@@ -24,6 +30,30 @@ function splitList(s: string): string[] {
     .split(/[,;\n]/)
     .map((x) => x.trim())
     .filter(Boolean);
+}
+
+function applyEmptyMedicalForm(
+  setters: {
+    setDob: (v: string) => void;
+    setGender: (v: string) => void;
+    setEthnicity: (v: string) => void;
+    setSkinType: (v: string) => void;
+    setAllergies: (v: string) => void;
+    setMedications: (v: string) => void;
+    setConditions: (v: string) => void;
+    setPrevTreatments: (v: string) => void;
+    setNotes: (v: string) => void;
+  },
+) {
+  setters.setDob("1990-01-01");
+  setters.setGender("preferNotToSay");
+  setters.setEthnicity("preferNotToSay");
+  setters.setSkinType("type3");
+  setters.setAllergies("");
+  setters.setMedications("");
+  setters.setConditions("");
+  setters.setPrevTreatments("");
+  setters.setNotes("");
 }
 
 export default function MedicalProfileScreen() {
@@ -42,6 +72,63 @@ export default function MedicalProfileScreen() {
   const [prevTreatments, setPrevTreatments] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!supabaseEnabled || !userId) {
+        setLoadingProfile(false);
+        setLoadError(null);
+        return;
+      }
+      let cancelled = false;
+      setLoadingProfile(true);
+      setLoadError(null);
+      void fetchMedicalProfileForUser(userId)
+        .then((row) => {
+          if (cancelled) {
+            return;
+          }
+          if (!row) {
+            applyEmptyMedicalForm({
+              setDob,
+              setGender,
+              setEthnicity,
+              setSkinType,
+              setAllergies,
+              setMedications,
+              setConditions,
+              setPrevTreatments,
+              setNotes,
+            });
+            return;
+          }
+          setDob(format(row.dateOfBirth, "yyyy-MM-dd"));
+          setGender(row.gender);
+          setEthnicity(row.ethnicity);
+          setSkinType(row.skinType);
+          setAllergies(row.allergies.join(", "));
+          setMedications(row.medications.join(", "));
+          setConditions(row.medicalConditions.join(", "));
+          setPrevTreatments(row.previousTreatments.join(", "));
+          setNotes(row.notes ?? "");
+        })
+        .catch((e) => {
+          if (!cancelled) {
+            setLoadError(e instanceof Error ? e.message : String(e));
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setLoadingProfile(false);
+          }
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [supabaseEnabled, userId]),
+  );
 
   const onSave = async () => {
     if (!supabaseEnabled) {
@@ -100,25 +187,50 @@ export default function MedicalProfileScreen() {
         </View>
       ) : null}
 
+      {loadError ? (
+        <View style={styles.warnBox}>
+          <Text style={styles.warnText}>{appStrings.medicalProfileLoadFailed}</Text>
+          <Text style={styles.warnDetail}>{loadError}</Text>
+        </View>
+      ) : null}
+
+      {supabaseEnabled && loadingProfile ? (
+        <ActivityIndicator color={colors.primaryNavy} style={styles.loader} />
+      ) : null}
+
       {supabaseEnabled ? (
         <>
           <Text style={styles.hint}>
             Gender: male, female, nonBinary, other, preferNotToSay · Ethnicity: caucasian, asian, … ·
             Skin: type1–type6
           </Text>
-          <TextInput style={styles.input} value={dob} onChangeText={setDob} placeholder="YYYY-MM-DD" />
-          <TextInput style={styles.input} value={gender} onChangeText={setGender} placeholder="gender" />
+          <TextInput
+            style={styles.input}
+            value={dob}
+            onChangeText={setDob}
+            placeholder="YYYY-MM-DD"
+            editable={!loadingProfile}
+          />
+          <TextInput
+            style={styles.input}
+            value={gender}
+            onChangeText={setGender}
+            placeholder="gender"
+            editable={!loadingProfile}
+          />
           <TextInput
             style={styles.input}
             value={ethnicity}
             onChangeText={setEthnicity}
             placeholder="ethnicity"
+            editable={!loadingProfile}
           />
           <TextInput
             style={styles.input}
             value={skinType}
             onChangeText={setSkinType}
             placeholder="skinType"
+            editable={!loadingProfile}
           />
           <TextInput
             style={[styles.input, styles.tall]}
@@ -126,6 +238,7 @@ export default function MedicalProfileScreen() {
             onChangeText={setAllergies}
             placeholder="Allergies (comma-separated)"
             multiline
+            editable={!loadingProfile}
           />
           <TextInput
             style={[styles.input, styles.tall]}
@@ -133,6 +246,7 @@ export default function MedicalProfileScreen() {
             onChangeText={setMedications}
             placeholder="Medications (comma-separated)"
             multiline
+            editable={!loadingProfile}
           />
           <TextInput
             style={[styles.input, styles.tall]}
@@ -140,6 +254,7 @@ export default function MedicalProfileScreen() {
             onChangeText={setConditions}
             placeholder="Medical conditions (comma-separated)"
             multiline
+            editable={!loadingProfile}
           />
           <TextInput
             style={[styles.input, styles.tall]}
@@ -147,6 +262,7 @@ export default function MedicalProfileScreen() {
             onChangeText={setPrevTreatments}
             placeholder="Previous treatments (comma-separated)"
             multiline
+            editable={!loadingProfile}
           />
           <TextInput
             style={[styles.input, styles.tall]}
@@ -154,13 +270,18 @@ export default function MedicalProfileScreen() {
             onChangeText={setNotes}
             placeholder="Notes"
             multiline
+            editable={!loadingProfile}
           />
         </>
       ) : (
         <Text style={styles.p}>Supabase off — tap Save to continue (stub).</Text>
       )}
 
-      <Pressable style={[styles.primary, saving && styles.disabled]} onPress={() => void onSave()} disabled={saving}>
+      <Pressable
+        style={[styles.primary, (saving || loadingProfile) && styles.disabled]}
+        onPress={() => void onSave()}
+        disabled={saving || loadingProfile}
+      >
         {saving ? (
           <ActivityIndicator color={colors.cleanWhite} />
         ) : (
@@ -184,6 +305,18 @@ const styles = StyleSheet.create({
   },
   badgeText: { color: colors.primaryNavy, fontWeight: "600", fontSize: 12 },
   hint: { marginTop: 8, fontSize: 12, color: colors.textSecondary, marginBottom: 8 },
+  loader: { marginVertical: 20 },
+  warnBox: {
+    marginTop: 10,
+    marginBottom: 8,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: "#FFF3CD",
+    borderWidth: 1,
+    borderColor: "#FFE69C",
+  },
+  warnText: { fontSize: 13, color: colors.textPrimary, fontWeight: "600" },
+  warnDetail: { fontSize: 12, color: colors.textSecondary, marginTop: 6 },
   p: { marginTop: 12, color: colors.textSecondary },
   input: {
     backgroundColor: colors.cleanWhite,

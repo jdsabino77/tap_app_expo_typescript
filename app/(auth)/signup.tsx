@@ -71,6 +71,11 @@ export default function SignUpScreen() {
         <PassportLogo size={100} />
         <Text style={styles.headline}>{appStrings.joinHeadline}</Text>
         <Text style={styles.sub}>{appStrings.joinSubtitle}</Text>
+        {supabaseEnabled ? (
+          <View style={styles.infoBox}>
+            <Text style={styles.infoText}>{appStrings.signUpWhatHappensHint}</Text>
+          </View>
+        ) : null}
 
         {supabaseEnabled ? (
           <>
@@ -172,11 +177,24 @@ const styles = StyleSheet.create({
   },
   sub: {
     marginTop: 8,
-    marginBottom: 24,
+    marginBottom: 12,
     fontSize: 15,
     color: colors.textSecondary,
     textAlign: "center",
     lineHeight: 20,
+  },
+  infoBox: {
+    backgroundColor: colors.cleanWhite,
+    borderWidth: 1,
+    borderColor: "#E9ECEF",
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 20,
+  },
+  infoText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 19,
   },
   input: {
     backgroundColor: colors.cleanWhite,

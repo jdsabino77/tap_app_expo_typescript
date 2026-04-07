@@ -52,6 +52,10 @@ export const appStrings = {
   createAccount: "Create Account",
   joinHeadline: "Join T.A.P by YasaLaser",
   joinSubtitle: "Create your account to start tracking treatments",
+  /** Shown on sign-up — keeps expectations aligned with Auth + `profiles` trigger + separate medical form. */
+  signUpWhatHappensHint:
+    "What happens next: we create your secure sign-in and a profile with your name and email. If your project uses email confirmation, check your inbox before logging in. Health and safety details are saved when you open Medical profile (not during this step).",
+
   firstNamePlaceholder: "First Name",
   firstNameHint: "Enter your first name",
   lastNamePlaceholder: "Last Name",
@@ -78,6 +82,8 @@ export const appStrings = {
   /** Alerts */
   checkEmailTitle: "Check your email",
   checkEmailBody: "Confirm your account, then sign in.",
+
+  medicalProfileLoadFailed: "Could not load your saved profile. You can still edit and save.",
 
   /** Hub links (Expo uses a stack hub; Flutter uses bottom nav — labels match nav intent) */
   navTreatments: "Treatments",
