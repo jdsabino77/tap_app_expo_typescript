@@ -35,3 +35,22 @@ export function formatShortDate(date: Date): string {
 export function formatIsoForApi(date: Date): string {
   return date.toISOString();
 }
+
+/** Build a local calendar Date from `YYYY-MM-DD` and `HH:mm` (24h). Returns null if invalid. */
+export function combineLocalYmdAndHm(dateYmd: string, timeHm: string): Date | null {
+  const dm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateYmd.trim());
+  const tm = /^(\d{1,2}):(\d{2})$/.exec(timeHm.trim());
+  if (!dm || !tm) {
+    return null;
+  }
+  const y = Number(dm[1]);
+  const mo = Number(dm[2]) - 1;
+  const d = Number(dm[3]);
+  const h = Number(tm[1]);
+  const mi = Number(tm[2]);
+  if (h > 23 || mi > 59 || !Number.isFinite(y)) {
+    return null;
+  }
+  const dt = new Date(y, mo, d, h, mi, 0, 0);
+  return isValid(dt) ? dt : null;
+}

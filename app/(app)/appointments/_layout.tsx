@@ -1,7 +1,8 @@
 import { Stack } from "expo-router";
 import { NestedStackExitBackButton } from "../../../src/components/parent-stack-back-button";
+import { appStrings } from "../../../src/strings/appStrings";
 
-export default function ProvidersStackLayout() {
+export default function AppointmentsStackLayout() {
   return (
     <Stack
       screenOptions={{
@@ -11,23 +12,25 @@ export default function ProvidersStackLayout() {
       }}
     >
       <Stack.Screen
-        name="index"
+        name="new"
         options={{
-          title: "Providers",
+          title: appStrings.newAppointmentTitle,
           headerLeft: () => <NestedStackExitBackButton />,
         }}
       />
       <Stack.Screen
-        name="new"
-        options={{ title: "Add provider", headerLeft: () => <NestedStackExitBackButton /> }}
-      />
-      <Stack.Screen
         name="[id]"
-        options={{ title: "Provider", headerLeft: () => <NestedStackExitBackButton /> }}
+        options={{
+          title: appStrings.appointmentDetailTitle,
+          headerLeft: () => <NestedStackExitBackButton />,
+        }}
       />
       <Stack.Screen
         name="edit/[id]"
-        options={{ title: "Edit provider", headerLeft: () => <NestedStackExitBackButton /> }}
+        options={{
+          title: appStrings.editAppointmentTitle,
+          headerLeft: () => <NestedStackExitBackButton />,
+        }}
       />
     </Stack>
   );

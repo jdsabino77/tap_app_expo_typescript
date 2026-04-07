@@ -9,8 +9,10 @@ import {
   Text,
   View,
 } from "react-native";
+import type { Appointment } from "../../src/domain/appointment";
 import type { Treatment } from "../../src/domain/treatment";
-import { formatDisplayDate } from "../../src/lib/datetime";
+import { formatDisplayDate, formatDisplayDateTime } from "../../src/lib/datetime";
+import { fetchUpcomingAppointmentsForCurrentUser } from "../../src/repositories/appointment.repository";
 import { fetchOwnProfileRow } from "../../src/repositories/profile.repository";
 import { fetchTreatmentsForCurrentUser } from "../../src/repositories/treatment.repository";
 import { appStrings } from "../../src/strings/appStrings";
@@ -60,6 +62,8 @@ export default function DashboardScreen() {
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [recent, setRecent] = useState<Treatment[] | null>(null);
   const [loadingRecent, setLoadingRecent] = useState(false);
+  const [upcoming, setUpcoming] = useState<Appointment[] | null>(null);
+  const [loadingUpcoming, setLoadingUpcoming] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -118,6 +122,36 @@ export default function DashboardScreen() {
         .finally(() => {
           if (!cancelled) {
             setLoadingRecent(false);
+          }
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [supabaseEnabled, email]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!supabaseEnabled) {
+        setUpcoming(null);
+        return;
+      }
+      let cancelled = false;
+      setLoadingUpcoming(true);
+      void fetchUpcomingAppointmentsForCurrentUser(new Date(), 5)
+        .then((rows) => {
+          if (!cancelled) {
+            setUpcoming(rows);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setUpcoming([]);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setLoadingUpcoming(false);
           }
         });
       return () => {
@@ -188,6 +222,41 @@ export default function DashboardScreen() {
         />
         <View style={styles.qaSpacer} />
       </View>
+
+      <Text style={styles.sectionTitle}>{appStrings.upcomingAppointments}</Text>
+      {!supabaseEnabled ? (
+        <Text style={styles.muted}>Connect Supabase to load appointments.</Text>
+      ) : loadingUpcoming ? (
+        <View style={styles.recentLoading}>
+          <ActivityIndicator color={colors.primaryNavy} />
+        </View>
+      ) : upcoming != null && upcoming.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptySub}>{appStrings.noUpcomingAppointments}</Text>
+          <Pressable style={styles.emptyBtn} onPress={() => router.push("/appointments/new")}>
+            <Text style={styles.emptyBtnText}>{appStrings.addAppointmentCta}</Text>
+          </Pressable>
+        </View>
+      ) : (
+        (upcoming ?? []).map((a) => (
+          <Pressable key={a.id} style={styles.apptCard} onPress={() => router.push(`/appointments/${a.id}`)}>
+            <Text style={styles.apptKind}>
+              {a.appointmentKind === "consult"
+                ? appStrings.appointmentKindConsult
+                : appStrings.appointmentKindTreatment}
+            </Text>
+            <Text style={styles.recentTitle}>
+              {a.appointmentKind === "treatment" && a.treatmentType
+                ? `${a.treatmentType} · ${a.serviceType}`
+                : a.serviceType}
+            </Text>
+            <Text style={styles.recentSub}>{formatDisplayDateTime(a.scheduledAt)}</Text>
+            <Text style={styles.recentSub}>
+              {a.providerName?.trim() ? a.providerName : appStrings.appointmentNoProvider}
+            </Text>
+          </Pressable>
+        ))
+      )}
 
       <Text style={styles.sectionTitle}>{appStrings.recentTreatments}</Text>
       {!supabaseEnabled ? (
@@ -317,6 +386,16 @@ const styles = StyleSheet.create({
   },
   recentTitle: { fontSize: 16, fontWeight: "600", color: colors.primaryNavy },
   recentSub: { marginTop: 4, fontSize: 14, color: colors.textSecondary },
+  apptCard: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    padding: 16,
+    backgroundColor: colors.cleanWhite,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primaryGold,
+  },
+  apptKind: { fontSize: 12, fontWeight: "700", color: colors.primaryNavy, marginBottom: 4 },
   muted: { paddingHorizontal: 16, color: colors.textSecondary, marginBottom: 12 },
   hubRow: {
     flexDirection: "row",

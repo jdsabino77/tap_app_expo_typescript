@@ -146,6 +146,7 @@ export default function MedicalProfileScreen() {
       return;
     }
     if (!userId) {
+      Alert.alert("Not signed in", "Your session is missing. Try signing out and back in.");
       return;
     }
 

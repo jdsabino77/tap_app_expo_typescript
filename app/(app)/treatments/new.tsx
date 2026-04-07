@@ -1,6 +1,7 @@
+import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
 import { format, isValid, parseISO } from "date-fns";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,13 +15,11 @@ import {
   TextInput,
   View,
 } from "react-native";
-import {
-  CatalogLoadState,
-  LaserBrandCatalogChips,
-  ServiceTypeCatalogChips,
-  TreatmentAreaCatalogChips,
-} from "../../../src/components/catalog-suggestions";
+import { CatalogItemSelect } from "../../../src/components/catalog-item-select";
+import { TreatmentBrandFields } from "../../../src/components/treatment-brand-fields";
+import { CatalogLoadState, TreatmentAreaCatalogChips } from "../../../src/components/catalog-suggestions";
 import { filterServiceTypesForTreatment } from "../../../src/domain/reference-content";
+import { brandsForServiceTypeName, buildTreatmentBrandValue } from "../../../src/lib/treatment-brand-form";
 import type { TreatmentType } from "../../../src/domain/treatment";
 import { useReferenceCatalogs } from "../../../src/hooks/useReferenceCatalogs";
 import { pickTreatmentImages } from "../../../src/lib/pick-treatment-photos";
@@ -28,6 +27,7 @@ import { isWriteQueuedError } from "../../../src/lib/write-queued-error";
 import { fetchProvidersForCurrentUser } from "../../../src/repositories/provider.repository";
 import { createTreatmentForCurrentUser } from "../../../src/repositories/treatment.repository";
 import { MAX_TREATMENT_PHOTOS } from "../../../src/services/supabase/treatment-photos";
+import { appStrings } from "../../../src/strings/appStrings";
 import { useSession } from "../../../src/store/session";
 import { colors } from "../../../src/theme/tokens";
 import type { Provider } from "../../../src/domain/provider";
@@ -44,13 +44,19 @@ function parseDateInput(s: string): Date | null {
 export default function NewTreatmentScreen() {
   const { supabaseEnabled } = useSession();
   const catalogs = useReferenceCatalogs();
+  useFocusEffect(
+    useCallback(() => {
+      void catalogs.refresh();
+    }, [catalogs.refresh]),
+  );
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loadingProviders, setLoadingProviders] = useState(false);
 
   const [treatmentType, setTreatmentType] = useState<TreatmentType>("injectable");
   const [serviceType, setServiceType] = useState("");
-  const [brand, setBrand] = useState("");
-  const [areasText, setAreasText] = useState("");
+  const [brandRowId, setBrandRowId] = useState("");
+  const [brandOtherDetail, setBrandOtherDetail] = useState("");
+  const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
   const [unitsText, setUnitsText] = useState("0");
   const [providerId, setProviderId] = useState<string | null>(null);
   const [dateStr, setDateStr] = useState(() => format(new Date(), "yyyy-MM-dd"));
@@ -64,6 +70,38 @@ export default function NewTreatmentScreen() {
   const filteredServiceTypes = useMemo(
     () => filterServiceTypesForTreatment(catalogs.serviceTypes, treatmentType),
     [catalogs.serviceTypes, treatmentType],
+  );
+
+  useEffect(() => {
+    if (filteredServiceTypes.length === 0) {
+      return;
+    }
+    setServiceType((prev) => {
+      const ok = filteredServiceTypes.some(
+        (s) => s.name.trim().toLowerCase() === prev.trim().toLowerCase(),
+      );
+      return ok ? prev : "";
+    });
+  }, [treatmentType, filteredServiceTypes]);
+
+  const prevModalityRef = useRef<TreatmentType | null>(null);
+  const prevServiceRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevModalityRef.current !== null && prevModalityRef.current !== treatmentType) {
+      setBrandRowId("");
+      setBrandOtherDetail("");
+    }
+    if (prevServiceRef.current !== null && prevServiceRef.current !== serviceType) {
+      setBrandRowId("");
+      setBrandOtherDetail("");
+    }
+    prevModalityRef.current = treatmentType;
+    prevServiceRef.current = serviceType;
+  }, [treatmentType, serviceType]);
+
+  const injectableBrandOptions = useMemo(
+    () => brandsForServiceTypeName(serviceType, catalogs.serviceTypes, catalogs.serviceTypeBrands),
+    [serviceType, catalogs.serviceTypes, catalogs.serviceTypeBrands],
   );
 
   const loadProviders = useCallback(async () => {
@@ -101,15 +139,16 @@ export default function NewTreatmentScreen() {
       setError("Use treatment date as YYYY-MM-DD.");
       return;
     }
-    const units = Number.parseInt(unitsText.trim(), 10);
-    if (!Number.isFinite(units) || units < 0) {
-      setError("Units must be a non-negative whole number.");
-      return;
+    let units = 0;
+    if (treatmentType === "injectable") {
+      const u = Number.parseInt(unitsText.trim(), 10);
+      if (!Number.isFinite(u) || u < 0) {
+        setError("Units must be a non-negative whole number.");
+        return;
+      }
+      units = u;
     }
-    const areas = areasText
-      .split(",")
-      .map((a) => a.trim())
-      .filter(Boolean);
+    const areas = [...selectedAreas];
     let cost: number | null = null;
     const ct = costText.trim();
     if (ct !== "") {
@@ -121,13 +160,21 @@ export default function NewTreatmentScreen() {
       cost = n;
     }
 
+    const brandValue = buildTreatmentBrandValue(
+      treatmentType,
+      brandRowId,
+      brandOtherDetail,
+      injectableBrandOptions,
+      catalogs.laserTypes,
+    );
+
     setSaving(true);
     try {
       await createTreatmentForCurrentUser(
         {
           treatmentType,
           serviceType: st,
-          brand: brand.trim(),
+          brand: brandValue.trim(),
           treatmentAreas: areas,
           units,
           providerId,
@@ -178,52 +225,53 @@ export default function NewTreatmentScreen() {
         </View>
 
         <Text style={styles.label}>Service type *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="e.g. Botox, IPL"
-          placeholderTextColor={colors.textLight}
+        {filteredServiceTypes.length === 0 ? (
+          <Text style={styles.catalogWarn}>{appStrings.treatmentServiceTypeEmptyList}</Text>
+        ) : null}
+        <CatalogItemSelect
+          sheetTitle={appStrings.treatmentServiceTypeSheetTitle}
           value={serviceType}
-          onChangeText={setServiceType}
-        />
-        <ServiceTypeCatalogChips
-          items={filteredServiceTypes}
-          current={serviceType}
-          onSelect={setServiceType}
+          options={filteredServiceTypes}
+          placeholder={appStrings.treatmentServiceTypePlaceholder}
+          onChange={setServiceType}
+          disabled={filteredServiceTypes.length === 0}
         />
 
-        <Text style={styles.label}>Brand</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Optional"
-          placeholderTextColor={colors.textLight}
-          value={brand}
-          onChangeText={setBrand}
+        <TreatmentBrandFields
+          treatmentType={treatmentType}
+          serviceTypeName={serviceType}
+          serviceTypes={catalogs.serviceTypes}
+          serviceTypeBrands={catalogs.serviceTypeBrands}
+          laserTypes={catalogs.laserTypes}
+          brandRowId={brandRowId}
+          onBrandRowId={setBrandRowId}
+          brandOtherDetail={brandOtherDetail}
+          onBrandOtherDetail={setBrandOtherDetail}
         />
-        {treatmentType === "laser" ? (
-          <LaserBrandCatalogChips items={catalogs.laserTypes} current={brand} onSelect={setBrand} />
-        ) : null}
 
         <Text style={styles.label}>Treatment areas</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Comma-separated (e.g. Forehead, Crow's feet)"
-          placeholderTextColor={colors.textLight}
-          value={areasText}
-          onChangeText={setAreasText}
-        />
+        <Text style={styles.areasSummary}>
+          {selectedAreas.length === 0
+            ? appStrings.treatmentAreasSummaryNone
+            : `${appStrings.treatmentAreasSummaryPrefix} ${selectedAreas.join(", ")}`}
+        </Text>
         <TreatmentAreaCatalogChips
           items={catalogs.treatmentAreas}
-          value={areasText}
-          onChange={setAreasText}
+          selected={selectedAreas}
+          onChangeSelected={setSelectedAreas}
         />
 
-        <Text style={styles.label}>Units</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="number-pad"
-          value={unitsText}
-          onChangeText={setUnitsText}
-        />
+        {treatmentType === "injectable" ? (
+          <>
+            <Text style={styles.label}>Units</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="number-pad"
+              value={unitsText}
+              onChangeText={setUnitsText}
+            />
+          </>
+        ) : null}
 
         <Text style={styles.label}>Treatment date (YYYY-MM-DD) *</Text>
         <TextInput
@@ -335,6 +383,19 @@ const styles = StyleSheet.create({
   scroll: { padding: 16, paddingBottom: 40 },
   muted: { color: colors.textSecondary, lineHeight: 22 },
   label: { fontSize: 13, fontWeight: "600", color: colors.textSecondary, marginBottom: 6, marginTop: 12 },
+  catalogWarn: {
+    fontSize: 13,
+    color: colors.warningOrange,
+    marginBottom: 8,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
+  areasSummary: {
+    fontSize: 14,
+    color: colors.textPrimary,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
   input: {
     backgroundColor: colors.cleanWhite,
     borderWidth: 1,

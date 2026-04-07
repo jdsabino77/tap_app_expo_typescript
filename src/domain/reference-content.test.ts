@@ -40,6 +40,7 @@ describe("parseReferenceCatalogBundleJson", () => {
     const bundle = {
       laserTypes: [{ id: "a", name: "CO2" }],
       serviceTypes: [{ id: "b", name: "Botox", appliesTo: "injectable" as const }],
+      serviceTypeBrands: [],
       treatmentAreas: [{ id: "c", name: "Forehead" }],
       providerServices: [{ id: "d", name: "Injectables" }],
     };

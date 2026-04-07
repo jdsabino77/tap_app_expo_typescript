@@ -1,4 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
+import * as Linking from "expo-linking";
 import React, {
   createContext,
   useCallback,
@@ -7,6 +8,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { Platform } from "react-native";
+import { applySupabaseAuthFromUrl, getAuthEmailRedirectUri } from "../lib/auth-deep-link";
 import { fetchMedicalProfileForUser } from "../repositories/medical-profile.repository";
 import { mapAuthErrorToUserMessage } from "../lib/supabase-errors";
 import { clearUserLocalCache } from "../services/local/clear-user-local-cache";
@@ -157,6 +160,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           email: p.email.trim(),
           password: p.password,
           options: {
+            emailRedirectTo: getAuthEmailRedirectUri(),
             data: {
               first_name: p.firstName.trim(),
               last_name: p.lastName.trim(),

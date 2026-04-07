@@ -1,5 +1,5 @@
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import type { LaserType, ProviderServiceCatalogItem, ServiceType, TreatmentArea } from "../domain/reference-content";
+import type { LaserType, ProviderServiceCatalogItem, TreatmentArea } from "../domain/reference-content";
 import { toggleCommaListItem } from "../lib/catalog-text";
 import { colors } from "../theme/tokens";
 
@@ -90,25 +90,6 @@ function CommaListChips({
   );
 }
 
-export function ServiceTypeCatalogChips({
-  items,
-  current,
-  onSelect,
-}: {
-  items: ServiceType[];
-  current: string;
-  onSelect: (name: string) => void;
-}) {
-  return (
-    <SingleNameChips
-      label="Service type suggestions"
-      items={items}
-      current={current}
-      onSelect={onSelect}
-    />
-  );
-}
-
 export function LaserBrandCatalogChips({
   items,
   current,
@@ -125,20 +106,74 @@ export function LaserBrandCatalogChips({
 
 export function TreatmentAreaCatalogChips({
   items,
-  value,
-  onChange,
+  selected,
+  onChangeSelected,
 }: {
   items: TreatmentArea[];
-  value: string;
-  onChange: (next: string) => void;
+  /** Canonical area names currently chosen (catalog names or legacy DB values). */
+  selected: string[];
+  onChangeSelected: (next: string[]) => void;
 }) {
+  if (items.length === 0) {
+    return null;
+  }
   return (
-    <CommaListChips
+    <CatalogMultiSelectChips
       label="Area suggestions (tap to add or remove)"
       items={items}
-      value={value}
-      onChange={onChange}
+      selected={selected}
+      onChangeSelected={onChangeSelected}
     />
+  );
+}
+
+function CatalogMultiSelectChips({
+  label,
+  items,
+  selected,
+  onChangeSelected,
+}: {
+  label: string;
+  items: { id: string; name: string }[];
+  selected: string[];
+  onChangeSelected: (next: string[]) => void;
+}) {
+  const toggle = (rawName: string) => {
+    const row = items.find((it) => it.name.trim().toLowerCase() === rawName.trim().toLowerCase());
+    const canon = row?.name ?? rawName.trim();
+    if (!canon) {
+      return;
+    }
+    const idx = selected.findIndex((s) => s.trim().toLowerCase() === canon.toLowerCase());
+    if (idx >= 0) {
+      onChangeSelected(selected.filter((_, i) => i !== idx));
+    } else {
+      onChangeSelected([...selected, canon]);
+    }
+  };
+
+  return (
+    <View style={styles.block}>
+      <Text style={styles.sublabel}>{label}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.strip}>
+        {items.map((it) => {
+          const on = selected.some(
+            (s) => s.trim().toLowerCase() === it.name.trim().toLowerCase(),
+          );
+          return (
+            <Pressable
+              key={it.id}
+              style={[styles.chip, on && styles.chipOn]}
+              onPress={() => toggle(it.name)}
+            >
+              <Text style={[styles.chipText, on && styles.chipTextOn]} numberOfLines={1}>
+                {it.name}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 }
 

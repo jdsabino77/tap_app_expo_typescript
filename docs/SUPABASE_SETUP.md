@@ -29,6 +29,8 @@ Use **one** of these approaches (same end state if done correctly).
 3. Paste and run **[`supabase/migrations/002_reference_catalogs.sql`](../supabase/migrations/002_reference_catalogs.sql)** (catalog tables, RLS, seed rows).
 4. Paste and run **[`supabase/migrations/003_treatment_photos.sql`](../supabase/migrations/003_treatment_photos.sql)** (`treatments.photo_urls`, Storage bucket + policies).
 5. Paste and run **[`supabase/migrations/004_admin_user_management.sql`](../supabase/migrations/004_admin_user_management.sql)** (admin profile listing policy + `admin_set_user_admin` RPC).
+6. Paste and run **[`supabase/migrations/005_service_type_brands.sql`](../supabase/migrations/005_service_type_brands.sql)** (`service_type_brands` per service type; `laser_types.is_other`; seeds + laser “Other”).
+7. Paste and run **[`supabase/migrations/006_appointments.sql`](../supabase/migrations/006_appointments.sql)** (`appointments` for upcoming consults / scheduled treatments; RLS).
 
 ### Option B — Supabase CLI (`db push`)
 
@@ -67,6 +69,23 @@ If sign up **fails** or seems to do nothing, check in order:
 4. **Schema applied** — If you see **“Database error saving new user”** (or similar), run **`001_phase5_core.sql`** so `profiles` exists and **`handle_new_user`** runs after each auth user is created.
 5. **Email confirmation** — If **“Confirm email”** is required, you will **not** get a session until the user clicks the link; the app shows **“Check your email”** and returns to login. For local testing, you can turn confirmation off under Email provider settings.
 
+### Email confirmation links show `http://localhost:3000/#access_token=…` (does not open the app)
+
+That URL comes from your **Supabase project’s default Site URL**, not from the Expo app. Until you configure redirects, Supabase falls back to **`http://localhost:3000`** for confirmation emails.
+
+Do this:
+
+1. **Expo app (this repo)** — Sign-up already sends **`emailRedirectTo`** from:
+   - **`EXPO_PUBLIC_SUPABASE_AUTH_REDIRECT_URL`** in `.env` / `app.config.js` `extra.authEmailRedirectUrl`, if set; otherwise
+   - **`Linking.createURL('/auth/callback')`** (uses `expo.scheme`, e.g. **`tap://…/auth/callback`** on a **dev or production native build**).
+2. **Supabase Dashboard** → **Authentication** → **URL Configuration**:
+   - Set **Site URL** to something meaningful for **web** (e.g. your deployed site or Expo web origin), **not** only `localhost:3000` if you are not running anything there.
+   - Under **Redirect URLs**, add the **exact** redirect URI(s) your app uses, for example:
+     - `tap:///auth/callback` or `tap://auth/callback` (match what the app logs / what `createURL` produces for your scheme **`tap`**),
+     - For **Expo Go**, URLs look like `exp://192.168.x.x:8081/--/auth/callback` and **change with your LAN IP** — either paste the current value into **Redirect URLs** or use a **development build** with a stable custom scheme and disable confirmation while iterating.
+3. **Native** — After the user taps the link, the OS opens the app; **`SessionProvider`** listens with **`expo-linking`**, parses `#access_token` / `refresh_token`, and calls **`setSession`**. **Expo Go** + email confirmation is fragile; prefer turning confirmation off for quick tests or using a **dev build**.
+4. **Web** — The Supabase client uses **`detectSessionInUrl`** on web so a redirect to your web origin with hash tokens can establish the session in the browser tab.
+
 ### Testing signup and `medical_profiles`
 
 1. **`001_phase5_core.sql` applied** — `medical_profiles` exists; RLS allows each user only their own `user_id` row (`medical_profiles_all_own`).
@@ -83,3 +102,5 @@ update public.profiles set is_admin = true where id = 'YOUR_AUTH_USER_UUID';
 ```
 
 After that, **Settings → Catalog admin** and **User admin** appear in the Expo app (catalog CRUD + toggling `is_admin` on *other* accounts). You cannot grant yourself admin from the app; use SQL for the first admin.
+
+**Pick lists vs. logged treatments:** Service type and treatment area UI read from **`service_types`** and **`treatment_areas`** (laser brands from **`laser_types`**), not from the **`treatments`** table. Migration **`002`** seeds starter rows; admins add or change rows in Supabase, and the app **refetches** that bundle when you open **New treatment** or **Edit treatment** (and uses the local cache if offline). See [SUPABASE_SCHEMA.md](./SUPABASE_SCHEMA.md) (reference catalog section and “Treatment form pick lists”).

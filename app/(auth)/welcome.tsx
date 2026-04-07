@@ -1,7 +1,10 @@
+import { useNavigation } from "@react-navigation/native";
 import { router } from "expo-router";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useLayoutEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { appStrings } from "../../src/strings/appStrings";
+import { useSession } from "../../src/store/session";
 import { colors } from "../../src/theme/tokens";
 
 function FeatureRow({
@@ -28,6 +31,23 @@ function FeatureRow({
 
 /** Flutter `WelcomePage` → `MedicalProfilePage(isOnboarding: true)`. */
 export default function WelcomeScreen() {
+  const navigation = useNavigation();
+  const { signOut } = useSession();
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <Pressable
+          onPress={() => void signOut().then(() => router.replace("/(auth)/login"))}
+          hitSlop={12}
+          style={styles.headerSignOut}
+        >
+          <Text style={styles.headerSignOutText}>{appStrings.welcomeExitSignOut}</Text>
+        </Pressable>
+      ),
+    });
+  }, [navigation, signOut]);
+
   return (
     <ScrollView contentContainerStyle={styles.scroll} style={styles.flex}>
       <View style={styles.heroIcon}>
@@ -112,4 +132,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   primaryText: { color: colors.primaryNavy, textAlign: "center", fontWeight: "700", fontSize: 16 },
+  headerSignOut: { paddingVertical: 6, paddingHorizontal: 4 },
+  headerSignOutText: { fontSize: 16, color: colors.primaryNavy, fontWeight: "600" },
 });

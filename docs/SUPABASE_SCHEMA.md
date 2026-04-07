@@ -1,6 +1,6 @@
 # Supabase schema sketch (from Flutter / Firestore)
 
-**Status:** Implemented as SQL in [`supabase/migrations/`](../supabase/migrations/) (`001` core, `002` catalogs, `003` treatment photos + storage, `004` admin user listing + RPC). The **Expo app does not apply** these files; your cloud project must run them via [SQL Editor or CLI `db push`](./SUPABASE_SETUP.md). Names use `snake_case` in Postgres; mappers convert to/from TS `camelCase` as needed.
+**Status:** Implemented as SQL in [`supabase/migrations/`](../supabase/migrations/) (`001` core, `002` catalogs, `003` treatment photos + storage, `004` admin user listing + RPC, `005` service-type brands, `006` appointments). The **Expo app does not apply** these files; your cloud project must run them via [SQL Editor or CLI `db push`](./SUPABASE_SETUP.md). Names use `snake_case` in Postgres; mappers convert to/from TS `camelCase` as needed.
 
 ---
 
@@ -58,6 +58,26 @@ Replaces `users/{uid}/treatments/{id}`.
 | `units` | `int` | |
 | `provider_id` | `uuid` FK → `providers.id` | nullable if legacy allows |
 | `treatment_date` | `timestamptz` | |
+
+### `appointments`
+
+Upcoming or historical **scheduled visits** (consult or treatment service). Distinct from **`treatments`** (completed procedure log). Sync-friendly via **`external_ref`**.
+
+| Column | Type | Notes |
+|--------|------|--------|
+| `id` | `uuid` PK | |
+| `user_id` | `uuid` FK → `profiles.id` | |
+| `appointment_kind` | `text` | `consult` \| `treatment` |
+| `treatment_type` | `text` | `injectable` \| `laser` if kind is `treatment`; **null** for `consult` |
+| `service_type` | `text` | Catalog-backed label; consult may use e.g. `Consultation` |
+| `brand` | `text` | Optional product/device |
+| `scheduled_at` | `timestamptz` | Start time |
+| `duration_minutes` | `int` | Optional |
+| `provider_id` | `uuid` FK → `providers.id` | Optional |
+| `notes` | `text` | |
+| `status` | `text` | `scheduled` \| `cancelled` \| `completed` |
+| `external_ref` | `text` | EMR / scheduling system id (optional) |
+| `created_at` / `updated_at` | `timestamptz` | |
 | `notes` | `text` default '' | |
 | `cost` | `numeric` | nullable |
 | `photo_urls` | `text[]` default `{}` | Storage object paths in bucket `treatment-photos` (`{user_id}/{treatment_id}/{file}`) |
@@ -102,10 +122,19 @@ Replaces top-level `providers` collection.
 | `serviceTypes` | `service_types` | + `applies_to` ∈ `injectable` \| `laser` \| `both` |
 | `treatmentAreas` | `treatment_areas` | Optional `category` |
 | `providerServices` | `provider_service_catalog` | |
+| (per–service-type brands) | `service_type_brands` | Migration `005_service_type_brands.sql` — FK → `service_types`; `is_other` row → free-text detail in app; seeds e.g. neuromodulator + filler stubs |
 
-**Shared columns (all four):** `id` (uuid), `name`, `description`, `icon`, `sort_order`, `is_default`, `is_active`, `created_by` (FK → `profiles`), `created_at`, `updated_at`.
+**`laser_types`:** optional `is_other` (005) for catalog row **Other** (device not listed).
+
+**Shared columns (all four core catalogs):** `id` (uuid), `name`, `description`, `icon`, `sort_order`, `is_default`, `is_active`, `created_by` (FK → `profiles`), `created_at`, `updated_at`.
 
 **RLS (implemented):** authenticated users **SELECT** rows where `is_active = true`. **INSERT/UPDATE/DELETE** only when `profiles.is_admin` for `auth.uid()`. Seeds run as SQL superuser (bypass RLS).
+
+**Treatment form pick lists (important):**
+
+- The **`treatments`** table holds **logged procedures** per user (what they saved). It is **not** the source for service-type or area **suggestions**.
+- **Service type** and **treatment area** dropdowns/chips load from **`service_types`** and **`treatment_areas`** (and laser **brand** from **`laser_types`**). The app reads these via `catalog.repository` → `fetchReferenceCatalogBundleFromRemote()`, caches the bundle locally, and refetches when the new/edit treatment screen is focused so **admin changes in Supabase (or Catalog admin)** show up without reinstalling the app.
+- **Initial defaults** for a new project come from **`002_reference_catalogs.sql` seed `INSERT`s** (idempotent “where not exists”). Admins add or edit rows later; the Expo app stays **dynamic** against whatever is **active** (`is_active = true`) in those tables.
 
 ---
 

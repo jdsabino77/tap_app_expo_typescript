@@ -28,6 +28,29 @@ export const appStrings = {
   quickActionProfileSub: "Medical info",
 
   recentTreatments: "Recent Treatments",
+  upcomingAppointments: "Upcoming appointments",
+  noUpcomingAppointments: "No upcoming appointments — book your next visit from Calendar.",
+  addAppointmentCta: "Add appointment",
+  newAppointmentTitle: "New appointment",
+  appointmentKindLabel: "Visit type",
+  appointmentKindConsult: "Consult",
+  appointmentKindTreatment: "Treatment",
+  appointmentDateLabel: "Date (YYYY-MM-DD)",
+  appointmentTimeLabel: "Time (24h, HH:mm)",
+  appointmentDurationHint: "Duration (minutes, optional)",
+  appointmentScheduledHint: "Must be a future date and time.",
+  appointmentDetailTitle: "Appointment",
+  editAppointmentTitle: "Edit appointment",
+  appointmentProviderLine: "Provider",
+  appointmentNoProvider: "No provider selected",
+  appointmentEditCta: "Edit",
+  saveAppointmentChanges: "Save changes",
+  appointmentNotesLabel: "Notes",
+  appointmentDurationLabel: "Duration",
+  appointmentStatusLabel: "Status",
+  calendarListHint: "Logged treatments and upcoming visits by day. Add clinic visits from the button above.",
+  calendarEmpty: "Nothing on your calendar yet. Log a past treatment or add an upcoming appointment.",
+
   noTreatmentsYet: "No treatments yet",
   noTreatmentsHint: "Start tracking your aesthetic procedures",
   addFirstTreatment: "Add First Treatment",
@@ -35,6 +58,24 @@ export const appStrings = {
   offlineBanner: "Offline — changes may queue until you reconnect.",
 
   treatmentsLogged: (n: number) => `Treatments logged: ${n}`,
+
+  treatmentServiceTypeSheetTitle: "Service type",
+  treatmentServiceTypePlaceholder: "Choose a service type",
+  treatmentServiceTypeEmptyList:
+    "No service types for this treatment type. Check your connection or ask an admin to add rows in Catalog admin.",
+
+  treatmentBrandLabel: "Brand",
+  treatmentBrandLaserTitle: "Laser / device",
+  treatmentBrandInjectableTitle: "Product / brand",
+  treatmentBrandPlaceholder: "Choose a brand or product",
+  treatmentBrandNoCatalogListHint:
+    "No brands are configured for this service type yet — you can type a value below (optional).",
+  treatmentBrandOtherHint: 'Required when "Other" is selected: enter the specific product or device name.',
+  treatmentBrandOptionalPlaceholder: "Type brand or product (optional)",
+  treatmentAreasSummaryNone: "Areas selected: none — tap suggestions below.",
+  treatmentAreasSummaryPrefix: "Areas selected:",
+  treatmentAreasLegacyNote:
+    "These areas are not in the current catalog. Tap × to remove, or keep them and they will still be saved.",
 
   /** Login (`login_page.dart`) */
   loginHeadline: "Welcome Back To Your\nAesthetic Passport",
@@ -62,6 +103,8 @@ export const appStrings = {
   lastNameHint: "Enter your last name",
   confirmPasswordPlaceholder: "Confirm password",
 
+  /** Welcome (`welcome_page.dart`) — returns to sign-in (signs out the session). */
+  welcomeExitSignOut: "Sign out",
   /** Welcome (`welcome_page.dart`) */
   welcomeTitle: "Welcome to T.A.P",
   welcomeBody:
@@ -72,6 +115,9 @@ export const appStrings = {
   welcomeFeature2Sub: "Manage your treatment calendar and appointments",
   welcomeFeature3Title: "View Analytics",
   welcomeFeature3Sub: "See insights about your treatment history",
+
+  /** Splash — skip animation to sign-in. */
+  splashSkip: "Skip",
   setUpMedicalProfile: "Set Up Medical Profile",
 
   /** Legal / terms */

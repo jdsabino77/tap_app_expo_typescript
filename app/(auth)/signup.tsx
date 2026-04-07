@@ -12,12 +12,14 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PassportLogo } from "../../src/components/PassportLogo";
 import { appStrings } from "../../src/strings/appStrings";
 import { useSession } from "../../src/store/session";
 import { colors } from "../../src/theme/tokens";
 
 export default function SignUpScreen() {
+  const insets = useSafeAreaInsets();
   const { supabaseEnabled, signUpWithDetails, devSignUpStub } = useSession();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -62,12 +64,20 @@ export default function SignUpScreen() {
     router.replace("/(app)");
   };
 
+  /** Extra space so users can scroll terms + button above the keyboard (do not auto-scroll on password focus — it hid the fields). */
+  const contentBottomPad = Math.max(insets.bottom, 16) + 100;
+
   return (
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[styles.container, { paddingBottom: contentBottomPad }]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator
+      >
         <PassportLogo size={100} />
         <Text style={styles.headline}>{appStrings.joinHeadline}</Text>
         <Text style={styles.sub}>{appStrings.joinSubtitle}</Text>
@@ -101,6 +111,9 @@ export default function SignUpScreen() {
               keyboardType="email-address"
               value={email}
               onChangeText={setEmail}
+              textContentType="username"
+              autoComplete="email"
+              autoCorrect={false}
             />
             <TextInput
               style={styles.input}
@@ -109,6 +122,10 @@ export default function SignUpScreen() {
               secureTextEntry
               value={password}
               onChangeText={setPassword}
+              textContentType={Platform.OS === "ios" ? "newPassword" : "password"}
+              autoComplete="password-new"
+              autoCorrect={false}
+              passwordRules="minlength: 6; maxlength: 128;"
             />
             <TextInput
               style={styles.input}
@@ -117,6 +134,9 @@ export default function SignUpScreen() {
               secureTextEntry
               value={confirm}
               onChangeText={setConfirm}
+              textContentType={Platform.OS === "ios" ? "password" : "password"}
+              autoComplete="password"
+              autoCorrect={false}
             />
             <Pressable
               style={styles.checkboxRow}
@@ -167,7 +187,7 @@ export default function SignUpScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.lightGray },
-  container: { padding: 24, paddingBottom: 48 },
+  container: { padding: 24 },
   headline: {
     marginTop: 20,
     fontSize: 22,

@@ -6,6 +6,7 @@ import { useSession } from "../store/session";
 const emptyBundle: ReferenceCatalogBundle = {
   laserTypes: [],
   serviceTypes: [],
+  serviceTypeBrands: [],
   treatmentAreas: [],
   providerServices: [],
 };
@@ -42,6 +43,7 @@ export function useReferenceCatalogs() {
   return {
     laserTypes: bundle.laserTypes,
     serviceTypes: bundle.serviceTypes,
+    serviceTypeBrands: bundle.serviceTypeBrands,
     treatmentAreas: bundle.treatmentAreas,
     providerServices: bundle.providerServices,
     loading,

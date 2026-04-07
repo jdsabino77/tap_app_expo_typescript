@@ -1,3 +1,4 @@
+import { useFocusEffect } from "@react-navigation/native";
 import { router, useLocalSearchParams } from "expo-router";
 import { format, isValid, parseISO } from "date-fns";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -14,14 +15,16 @@ import {
   TextInput,
   View,
 } from "react-native";
-import {
-  CatalogLoadState,
-  LaserBrandCatalogChips,
-  ServiceTypeCatalogChips,
-  TreatmentAreaCatalogChips,
-} from "../../../../src/components/catalog-suggestions";
+import { CatalogItemSelect } from "../../../../src/components/catalog-item-select";
+import { CatalogLoadState, TreatmentAreaCatalogChips } from "../../../../src/components/catalog-suggestions";
+import { TreatmentBrandFields } from "../../../../src/components/treatment-brand-fields";
 import type { Provider } from "../../../../src/domain/provider";
 import { filterServiceTypesForTreatment } from "../../../../src/domain/reference-content";
+import {
+  brandsForServiceTypeName,
+  buildTreatmentBrandValue,
+  resolveBrandPickFromSaved,
+} from "../../../../src/lib/treatment-brand-form";
 import type { TreatmentType } from "../../../../src/domain/treatment";
 import { useReferenceCatalogs } from "../../../../src/hooks/useReferenceCatalogs";
 import { pickTreatmentImages } from "../../../../src/lib/pick-treatment-photos";
@@ -36,6 +39,7 @@ import {
   updateTreatmentForCurrentUser,
 } from "../../../../src/repositories/treatment.repository";
 import { MAX_TREATMENT_PHOTOS } from "../../../../src/services/supabase/treatment-photos";
+import { appStrings } from "../../../../src/strings/appStrings";
 import { useSession } from "../../../../src/store/session";
 import { colors } from "../../../../src/theme/tokens";
 
@@ -52,14 +56,20 @@ export default function EditTreatmentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { supabaseEnabled } = useSession();
   const catalogs = useReferenceCatalogs();
+  useFocusEffect(
+    useCallback(() => {
+      void catalogs.refresh();
+    }, [catalogs.refresh]),
+  );
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loadingProviders, setLoadingProviders] = useState(false);
   const [loadingTreatment, setLoadingTreatment] = useState(true);
 
   const [treatmentType, setTreatmentType] = useState<TreatmentType>("injectable");
   const [serviceType, setServiceType] = useState("");
-  const [brand, setBrand] = useState("");
-  const [areasText, setAreasText] = useState("");
+  const [brandRowId, setBrandRowId] = useState("");
+  const [brandOtherDetail, setBrandOtherDetail] = useState("");
+  const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
   const [unitsText, setUnitsText] = useState("0");
   const [providerId, setProviderId] = useState<string | null>(null);
   const [dateStr, setDateStr] = useState(() => format(new Date(), "yyyy-MM-dd"));
@@ -75,10 +85,101 @@ export default function EditTreatmentScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
 
+  const treatmentBrandSnapshotRef = useRef<{
+    savedBrand: string;
+    treatmentType: TreatmentType;
+    serviceType: string;
+  } | null>(null);
+  const lastBrandHydrateKeyRef = useRef<string>("");
+
   const filteredServiceTypes = useMemo(
     () => filterServiceTypesForTreatment(catalogs.serviceTypes, treatmentType),
     [catalogs.serviceTypes, treatmentType],
   );
+
+  useEffect(() => {
+    if (filteredServiceTypes.length === 0) {
+      return;
+    }
+    setServiceType((prev) => {
+      const ok = filteredServiceTypes.some(
+        (s) => s.name.trim().toLowerCase() === prev.trim().toLowerCase(),
+      );
+      return ok ? prev : "";
+    });
+  }, [treatmentType, filteredServiceTypes]);
+
+  const prevModalityRef = useRef<TreatmentType | null>(null);
+  const prevServiceRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevModalityRef.current !== null && prevModalityRef.current !== treatmentType) {
+      setBrandRowId("");
+      setBrandOtherDetail("");
+      treatmentBrandSnapshotRef.current = null;
+    }
+    if (prevServiceRef.current !== null && prevServiceRef.current !== serviceType) {
+      setBrandRowId("");
+      setBrandOtherDetail("");
+      treatmentBrandSnapshotRef.current = null;
+    }
+    prevModalityRef.current = treatmentType;
+    prevServiceRef.current = serviceType;
+  }, [treatmentType, serviceType]);
+
+  const injectableBrandOptions = useMemo(
+    () => brandsForServiceTypeName(serviceType, catalogs.serviceTypes, catalogs.serviceTypeBrands),
+    [serviceType, catalogs.serviceTypes, catalogs.serviceTypeBrands],
+  );
+
+  useEffect(() => {
+    lastBrandHydrateKeyRef.current = "";
+  }, [id]);
+
+  useEffect(() => {
+    if (loadingTreatment || catalogs.loading) {
+      return;
+    }
+    const snap = treatmentBrandSnapshotRef.current;
+    if (!snap) {
+      return;
+    }
+    if (snap.serviceType !== serviceType || snap.treatmentType !== treatmentType) {
+      return;
+    }
+    const inj = injectableBrandOptions;
+    const brandIdsKey =
+      treatmentType === "laser"
+        ? catalogs.laserTypes.map((l) => l.id).join(",")
+        : inj.map((b) => b.id).join(",");
+    const hydrateKey = `${id}:${brandIdsKey}:${snap.savedBrand}`;
+    if (lastBrandHydrateKeyRef.current === hydrateKey) {
+      return;
+    }
+    const { rowId, otherDetail } = resolveBrandPickFromSaved(
+      snap.savedBrand,
+      inj,
+      catalogs.laserTypes,
+      treatmentType,
+    );
+    setBrandRowId(rowId);
+    setBrandOtherDetail(otherDetail);
+    lastBrandHydrateKeyRef.current = hydrateKey;
+  }, [
+    id,
+    loadingTreatment,
+    catalogs.loading,
+    catalogs.laserTypes,
+    serviceType,
+    treatmentType,
+    injectableBrandOptions,
+  ]);
+
+  const legacySelectedAreas = useMemo(() => {
+    const catalogLower = new Set(
+      catalogs.treatmentAreas.map((a) => a.name.trim().toLowerCase()),
+    );
+    return selectedAreas.filter((s) => !catalogLower.has(s.trim().toLowerCase()));
+  }, [selectedAreas, catalogs.treatmentAreas]);
 
   const mergeProviderForPicker = useCallback(
     async (list: Provider[], currentPid: string | null) => {
@@ -134,8 +235,14 @@ export default function EditTreatmentScreen() {
         }
         setTreatmentType(t.treatmentType);
         setServiceType(t.serviceType);
-        setBrand(t.brand);
-        setAreasText(t.treatmentAreas.join(", "));
+        treatmentBrandSnapshotRef.current = {
+          savedBrand: t.brand,
+          treatmentType: t.treatmentType,
+          serviceType: t.serviceType,
+        };
+        setBrandRowId("");
+        setBrandOtherDetail("");
+        setSelectedAreas([...t.treatmentAreas]);
         setUnitsText(String(t.units));
         const pid = t.providerId && t.providerId !== "" ? t.providerId : null;
         setProviderId(pid);
@@ -202,15 +309,23 @@ export default function EditTreatmentScreen() {
       setError("Use treatment date as YYYY-MM-DD.");
       return;
     }
-    const units = Number.parseInt(unitsText.trim(), 10);
-    if (!Number.isFinite(units) || units < 0) {
-      setError("Units must be a non-negative whole number.");
-      return;
+    let units = 0;
+    if (treatmentType === "injectable") {
+      const u = Number.parseInt(unitsText.trim(), 10);
+      if (!Number.isFinite(u) || u < 0) {
+        setError("Units must be a non-negative whole number.");
+        return;
+      }
+      units = u;
     }
-    const areas = areasText
-      .split(",")
-      .map((a) => a.trim())
-      .filter(Boolean);
+    const areas = [...selectedAreas];
+    const brandValue = buildTreatmentBrandValue(
+      treatmentType,
+      brandRowId,
+      brandOtherDetail,
+      injectableBrandOptions,
+      catalogs.laserTypes,
+    );
     let cost: number | null = null;
     const ct = costText.trim();
     if (ct !== "") {
@@ -238,7 +353,7 @@ export default function EditTreatmentScreen() {
         {
           treatmentType,
           serviceType: st,
-          brand: brand.trim(),
+          brand: brandValue.trim(),
           treatmentAreas: areas,
           units,
           providerId,
@@ -306,52 +421,72 @@ export default function EditTreatmentScreen() {
         </View>
 
         <Text style={styles.label}>Service type *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="e.g. Botox, IPL"
-          placeholderTextColor={colors.textLight}
+        {filteredServiceTypes.length === 0 ? (
+          <Text style={styles.catalogWarn}>{appStrings.treatmentServiceTypeEmptyList}</Text>
+        ) : null}
+        <CatalogItemSelect
+          sheetTitle={appStrings.treatmentServiceTypeSheetTitle}
           value={serviceType}
-          onChangeText={setServiceType}
-        />
-        <ServiceTypeCatalogChips
-          items={filteredServiceTypes}
-          current={serviceType}
-          onSelect={setServiceType}
+          options={filteredServiceTypes}
+          placeholder={appStrings.treatmentServiceTypePlaceholder}
+          onChange={setServiceType}
+          disabled={filteredServiceTypes.length === 0}
         />
 
-        <Text style={styles.label}>Brand</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Optional"
-          placeholderTextColor={colors.textLight}
-          value={brand}
-          onChangeText={setBrand}
+        <TreatmentBrandFields
+          treatmentType={treatmentType}
+          serviceTypeName={serviceType}
+          serviceTypes={catalogs.serviceTypes}
+          serviceTypeBrands={catalogs.serviceTypeBrands}
+          laserTypes={catalogs.laserTypes}
+          brandRowId={brandRowId}
+          onBrandRowId={setBrandRowId}
+          brandOtherDetail={brandOtherDetail}
+          onBrandOtherDetail={setBrandOtherDetail}
         />
-        {treatmentType === "laser" ? (
-          <LaserBrandCatalogChips items={catalogs.laserTypes} current={brand} onSelect={setBrand} />
-        ) : null}
 
         <Text style={styles.label}>Treatment areas</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Comma-separated"
-          placeholderTextColor={colors.textLight}
-          value={areasText}
-          onChangeText={setAreasText}
-        />
+        <Text style={styles.areasSummary}>
+          {selectedAreas.length === 0
+            ? appStrings.treatmentAreasSummaryNone
+            : `${appStrings.treatmentAreasSummaryPrefix} ${selectedAreas.join(", ")}`}
+        </Text>
+        {legacySelectedAreas.length > 0 ? (
+          <View style={styles.legacyBox}>
+            <Text style={styles.legacyNote}>{appStrings.treatmentAreasLegacyNote}</Text>
+            {legacySelectedAreas.map((a) => (
+              <Pressable
+                key={a}
+                style={styles.legacyRow}
+                onPress={() =>
+                  setSelectedAreas((cur) =>
+                    cur.filter((x) => x.trim().toLowerCase() !== a.trim().toLowerCase()),
+                  )
+                }
+              >
+                <Text style={styles.legacyText}>{a}</Text>
+                <Text style={styles.legacyRemove}>×</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
         <TreatmentAreaCatalogChips
           items={catalogs.treatmentAreas}
-          value={areasText}
-          onChange={setAreasText}
+          selected={selectedAreas}
+          onChangeSelected={setSelectedAreas}
         />
 
-        <Text style={styles.label}>Units</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="number-pad"
-          value={unitsText}
-          onChangeText={setUnitsText}
-        />
+        {treatmentType === "injectable" ? (
+          <>
+            <Text style={styles.label}>Units</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="number-pad"
+              value={unitsText}
+              onChangeText={setUnitsText}
+            />
+          </>
+        ) : null}
 
         <Text style={styles.label}>Treatment date (YYYY-MM-DD) *</Text>
         <TextInput style={styles.input} autoCapitalize="none" value={dateStr} onChangeText={setDateStr} />
@@ -474,6 +609,42 @@ const styles = StyleSheet.create({
   scroll: { padding: 16, paddingBottom: 40 },
   muted: { color: colors.textSecondary, lineHeight: 22 },
   label: { fontSize: 13, fontWeight: "600", color: colors.textSecondary, marginBottom: 6, marginTop: 12 },
+  catalogWarn: {
+    fontSize: 13,
+    color: colors.warningOrange,
+    marginBottom: 8,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
+  areasSummary: {
+    fontSize: 14,
+    color: colors.textPrimary,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  legacyBox: {
+    marginBottom: 10,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: "#FFF8E7",
+    borderWidth: 1,
+    borderColor: "#FFE082",
+  },
+  legacyNote: { fontSize: 12, color: colors.textSecondary, marginBottom: 8, lineHeight: 17 },
+  legacyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginBottom: 6,
+    backgroundColor: colors.cleanWhite,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#E9ECEF",
+  },
+  legacyText: { flex: 1, fontSize: 14, color: colors.textPrimary },
+  legacyRemove: { fontSize: 22, color: colors.errorRed, paddingHorizontal: 8 },
   input: {
     backgroundColor: colors.cleanWhite,
     borderWidth: 1,

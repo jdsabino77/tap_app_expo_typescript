@@ -3,6 +3,46 @@
 ## Overview
 Comprehensive settings page for user account management, preferences, and app configuration.
 
+## Before production: Supabase email confirmation
+
+**Interim (development):** In the Supabase dashboard, under **Authentication → Providers → Email**, leave **Confirm email** **disabled** so new accounts can sign in immediately without clicking a confirmation link.
+
+**Before launch:** Re-enable **Confirm email** and finish the full flow:
+
+- Set **Site URL** and **Redirect URLs** so confirmation links do not point at a dead default (e.g. `http://localhost:3000`).
+- Use a stable app redirect (custom scheme / dev or store build), and allow-list it in Supabase; configure **`EXPO_PUBLIC_SUPABASE_AUTH_REDIRECT_URL`** if needed.
+- Verify the link opens the app (or web) and establishes a session end-to-end.
+
+Implementation details and checklist: **[SUPABASE_SETUP.md](./SUPABASE_SETUP.md)** (email confirmation section).
+
+## Calendar, appointments & EMR integration (strategy)
+
+**Goal:** Patients often book their **next** visit when leaving the clinic. The app needs **upcoming** items on the home screen and a **Calendar** that mixes **logged treatments** (historical procedures) with **scheduled visits** stored in Postgres.
+
+### Data model (Expo + Supabase)
+
+- Table **`appointments`** (migration **`006_appointments.sql`**) holds user-scoped rows: **Consult** (first-time / evaluation) or **Treatment** (scheduled service), optional **injectable / laser** modality for treatment visits, **service type** and **brand** aligned with the treatment form catalogs, **scheduled_at**, optional **duration**, **provider**, **notes**, **status** (`scheduled` \| `cancelled` \| `completed`), and **`external_ref`** for ids from outside systems.
+- **RLS:** users can only read/write their own rows (`user_id = auth.uid()`).
+- The **Dashboard** loads the next few **`scheduled`** appointments **after now** for an **Upcoming appointments** section.
+- The **Calendar** screen loads **all** appointments (for history/cancelled later if needed) and **treatments**, grouped by calendar day.
+
+### Product behavior
+
+- **Consult** is a first-class visit type (typical for new patients).
+- **Treatment** reuses the same catalog-driven patterns as **New treatment** (service type, brand/device fields) but represents a **future** booking, not a completed log line in **`treatments`**.
+- Completing a scheduled visit could later be modeled as: create/update a **`treatments`** row and set **`appointments.status = completed`** (not required for the first slice).
+
+### EMR / clinic scheduling (future API)
+
+- A **server-side API** (or Supabase **Edge Function** with service role) can accept webhooks or polls from an **EMR / scheduling** product when a patient **confirms** an appointment.
+- That API should **upsert** into **`public.appointments`** for the matching **`user_id`** (resolved via mapped patient id or email), set **`external_ref`** to the EMR encounter id, and set **`scheduled_at`** / metadata from the EMR payload so the mobile app’s calendar updates without manual entry.
+- **Security:** never expose the service role key in the app; only the backend or Edge Function should insert cross-system rows, or use **RLS-safe** patterns with user JWT if the EMR integration is per-user OAuth.
+
+### Documentation
+
+- Schema: **[SUPABASE_SCHEMA.md](./SUPABASE_SCHEMA.md)** (`appointments` section).
+- Apply migration: **[SUPABASE_SETUP.md](./SUPABASE_SETUP.md)** step **006**.
+
 ## Current Implementation Status
 
 ### ✅ Completed Features

@@ -1,4 +1,7 @@
-import { Link } from "expo-router";
+import { HeaderBackButton, type HeaderBackButtonProps } from "@react-navigation/elements";
+import { useNavigation } from "@react-navigation/native";
+import { Link, useRouter } from "expo-router";
+import { useLayoutEffect } from "react";
 import { ScrollView, StyleSheet, Text } from "react-native";
 import { colors } from "../../src/theme/tokens";
 
@@ -7,6 +10,26 @@ import { colors } from "../../src/theme/tokens";
  * Serves as a structured placeholder for Flutter `TermsAndConditionsPage`.
  */
 export default function TermsScreen() {
+  const navigation = useNavigation();
+  const router = useRouter();
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: (props: HeaderBackButtonProps) => (
+        <HeaderBackButton
+          {...props}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace("/(auth)/login");
+            }
+          }}
+        />
+      ),
+    });
+  }, [navigation, router]);
+
   return (
     <ScrollView contentContainerStyle={styles.body}>
       <Text style={styles.warn}>

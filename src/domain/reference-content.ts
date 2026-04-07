@@ -10,6 +10,8 @@ export const laserTypeSchema = z.object({
   order: z.number().int().optional(),
   isDefault: z.boolean().optional(),
   isActive: z.boolean().optional(),
+  /** When true, user may enter a custom device / brand name. */
+  isOther: z.boolean().optional(),
   createdBy: z.string().optional(),
 });
 
@@ -26,6 +28,16 @@ export const serviceTypeSchema = z.object({
   appliesTo: appliesToSchema.default("both"),
   order: z.number().int().optional(),
   isDefault: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+});
+
+/** `service_type_brands` — pick list per `service_types` row (injectable / both forms). */
+export const serviceTypeBrandSchema = z.object({
+  id: z.string(),
+  serviceTypeId: z.string(),
+  name: z.string(),
+  isOther: z.boolean().optional(),
+  order: z.number().int().optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -51,6 +63,7 @@ export const providerServiceCatalogSchema = z.object({
 
 export type LaserType = z.infer<typeof laserTypeSchema>;
 export type ServiceType = z.infer<typeof serviceTypeSchema>;
+export type ServiceTypeBrand = z.infer<typeof serviceTypeBrandSchema>;
 export type TreatmentArea = z.infer<typeof treatmentAreaSchema>;
 export type ProviderServiceCatalogItem = z.infer<typeof providerServiceCatalogSchema>;
 
@@ -58,6 +71,7 @@ export type ProviderServiceCatalogItem = z.infer<typeof providerServiceCatalogSc
 export const referenceCatalogBundleSchema = z.object({
   laserTypes: z.array(laserTypeSchema),
   serviceTypes: z.array(serviceTypeSchema),
+  serviceTypeBrands: z.array(serviceTypeBrandSchema).optional().default([]),
   treatmentAreas: z.array(treatmentAreaSchema),
   providerServices: z.array(providerServiceCatalogSchema),
 });

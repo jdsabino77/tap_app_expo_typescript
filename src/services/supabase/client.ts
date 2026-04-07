@@ -102,7 +102,8 @@ export function getSupabase(): SupabaseClient {
         },
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: false,
+        /** Web: recovering session when email link lands on a browser tab with `#access_token=…`. Native uses `Linking` + `applySupabaseAuthFromUrl`. */
+        detectSessionInUrl: Platform.OS === "web",
       },
     });
   }

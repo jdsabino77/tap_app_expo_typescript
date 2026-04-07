@@ -142,7 +142,9 @@ export default function TreatmentDetailScreen() {
       </Text>
       <Text style={styles.line}>{formatDisplayDateTime(row.treatmentDate)}</Text>
       <Text style={styles.line}>Brand: {row.brand || "—"}</Text>
-      <Text style={styles.line}>Units: {row.units}</Text>
+      {row.treatmentType === "injectable" ? (
+        <Text style={styles.line}>Units: {row.units}</Text>
+      ) : null}
       <Text style={styles.line}>Areas: {row.treatmentAreas.join(", ") || "—"}</Text>
       {row.cost != null ? (
         <Text style={styles.line}>Cost: {formatCurrency(Number(row.cost))}</Text>

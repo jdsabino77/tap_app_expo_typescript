@@ -166,7 +166,7 @@ Suggested **order** (adjust if product priority differs):
 5. Face map  
 6. Providers list → add provider  
 7. Medical profile  
-8. Calendar  
+8. Calendar — treatments by day **plus** DB-backed **appointments** (consult / treatment), upcoming list on dashboard  
 9. Settings (logout / reset navigation) — align with [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md) for planned vs. shipped features  
 10. Terms and conditions  
 
@@ -192,7 +192,18 @@ Suggested **order** (adjust if product priority differs):
 
 **Deliverables — Phase 5 slice 8 (2026-04-06):** **Copy + branding parity** with Flutter: **`src/strings/appStrings.ts`** (dashboard, auth, welcome, terms, nav labels); **`PassportLogo`** component (Flutter `passport_logo.dart` — vector, no PNG); **login / signup / welcome / splash** wired to strings + logo; **`app.config.js`** `name` → **T.A.P by YasaLaser** (`main.dart`); **dashboard** home: welcome card, **Quick Actions** grid (Flutter `HomePage`), **Recent Treatments** (up to 3) + empty state, **More** list + terms link; **stack titles** for face map, calendar, medical profile, settings.
 
-**Deliverables — Phase 5 slice 9 (2026-04-06):** **In-app reference catalog admin** for **`profiles.is_admin`**: **`catalog-admin.repository.ts`** (list / insert / update / delete on all four catalog tables; **`clearReferenceCatalogBundleCache`** after mutations); **`/catalog-admin`** screen (tabs + row editors: name, description where applicable, **`applies_to`** for service types, sort order, active/default, delete confirm); **Settings → Catalog admin** link when **`is_admin`**; **`fetchOwnProfileRow`** includes **`is_admin`**. [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) documents **`update profiles set is_admin = true`**. **Still next:** face-map ML, treatment photos, optional i18n / full string audit.
+**Deliverables — Phase 5 slice 9 (2026-04-06):** **In-app reference catalog admin** for **`profiles.is_admin`**: **`catalog-admin.repository.ts`** (list / insert / update / delete on all four catalog tables; **`clearReferenceCatalogBundleCache`** after mutations); **`/catalog-admin`** screen (tabs + row editors: name, description where applicable, **`applies_to`** for service types, sort order, active/default, delete confirm); **Settings → Catalog admin** link when **`is_admin`**; **`fetchOwnProfileRow`** includes **`is_admin`**. [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) documents **`update profiles set is_admin = true`**.
+
+**Deliverables — Phase 5 slice 10 (2026-04-07):** **Appointments** — migration [`006_appointments.sql`](../supabase/migrations/006_appointments.sql): `public.appointments` (consult vs treatment, optional **`provider_id`**, **`external_ref`** for clinic/EMR correlation). Repos: list + upcoming + create + **`fetchAppointmentByIdForCurrentUser`** + **`updateAppointmentForCurrentUser`**; queries use **`*, providers(name)`** embed → domain **`providerName`**. **Calendar:** logged treatments + **scheduled** appointments by day, **Add appointment**, rows show **provider** under date/time; tap → **`/appointments/[id]`** detail. **Dashboard:** **Upcoming appointments** (before recent treatments), tap → detail. **Navigation:** **`appointments/_layout`** nested stack (`new`, `[id]`, **`edit/[id]`**); parent **`(app)/_layout`** registers **`appointments`** with `headerShown: false`. Strategy notes: [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md) (calendar + EMR push). Schema/setup: [SUPABASE_SCHEMA.md](./SUPABASE_SCHEMA.md), [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) step for `006`.
+
+### What’s next (recommended order)
+
+1. **Appointments — lifecycle & EMR:** In-app **cancel** / **mark complete** (and optional **“log visit”** → new **`treatments`** row + completed appointment). Server-side **ingest** (Edge Function + **service role**, idempotent upsert by **`external_ref`**) when product is ready.
+2. **Parity & docs:** Keep [SCREEN_PARITY.md](./SCREEN_PARITY.md) in sync; extend **`EXPO_ROUTES.md`** if you add public deep links.
+3. **Phase 6 checklist:** Typed **`src/native-stubs/`** (or incremental Expo modules) so missing native APIs fail loudly; confirm repositories-only DB access in new code.
+4. **Settings / product backlog:** Work through [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md) (notifications, export, theme, account, etc.).
+5. **Face map / skin analyzer:** Separate track — dev client / native ML (see **Planned capability — Skin analyzer** below and `IOS_APP_INTEGRATION.md`).
+6. **Hardening:** i18n / string audit, EAS/TestFlight runbook, counsel-approved **Terms** copy.
 
 ---
 
@@ -234,7 +245,7 @@ When you bootstrap the Expo app, verify these areas have an owner:
 - [~] Local cache (Expo SQLite) — reference catalogs + treatments/providers lists + write outbox; web uses localStorage for KV/outbox  
 - [ ] Biometrics  
 - [x] Image pick / display — treatment photos (`expo-image-picker` + signed URLs)  
-- [ ] Network status  
+- [x] Network status — `useNetworkStatus` (NetInfo) + dashboard offline banner; list/outbox behavior per repos  
 - [~] Legal/content bootstrap — Supabase reference catalogs + form chips (Flutter `ContentService` parity partial)  
 - [ ] Settings roadmap parity (see [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md))  
 - [ ] Skin analyzer / on-device ML (see integration guide; likely native module + dev client)  
@@ -263,3 +274,4 @@ Track parity with the Flutter app version in this repo’s `package.json` or `ap
 | 2026-04-06 | Phase 5 slice 9: catalog admin screen + repository; `is_admin` on profile; Settings link; Supabase setup note |
 | 2026-04-06 | Supabase CLI: `supabase init` + `config.toml`; `db:push` / `db:link` scripts; SUPABASE_SETUP clarifies schema not auto-applied by Expo |
 | 2026-04-06 | Phase 5: treatment photos (`003` column + `treatment-photos` bucket RLS); admin user list + `admin_set_user_admin` (`004`); `/admin-users` + Settings link |
+| 2026-04-07 | Phase 5 slice 10: **`006_appointments`**, calendar + dashboard upcoming visits, appointment detail/edit, **`providers(name)`** join, nested **`appointments`** stack; [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md) strategy updated |

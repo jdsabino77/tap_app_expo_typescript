@@ -1,6 +1,7 @@
 /**
  * Expo config. Supabase keys can be set here (no .env) or via optional `supabase.local.json`.
- * For email confirmation testing: leave keys here or in supabase.local.json, enable "Confirm email" in Supabase Auth.
+ * Email confirmation: set `EXPO_PUBLIC_SUPABASE_AUTH_REDIRECT_URL` to a URL allowed in the Supabase
+ * dashboard (see docs/SUPABASE_SETUP.md). If unset, `tap://…/auth/callback` is generated for native builds.
  */
 // Optional inline dev values (you can paste URL + anon key here instead of using a file):
 const INLINE_SUPABASE_URL = "";
@@ -24,6 +25,9 @@ const supabaseAnonKey =
   fromLocalFile.anonKey ||
   INLINE_SUPABASE_ANON_KEY ||
   "";
+
+/** Optional: fixed redirect for email confirmation / magic links (must match Supabase “Redirect URLs”). */
+const authEmailRedirectUrl = process.env.EXPO_PUBLIC_SUPABASE_AUTH_REDIRECT_URL || "";
 
 module.exports = {
   expo: {
@@ -55,6 +59,7 @@ module.exports = {
     extra: {
       supabaseUrl,
       supabaseAnonKey,
+      authEmailRedirectUrl,
     },
   },
 };
