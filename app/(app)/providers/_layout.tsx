@@ -11,6 +11,8 @@ export default function ProvidersStackLayout() {
     >
       <Stack.Screen name="index" options={{ title: "Providers" }} />
       <Stack.Screen name="new" options={{ title: "Add provider" }} />
+      <Stack.Screen name="[id]" options={{ title: "Provider" }} />
+      <Stack.Screen name="edit/[id]" options={{ title: "Edit provider" }} />
     </Stack>
   );
 }

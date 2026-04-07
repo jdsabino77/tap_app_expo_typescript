@@ -11,12 +11,18 @@ import {
   Pressable,
   View,
 } from "react-native";
+import {
+  CatalogLoadState,
+  ProviderSpecialtyCatalogChips,
+} from "../../../src/components/catalog-suggestions";
+import { useReferenceCatalogs } from "../../../src/hooks/useReferenceCatalogs";
 import { createProviderForCurrentUser } from "../../../src/repositories/provider.repository";
 import { useSession } from "../../../src/store/session";
 import { colors } from "../../../src/theme/tokens";
 
 export default function AddProviderScreen() {
   const { supabaseEnabled } = useSession();
+  const catalogs = useReferenceCatalogs();
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
@@ -82,6 +88,7 @@ export default function AddProviderScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <CatalogLoadState loading={catalogs.loading} error={catalogs.error} />
         <Text style={styles.label}>Name *</Text>
         <TextInput
           style={styles.input}
@@ -154,6 +161,11 @@ export default function AddProviderScreen() {
           placeholderTextColor={colors.textLight}
           value={specialtiesText}
           onChangeText={setSpecialtiesText}
+        />
+        <ProviderSpecialtyCatalogChips
+          items={catalogs.providerServices}
+          value={specialtiesText}
+          onChange={setSpecialtiesText}
         />
 
         {error ? <Text style={styles.err}>{error}</Text> : null}

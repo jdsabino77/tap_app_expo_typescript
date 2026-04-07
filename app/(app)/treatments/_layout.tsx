@@ -12,6 +12,7 @@ export default function TreatmentsStackLayout() {
       <Stack.Screen name="index" options={{ title: "Treatments" }} />
       <Stack.Screen name="new" options={{ title: "New treatment" }} />
       <Stack.Screen name="[id]" options={{ title: "Treatment" }} />
+      <Stack.Screen name="edit/[id]" options={{ title: "Edit treatment" }} />
     </Stack>
   );
 }

@@ -178,7 +178,11 @@ Suggested **order** (adjust if product priority differs):
 
 **Deliverables — Phase 5 slice 1 (2026-04-06):** `@supabase/supabase-js` + **SecureStore** client, `supabase/migrations/001_phase5_core.sql`, repositories (`medical-profile`, `treatments`, `providers`, `profile`), real **login/signup/logout**, **medical profile upsert**, **treatments** list/detail, **providers** list, [SUPABASE_SETUP.md](./SUPABASE_SETUP.md), [SCREEN_PARITY.md](./SCREEN_PARITY.md), `.env.example`.
 
-**Deliverables — Phase 5 slice 2 (2026-04-06):** **New treatment** (`createTreatmentForCurrentUser`, profile `treatment_count` bump), **add provider** (`createProviderForCurrentUser`, RLS-aligned `created_by` / `user_id`), nested stacks for **treatments** and **providers**, **calendar** (treatments by day), **face map** product shell + link to treatments, **terms** placeholder sections (replace with legal), **Supabase `postal_code`** mapping in `providerFromRemote`, **focus refresh** on dashboard / lists / calendar after saves. **Still next:** treatment edit, provider detail/edit, face-map ML, SQLite cache, reference catalogs (`laser_types`, etc.), asset/string parity.
+**Deliverables — Phase 5 slice 2 (2026-04-06):** **New treatment** (`createTreatmentForCurrentUser`, profile `treatment_count` bump), **add provider** (`createProviderForCurrentUser`, RLS-aligned `created_by` / `user_id`), nested stacks for **treatments** and **providers**, **calendar** (treatments by day), **face map** product shell + link to treatments, **terms** placeholder sections (replace with legal), **Supabase `postal_code`** mapping in `providerFromRemote`, **focus refresh** on dashboard / lists / calendar after saves.
+
+**Deliverables — Phase 5 slice 3 (2026-04-06):** **Treatment** `updateTreatmentForCurrentUser`, `deleteTreatmentForCurrentUser` (profile `treatment_count` **adjust** +1 / −1), detail **Edit** / **Delete** + `/treatments/edit/[id]`. **Provider** `fetchProviderByIdForCurrentUser` (with **canMutate**), `updateProviderForCurrentUser`, `deactivateProviderForCurrentUser` (soft hide via `is_active`), **`/providers/[id]`** detail + **`/providers/edit/[id]`**, list rows **navigate to detail**; directory (`user_id` null) providers **read-only** in UI. **Domain:** `Provider.website`, snake_case **`is_active` / `is_global`** in `providerFromRemote`.
+
+**Deliverables — Phase 5 slice 4 (2026-04-06):** **Reference catalogs** migration [`002_reference_catalogs.sql`](../supabase/migrations/002_reference_catalogs.sql) (`laser_types`, `service_types` with **`applies_to`**, `treatment_areas`, `provider_service_catalog`), RLS (authenticated **read** active; **admin** full CRUD), **seed** rows. **`catalog.repository`** + **`useReferenceCatalogs`**; **`filterServiceTypesForTreatment`**; UI chips on **new/edit treatment** and **new/edit provider** (`src/components/catalog-suggestions.tsx`, `toggleCommaListItem`). **Still next:** face-map ML, SQLite cache, asset/string parity, content admin UI, treatment photos.
 
 ---
 
@@ -221,7 +225,7 @@ When you bootstrap the Expo app, verify these areas have an owner:
 - [ ] Biometrics  
 - [ ] Image pick / display  
 - [ ] Network status  
-- [ ] Legal/content bootstrap (`ContentService` equivalent)  
+- [~] Legal/content bootstrap — Supabase reference catalogs + form chips (Flutter `ContentService` parity partial)  
 - [ ] Settings roadmap parity (see [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md))  
 - [ ] Skin analyzer / on-device ML (see integration guide; likely native module + dev client)  
 

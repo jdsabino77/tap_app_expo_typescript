@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { format, isValid, parseISO } from "date-fns";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -12,7 +12,15 @@ import {
   TextInput,
   View,
 } from "react-native";
+import {
+  CatalogLoadState,
+  LaserBrandCatalogChips,
+  ServiceTypeCatalogChips,
+  TreatmentAreaCatalogChips,
+} from "../../../src/components/catalog-suggestions";
+import { filterServiceTypesForTreatment } from "../../../src/domain/reference-content";
 import type { TreatmentType } from "../../../src/domain/treatment";
+import { useReferenceCatalogs } from "../../../src/hooks/useReferenceCatalogs";
 import { fetchProvidersForCurrentUser } from "../../../src/repositories/provider.repository";
 import { createTreatmentForCurrentUser } from "../../../src/repositories/treatment.repository";
 import { useSession } from "../../../src/store/session";
@@ -30,6 +38,7 @@ function parseDateInput(s: string): Date | null {
 
 export default function NewTreatmentScreen() {
   const { supabaseEnabled } = useSession();
+  const catalogs = useReferenceCatalogs();
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loadingProviders, setLoadingProviders] = useState(false);
 
@@ -45,6 +54,11 @@ export default function NewTreatmentScreen() {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const filteredServiceTypes = useMemo(
+    () => filterServiceTypesForTreatment(catalogs.serviceTypes, treatmentType),
+    [catalogs.serviceTypes, treatmentType],
+  );
 
   const loadProviders = useCallback(async () => {
     if (!supabaseEnabled) {
@@ -136,6 +150,7 @@ export default function NewTreatmentScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <CatalogLoadState loading={catalogs.loading} error={catalogs.error} />
         <Text style={styles.label}>Type</Text>
         <View style={styles.row}>
           {(["injectable", "laser"] as const).map((t) => (
@@ -157,6 +172,11 @@ export default function NewTreatmentScreen() {
           value={serviceType}
           onChangeText={setServiceType}
         />
+        <ServiceTypeCatalogChips
+          items={filteredServiceTypes}
+          current={serviceType}
+          onSelect={setServiceType}
+        />
 
         <Text style={styles.label}>Brand</Text>
         <TextInput
@@ -166,6 +186,9 @@ export default function NewTreatmentScreen() {
           value={brand}
           onChangeText={setBrand}
         />
+        {treatmentType === "laser" ? (
+          <LaserBrandCatalogChips items={catalogs.laserTypes} current={brand} onSelect={setBrand} />
+        ) : null}
 
         <Text style={styles.label}>Treatment areas</Text>
         <TextInput
@@ -174,6 +197,11 @@ export default function NewTreatmentScreen() {
           placeholderTextColor={colors.textLight}
           value={areasText}
           onChangeText={setAreasText}
+        />
+        <TreatmentAreaCatalogChips
+          items={catalogs.treatmentAreas}
+          value={areasText}
+          onChange={setAreasText}
         />
 
         <Text style={styles.label}>Units</Text>

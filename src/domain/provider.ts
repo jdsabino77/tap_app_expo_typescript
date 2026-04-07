@@ -13,6 +13,7 @@ export const providerSchema = z.object({
   postalCode: z.string(),
   phone: z.string(),
   email: z.string(),
+  website: z.string().default(""),
   isActive: z.boolean().default(true),
   services: z.array(z.string()).default([]),
   isGlobal: z.boolean().default(true),
@@ -53,9 +54,20 @@ export function providerFromRemote(
     postalCode: postal,
     phone: raw.phone ?? "",
     email: raw.email ?? "",
-    isActive: raw.isActive ?? true,
+    website: typeof raw.website === "string" ? raw.website : "",
+    isActive:
+      typeof raw.is_active === "boolean"
+        ? raw.is_active
+        : typeof raw.isActive === "boolean"
+          ? raw.isActive
+          : true,
     services: list.map(String),
-    isGlobal: raw.isGlobal ?? true,
+    isGlobal:
+      typeof raw.is_global === "boolean"
+        ? raw.is_global
+        : typeof raw.isGlobal === "boolean"
+          ? raw.isGlobal
+          : true,
   });
 }
 

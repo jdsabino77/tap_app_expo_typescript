@@ -1,5 +1,5 @@
 import { useFocusEffect } from "@react-navigation/native";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -80,13 +80,13 @@ export default function ProvidersScreen() {
         }
         ListEmptyComponent={<Text style={styles.empty}>No providers found.</Text>}
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <Pressable style={styles.card} onPress={() => router.push(`/providers/${item.id}`)}>
             <Text style={styles.name}>{item.name}</Text>
             <Text style={styles.sub}>{providerFullAddress(item)}</Text>
             {item.services.length > 0 ? (
               <Text style={styles.tags}>{item.services.join(" · ")}</Text>
             ) : null}
-          </View>
+          </Pressable>
         )}
       />
       <Link href="/providers/new" asChild>

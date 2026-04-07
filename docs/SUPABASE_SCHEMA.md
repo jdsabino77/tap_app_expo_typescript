@@ -91,14 +91,16 @@ Replaces top-level `providers` collection.
 
 ### Reference catalogs (Firestore top-level collections)
 
-| Firestore | Suggested table |
-|-----------|-----------------|
-| `laserTypes` | `laser_types` |
-| `serviceTypes` | `service_types` |
-| `treatmentAreas` | `treatment_areas` |
-| `providerServices` | `provider_service_catalog` |
+| Firestore | Postgres table | Status |
+|-----------|----------------|--------|
+| `laserTypes` | `laser_types` | Migration `002_reference_catalogs.sql` |
+| `serviceTypes` | `service_types` | + `applies_to` ∈ `injectable` \| `laser` \| `both` |
+| `treatmentAreas` | `treatment_areas` | Optional `category` |
+| `providerServices` | `provider_service_catalog` | |
 
-Columns mirror Flutter `ContentService` seed fields: `name`, `description`, `icon` (where used), `order`, `is_default`, `is_active`, `created_by`, timestamps.
+**Shared columns (all four):** `id` (uuid), `name`, `description`, `icon`, `sort_order`, `is_default`, `is_active`, `created_by` (FK → `profiles`), `created_at`, `updated_at`.
+
+**RLS (implemented):** authenticated users **SELECT** rows where `is_active = true`. **INSERT/UPDATE/DELETE** only when `profiles.is_admin` for `auth.uid()`. Seeds run as SQL superuser (bypass RLS).
 
 ---
 

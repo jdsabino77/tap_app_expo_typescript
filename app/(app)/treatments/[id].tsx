@@ -1,10 +1,19 @@
-import { useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { router, useLocalSearchParams } from "expo-router";
+import { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import type { Treatment } from "../../../src/domain/treatment";
 import { formatDisplayDateTime } from "../../../src/lib/datetime";
 import { formatCurrency } from "../../../src/lib/format";
-import { fetchTreatmentById } from "../../../src/repositories/treatment.repository";
+import { deleteTreatmentForCurrentUser, fetchTreatmentById } from "../../../src/repositories/treatment.repository";
 import { useSession } from "../../../src/store/session";
 import { colors } from "../../../src/theme/tokens";
 
@@ -13,29 +22,58 @@ export default function TreatmentDetailScreen() {
   const { supabaseEnabled } = useSession();
   const [row, setRow] = useState<Treatment | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!supabaseEnabled || !id) {
       setRow(null);
       return;
     }
-    let cancelled = false;
-    void fetchTreatmentById(id)
-      .then((t) => {
-        if (!cancelled) {
-          setRow(t);
-        }
-      })
-      .catch((e) => {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Error");
-          setRow(null);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
+    setError(null);
+    try {
+      const t = await fetchTreatmentById(id);
+      setRow(t);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error");
+      setRow(null);
+    }
   }, [id, supabaseEnabled]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
+
+  const onDelete = () => {
+    if (!id) {
+      return;
+    }
+    Alert.alert(
+      "Delete treatment",
+      "This cannot be undone. Your logged treatment count will go down by one.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            setDeleting(true);
+            void deleteTreatmentForCurrentUser(id)
+              .then(() => {
+                router.back();
+              })
+              .catch((e) => {
+                Alert.alert("Could not delete", e instanceof Error ? e.message : "Error");
+              })
+              .finally(() => {
+                setDeleting(false);
+              });
+          },
+        },
+      ],
+    );
+  };
 
   if (!supabaseEnabled) {
     return (
@@ -71,7 +109,7 @@ export default function TreatmentDetailScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.scroll}>
       <Text style={styles.title}>
         {row.treatmentType} · {row.serviceType}
       </Text>
@@ -83,11 +121,25 @@ export default function TreatmentDetailScreen() {
         <Text style={styles.line}>Cost: {formatCurrency(Number(row.cost))}</Text>
       ) : null}
       {row.notes ? <Text style={styles.notes}>{row.notes}</Text> : null}
-    </View>
+
+      <View style={styles.actions}>
+        <Pressable style={styles.primaryBtn} onPress={() => router.push(`/treatments/edit/${id}`)}>
+          <Text style={styles.primaryBtnText}>Edit</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.dangerBtn, deleting && styles.disabled]}
+          onPress={onDelete}
+          disabled={deleting}
+        >
+          <Text style={styles.dangerBtnText}>{deleting ? "…" : "Delete"}</Text>
+        </Pressable>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scroll: { padding: 16, paddingBottom: 40, backgroundColor: colors.lightGray },
   container: { flex: 1, padding: 16, backgroundColor: colors.lightGray },
   centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.lightGray },
   title: { fontSize: 20, fontWeight: "700", color: colors.primaryNavy },
@@ -96,4 +148,21 @@ const styles = StyleSheet.create({
   p: { marginTop: 8, color: colors.textPrimary },
   muted: { marginTop: 8, color: colors.textSecondary },
   err: { color: colors.errorRed },
+  actions: { marginTop: 28, gap: 12 },
+  primaryBtn: {
+    backgroundColor: colors.primaryGold,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  primaryBtnText: { color: colors.primaryNavy, fontWeight: "700", fontSize: 16 },
+  dangerBtn: {
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.errorRed,
+  },
+  dangerBtnText: { color: colors.errorRed, fontWeight: "600", fontSize: 16 },
+  disabled: { opacity: 0.5 },
 });
