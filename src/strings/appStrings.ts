@@ -85,6 +85,27 @@ export const appStrings = {
 
   medicalProfileLoadFailed: "Could not load your saved profile. You can still edit and save.",
 
+  medicalProfileIntro:
+    "Add health details for safer treatment tracking. Choose gender, ethnicity, and skin type from the lists; use YYYY-MM-DD for date of birth.",
+  medicalProfileOnboardingBadge: "Onboarding",
+  medicalProfileDobLabel: "Date of birth",
+  medicalProfileDobHint: "Use YYYY-MM-DD (example: 1990-05-15).",
+  medicalProfileGenderLabel: "Gender",
+  medicalProfileEthnicityLabel: "Ethnicity",
+  medicalProfileSkinTypeLabel: "Skin type (Fitzpatrick)",
+  medicalProfileAllergiesLabel: "Allergies",
+  medicalProfileAllergiesPlaceholder: "Comma-separated (e.g. Penicillin, Latex)",
+  medicalProfileMedicationsLabel: "Medications",
+  medicalProfileMedicationsPlaceholder: "Comma-separated",
+  medicalProfileConditionsLabel: "Medical conditions",
+  medicalProfileConditionsPlaceholder: "Comma-separated",
+  medicalProfilePrevTreatmentsLabel: "Previous treatments",
+  medicalProfilePrevTreatmentsPlaceholder: "Comma-separated",
+  medicalProfileNotesLabel: "Notes",
+  medicalProfileNotesPlaceholder: "Optional notes for your provider",
+  medicalProfileCheckFieldsBody: "Something went wrong validating gender, ethnicity, or skin type. Try reopening the screen.",
+  medicalProfileSave: "Save",
+
   /** Hub links (Expo uses a stack hub; Flutter uses bottom nav — labels match nav intent) */
   navTreatments: "Treatments",
   navProviders: "Providers",

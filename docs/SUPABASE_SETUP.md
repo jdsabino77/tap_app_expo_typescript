@@ -55,6 +55,25 @@ The app uses **Expo SecureStore** (native) / `localStorage` (web) for the Supaba
 
 If env vars are **missing**, the app stays in **stub auth** mode (dev buttons on login).
 
+### Sign up from the app (no manual user creation)
+
+You **do not** need to create users in the Supabase dashboard. The app calls **`auth.signUp`**, which creates **`auth.users`**; your migration’s trigger then inserts **`public.profiles`**.
+
+If sign up **fails** or seems to do nothing, check in order:
+
+1. **URL + anon key in the app** — Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`, or `supabase.local.json`, or `app.config.js` `extra`. If these are empty, the sign-up screen shows **stub** mode only (no real accounts).
+2. **Email provider on** — Dashboard → **Authentication** → **Providers** → **Email** → enabled.
+3. **New users allowed** — Same screen: enable **“Allow new users to sign up”** (wording may vary slightly by dashboard version). If this is off, the API returns `signup_disabled`.
+4. **Schema applied** — If you see **“Database error saving new user”** (or similar), run **`001_phase5_core.sql`** so `profiles` exists and **`handle_new_user`** runs after each auth user is created.
+5. **Email confirmation** — If **“Confirm email”** is required, you will **not** get a session until the user clicks the link; the app shows **“Check your email”** and returns to login. For local testing, you can turn confirmation off under Email provider settings.
+
+### Testing signup and `medical_profiles`
+
+1. **`001_phase5_core.sql` applied** — `medical_profiles` exists; RLS allows each user only their own `user_id` row (`medical_profiles_all_own`).
+2. **Sign up** — Supabase Auth creates `auth.users`; trigger `handle_new_user` inserts **`public.profiles`** (name, email; `is_admin` stays false). No `medical_profiles` row yet.
+3. **Medical profile** — First **Save** on **Medical profile** runs **`upsert`** on `medical_profiles` (`onConflict: user_id`). Reopening the screen **loads** that row so you can verify edits persisted (also refetches each time you focus the screen).
+4. For quick iteration, turn off **email confirmation** under Authentication → Providers → Email; otherwise confirm the address before signing in.
+
 ### Reference catalog admins (`profiles.is_admin`)
 
 RLS in `002_reference_catalogs.sql` allows **insert/update/delete** on catalog tables only when `profiles.is_admin = true` for the signed-in user. To grant admin (SQL Editor or CLI SQL, replace the UUID):

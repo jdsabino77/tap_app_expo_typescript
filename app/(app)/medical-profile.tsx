@@ -12,10 +12,17 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { MedicalEnumSelect } from "../../src/components/medical-enum-select";
 import {
+  ethnicityDisplayName,
   ethnicitySchema,
+  genderDisplayName,
   genderSchema,
+  skinTypeDescription,
   skinTypeSchema,
+  type Ethnicity,
+  type Gender,
+  type SkinType,
 } from "../../src/domain/medical-profile";
 import {
   fetchMedicalProfileForUser,
@@ -24,6 +31,10 @@ import {
 import { appStrings } from "../../src/strings/appStrings";
 import { useSession } from "../../src/store/session";
 import { colors } from "../../src/theme/tokens";
+
+const genderOptions = genderSchema.options as readonly Gender[];
+const ethnicityOptions = ethnicitySchema.options as readonly Ethnicity[];
+const skinTypeOptions = skinTypeSchema.options as readonly SkinType[];
 
 function splitList(s: string): string[] {
   return s
@@ -35,9 +46,9 @@ function splitList(s: string): string[] {
 function applyEmptyMedicalForm(
   setters: {
     setDob: (v: string) => void;
-    setGender: (v: string) => void;
-    setEthnicity: (v: string) => void;
-    setSkinType: (v: string) => void;
+    setGender: (v: Gender) => void;
+    setEthnicity: (v: Ethnicity) => void;
+    setSkinType: (v: SkinType) => void;
     setAllergies: (v: string) => void;
     setMedications: (v: string) => void;
     setConditions: (v: string) => void;
@@ -63,16 +74,16 @@ export default function MedicalProfileScreen() {
   const isOnboarding = onboarding === "true";
 
   const [dob, setDob] = useState("1990-01-01");
-  const [gender, setGender] = useState("preferNotToSay");
-  const [ethnicity, setEthnicity] = useState("preferNotToSay");
-  const [skinType, setSkinType] = useState("type3");
+  const [gender, setGender] = useState<Gender>("preferNotToSay");
+  const [ethnicity, setEthnicity] = useState<Ethnicity>("preferNotToSay");
+  const [skinType, setSkinType] = useState<SkinType>("type3");
   const [allergies, setAllergies] = useState("");
   const [medications, setMedications] = useState("");
   const [conditions, setConditions] = useState("");
   const [prevTreatments, setPrevTreatments] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
-  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(supabaseEnabled);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useFocusEffect(
@@ -120,9 +131,7 @@ export default function MedicalProfileScreen() {
           }
         })
         .finally(() => {
-          if (!cancelled) {
-            setLoadingProfile(false);
-          }
+          setLoadingProfile(false);
         });
       return () => {
         cancelled = true;
@@ -144,10 +153,7 @@ export default function MedicalProfileScreen() {
     const e = ethnicitySchema.safeParse(ethnicity.trim());
     const sk = skinTypeSchema.safeParse(skinType.trim());
     if (!g.success || !e.success || !sk.success) {
-      Alert.alert(
-        "Check fields",
-        "Gender, ethnicity, and skin type must match app enums (see placeholders below).",
-      );
+      Alert.alert("Check fields", appStrings.medicalProfileCheckFieldsBody);
       return;
     }
 
@@ -180,10 +186,10 @@ export default function MedicalProfileScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>Medical profile</Text>
+      <Text style={styles.title}>{appStrings.navMedicalProfile}</Text>
       {isOnboarding ? (
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>Onboarding</Text>
+          <Text style={styles.badgeText}>{appStrings.medicalProfileOnboardingBadge}</Text>
         </View>
       ) : null}
 
@@ -194,98 +200,120 @@ export default function MedicalProfileScreen() {
         </View>
       ) : null}
 
-      {supabaseEnabled && loadingProfile ? (
+      {supabaseEnabled && loadingProfile && !loadError ? (
         <ActivityIndicator color={colors.primaryNavy} style={styles.loader} />
       ) : null}
 
-      {supabaseEnabled ? (
+      {supabaseEnabled && (!loadingProfile || loadError) ? (
         <>
-          <Text style={styles.hint}>
-            Gender: male, female, nonBinary, other, preferNotToSay · Ethnicity: caucasian, asian, … ·
-            Skin: type1–type6
-          </Text>
+          <Text style={styles.intro}>{appStrings.medicalProfileIntro}</Text>
+
+          <Text style={[styles.label, styles.labelFirst]}>{appStrings.medicalProfileDobLabel}</Text>
+          <Text style={styles.fieldHint}>{appStrings.medicalProfileDobHint}</Text>
           <TextInput
             style={styles.input}
             value={dob}
             onChangeText={setDob}
             placeholder="YYYY-MM-DD"
-            editable={!loadingProfile}
+            placeholderTextColor={colors.textLight}
+            autoCapitalize="none"
           />
-          <TextInput
-            style={styles.input}
+
+          <Text style={styles.label}>{appStrings.medicalProfileGenderLabel}</Text>
+          <MedicalEnumSelect
+            sheetTitle={appStrings.medicalProfileGenderLabel}
             value={gender}
-            onChangeText={setGender}
-            placeholder="gender"
-            editable={!loadingProfile}
+            options={genderOptions}
+            formatOption={(v) => genderDisplayName(v as Gender)}
+            onChange={(v) => setGender(v as Gender)}
           />
-          <TextInput
-            style={styles.input}
+
+          <Text style={styles.label}>{appStrings.medicalProfileEthnicityLabel}</Text>
+          <MedicalEnumSelect
+            sheetTitle={appStrings.medicalProfileEthnicityLabel}
             value={ethnicity}
-            onChangeText={setEthnicity}
-            placeholder="ethnicity"
-            editable={!loadingProfile}
+            options={ethnicityOptions}
+            formatOption={(v) => ethnicityDisplayName(v as Ethnicity)}
+            onChange={(v) => setEthnicity(v as Ethnicity)}
           />
-          <TextInput
-            style={styles.input}
+
+          <Text style={styles.label}>{appStrings.medicalProfileSkinTypeLabel}</Text>
+          <MedicalEnumSelect
+            sheetTitle={appStrings.medicalProfileSkinTypeLabel}
             value={skinType}
-            onChangeText={setSkinType}
-            placeholder="skinType"
-            editable={!loadingProfile}
+            options={skinTypeOptions}
+            formatOption={(v) => skinTypeDescription(v as SkinType)}
+            onChange={(v) => setSkinType(v as SkinType)}
           />
+
+          <Text style={styles.label}>{appStrings.medicalProfileAllergiesLabel}</Text>
           <TextInput
             style={[styles.input, styles.tall]}
             value={allergies}
             onChangeText={setAllergies}
-            placeholder="Allergies (comma-separated)"
+            placeholder={appStrings.medicalProfileAllergiesPlaceholder}
+            placeholderTextColor={colors.textLight}
             multiline
-            editable={!loadingProfile}
           />
+
+          <Text style={styles.label}>{appStrings.medicalProfileMedicationsLabel}</Text>
           <TextInput
             style={[styles.input, styles.tall]}
             value={medications}
             onChangeText={setMedications}
-            placeholder="Medications (comma-separated)"
+            placeholder={appStrings.medicalProfileMedicationsPlaceholder}
+            placeholderTextColor={colors.textLight}
             multiline
-            editable={!loadingProfile}
           />
+
+          <Text style={styles.label}>{appStrings.medicalProfileConditionsLabel}</Text>
           <TextInput
             style={[styles.input, styles.tall]}
             value={conditions}
             onChangeText={setConditions}
-            placeholder="Medical conditions (comma-separated)"
+            placeholder={appStrings.medicalProfileConditionsPlaceholder}
+            placeholderTextColor={colors.textLight}
             multiline
-            editable={!loadingProfile}
           />
+
+          <Text style={styles.label}>{appStrings.medicalProfilePrevTreatmentsLabel}</Text>
           <TextInput
             style={[styles.input, styles.tall]}
             value={prevTreatments}
             onChangeText={setPrevTreatments}
-            placeholder="Previous treatments (comma-separated)"
+            placeholder={appStrings.medicalProfilePrevTreatmentsPlaceholder}
+            placeholderTextColor={colors.textLight}
             multiline
-            editable={!loadingProfile}
           />
+
+          <Text style={styles.label}>{appStrings.medicalProfileNotesLabel}</Text>
           <TextInput
             style={[styles.input, styles.tall]}
             value={notes}
             onChangeText={setNotes}
-            placeholder="Notes"
+            placeholder={appStrings.medicalProfileNotesPlaceholder}
+            placeholderTextColor={colors.textLight}
             multiline
-            editable={!loadingProfile}
           />
         </>
-      ) : (
+      ) : null}
+
+      {!supabaseEnabled ? (
         <Text style={styles.p}>Supabase off — tap Save to continue (stub).</Text>
-      )}
+      ) : null}
 
       <Pressable
-        style={[styles.primary, (saving || loadingProfile) && styles.disabled]}
+        style={[
+          styles.primary,
+          (saving || (supabaseEnabled && loadingProfile && !loadError)) && styles.disabled,
+        ]}
         onPress={() => void onSave()}
-        disabled={saving || loadingProfile}
+        disabled={saving || (supabaseEnabled && loadingProfile && !loadError)}
       >
         {saving ? (
           <ActivityIndicator color={colors.cleanWhite} />
         ) : (
-          <Text style={styles.primaryText}>Save</Text>
+          <Text style={styles.primaryText}>{appStrings.medicalProfileSave}</Text>
         )}
       </Pressable>
     </ScrollView>
@@ -295,6 +323,27 @@ export default function MedicalProfileScreen() {
 const styles = StyleSheet.create({
   container: { padding: 16, paddingBottom: 40, backgroundColor: colors.lightGray },
   title: { fontSize: 20, fontWeight: "700", color: colors.primaryNavy },
+  intro: {
+    marginTop: 10,
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: 6,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.textSecondary,
+    marginBottom: 4,
+    marginTop: 14,
+  },
+  labelFirst: { marginTop: 8 },
+  fieldHint: {
+    fontSize: 12,
+    color: colors.textLight,
+    lineHeight: 17,
+    marginBottom: 8,
+  },
   badge: {
     marginTop: 8,
     alignSelf: "flex-start",
@@ -304,7 +353,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   badgeText: { color: colors.primaryNavy, fontWeight: "600", fontSize: 12 },
-  hint: { marginTop: 8, fontSize: 12, color: colors.textSecondary, marginBottom: 8 },
   loader: { marginVertical: 20 },
   warnBox: {
     marginTop: 10,
@@ -324,7 +372,7 @@ const styles = StyleSheet.create({
     borderColor: "#E9ECEF",
     borderRadius: 8,
     padding: 12,
-    marginBottom: 10,
+    marginBottom: 4,
     fontSize: 16,
     color: colors.textPrimary,
   },

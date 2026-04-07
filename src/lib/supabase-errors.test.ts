@@ -10,6 +10,14 @@ describe("mapAuthErrorToUserMessage", () => {
   it("falls back to message", () => {
     expect(mapAuthErrorToUserMessage({ message: "Custom" })).toBe("Custom");
   });
+
+  it("maps Supabase Auth error codes for sign-up", () => {
+    expect(mapAuthErrorToUserMessage({ code: "signup_disabled" })).toContain("sign");
+    expect(mapAuthErrorToUserMessage({ code: "user_already_exists" })).toContain("already exists");
+    expect(
+      mapAuthErrorToUserMessage({ message: "Database error saving new user" }),
+    ).toContain("Phase 5");
+  });
 });
 
 describe("mapPostgrestErrorToUserMessage", () => {
