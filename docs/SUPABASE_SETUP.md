@@ -27,6 +27,8 @@ Use **one** of these approaches (same end state if done correctly).
 1. Open your project → **SQL** → **New query**.
 2. Paste and run **[`supabase/migrations/001_phase5_core.sql`](../supabase/migrations/001_phase5_core.sql)** (profiles, medical_profiles, treatments, providers, RLS, `auth.users` → `profiles` trigger).
 3. Paste and run **[`supabase/migrations/002_reference_catalogs.sql`](../supabase/migrations/002_reference_catalogs.sql)** (catalog tables, RLS, seed rows).
+4. Paste and run **[`supabase/migrations/003_treatment_photos.sql`](../supabase/migrations/003_treatment_photos.sql)** (`treatments.photo_urls`, Storage bucket + policies).
+5. Paste and run **[`supabase/migrations/004_admin_user_management.sql`](../supabase/migrations/004_admin_user_management.sql)** (admin profile listing policy + `admin_set_user_admin` RPC).
 
 ### Option B — Supabase CLI (`db push`)
 
@@ -61,4 +63,4 @@ RLS in `002_reference_catalogs.sql` allows **insert/update/delete** on catalog t
 update public.profiles set is_admin = true where id = 'YOUR_AUTH_USER_UUID';
 ```
 
-After that, **Settings → Catalog admin** appears in the Expo app so you can manage rows without the service role.
+After that, **Settings → Catalog admin** and **User admin** appear in the Expo app (catalog CRUD + toggling `is_admin` on *other* accounts). You cannot grant yourself admin from the app; use SQL for the first admin.

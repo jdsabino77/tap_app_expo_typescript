@@ -68,6 +68,11 @@ export default function SettingsScreen() {
               <Text style={styles.linkish}>{appStrings.catalogAdminTitle}</Text>
             </Pressable>
           </Link>
+          <Link href="/admin-users" asChild>
+            <Pressable style={styles.row}>
+              <Text style={styles.linkish}>{appStrings.adminUsersTitle}</Text>
+            </Pressable>
+          </Link>
         </>
       ) : null}
 

@@ -230,10 +230,10 @@ Treat this as a **separate track** from screen-for-screen Flutter porting: it ne
 
 When you bootstrap the Expo app, verify these areas have an owner:
 
-- [x] Supabase (Auth, Postgres, RLS) — Storage / full parity TBD  
+- [x] Supabase (Auth, Postgres, RLS, Storage for treatment photos)  
 - [~] Local cache (Expo SQLite) — reference catalogs + treatments/providers lists + write outbox; web uses localStorage for KV/outbox  
 - [ ] Biometrics  
-- [ ] Image pick / display  
+- [x] Image pick / display — treatment photos (`expo-image-picker` + signed URLs)  
 - [ ] Network status  
 - [~] Legal/content bootstrap — Supabase reference catalogs + form chips (Flutter `ContentService` parity partial)  
 - [ ] Settings roadmap parity (see [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md))  
@@ -262,3 +262,4 @@ Track parity with the Flutter app version in this repo’s `package.json` or `ap
 | 2026-04-06 | Phase 5 slice 8: `appStrings` + `PassportLogo`; dashboard quick actions + recent treatments; auth/splash copy; app display name |
 | 2026-04-06 | Phase 5 slice 9: catalog admin screen + repository; `is_admin` on profile; Settings link; Supabase setup note |
 | 2026-04-06 | Supabase CLI: `supabase init` + `config.toml`; `db:push` / `db:link` scripts; SUPABASE_SETUP clarifies schema not auto-applied by Expo |
+| 2026-04-06 | Phase 5: treatment photos (`003` column + `treatment-photos` bucket RLS); admin user list + `admin_set_user_admin` (`004`); `/admin-users` + Settings link |

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -22,9 +23,11 @@ import {
 import { filterServiceTypesForTreatment } from "../../../src/domain/reference-content";
 import type { TreatmentType } from "../../../src/domain/treatment";
 import { useReferenceCatalogs } from "../../../src/hooks/useReferenceCatalogs";
+import { pickTreatmentImages } from "../../../src/lib/pick-treatment-photos";
 import { isWriteQueuedError } from "../../../src/lib/write-queued-error";
 import { fetchProvidersForCurrentUser } from "../../../src/repositories/provider.repository";
 import { createTreatmentForCurrentUser } from "../../../src/repositories/treatment.repository";
+import { MAX_TREATMENT_PHOTOS } from "../../../src/services/supabase/treatment-photos";
 import { useSession } from "../../../src/store/session";
 import { colors } from "../../../src/theme/tokens";
 import type { Provider } from "../../../src/domain/provider";
@@ -53,6 +56,7 @@ export default function NewTreatmentScreen() {
   const [dateStr, setDateStr] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [notes, setNotes] = useState("");
   const [costText, setCostText] = useState("");
+  const [localPicks, setLocalPicks] = useState<{ uri: string; mimeType?: string }[]>([]);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,17 +123,20 @@ export default function NewTreatmentScreen() {
 
     setSaving(true);
     try {
-      await createTreatmentForCurrentUser({
-        treatmentType,
-        serviceType: st,
-        brand: brand.trim(),
-        treatmentAreas: areas,
-        units,
-        providerId,
-        treatmentDate: d,
-        notes: notes.trim(),
-        cost,
-      });
+      await createTreatmentForCurrentUser(
+        {
+          treatmentType,
+          serviceType: st,
+          brand: brand.trim(),
+          treatmentAreas: areas,
+          units,
+          providerId,
+          treatmentDate: d,
+          notes: notes.trim(),
+          cost,
+        },
+        localPicks.length ? { addLocal: localPicks } : undefined,
+      );
       router.back();
     } catch (e) {
       if (isWriteQueuedError(e)) {
@@ -274,6 +281,36 @@ export default function NewTreatmentScreen() {
           onChangeText={setNotes}
         />
 
+        <Text style={styles.label}>
+          Photos ({localPicks.length}/{MAX_TREATMENT_PHOTOS})
+        </Text>
+        <Text style={styles.photoHint}>Requires internet. Optional thumbnails for this treatment.</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoStrip}>
+          {localPicks.map((p, i) => (
+            <View key={`${p.uri}-${i}`} style={styles.thumbWrap}>
+              <Image source={{ uri: p.uri }} style={styles.thumb} />
+              <Pressable
+                style={styles.thumbRemove}
+                onPress={() => setLocalPicks((cur) => cur.filter((_, j) => j !== i))}
+              >
+                <Text style={styles.thumbRemoveText}>×</Text>
+              </Pressable>
+            </View>
+          ))}
+        </ScrollView>
+        <Pressable
+          style={styles.addPhotos}
+          onPress={() =>
+            void pickTreatmentImages(localPicks.length).then((next) => {
+              if (next.length) {
+                setLocalPicks((cur) => [...cur, ...next]);
+              }
+            })
+          }
+        >
+          <Text style={styles.addPhotosText}>Add photos</Text>
+        </Pressable>
+
         {error ? <Text style={styles.err}>{error}</Text> : null}
 
         <Pressable
@@ -334,4 +371,29 @@ const styles = StyleSheet.create({
   },
   saveDisabled: { opacity: 0.6 },
   saveText: { color: colors.primaryNavy, fontWeight: "700", fontSize: 16 },
+  photoHint: { fontSize: 12, color: colors.textSecondary, marginBottom: 8 },
+  photoStrip: { flexGrow: 0, marginBottom: 8 },
+  thumbWrap: { marginRight: 10, position: "relative" },
+  thumb: { width: 88, height: 88, borderRadius: 8, backgroundColor: "#E9ECEF" },
+  thumbRemove: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  thumbRemoveText: { color: "#fff", fontSize: 18, fontWeight: "700", lineHeight: 20 },
+  addPhotos: {
+    alignSelf: "flex-start",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primaryNavy,
+  },
+  addPhotosText: { color: colors.primaryNavy, fontWeight: "600" },
 });

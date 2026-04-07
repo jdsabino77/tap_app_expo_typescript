@@ -11,8 +11,8 @@ File-based routes under `app/`. URLs omit group segments `(auth)` and `(app)`.
 | `DashboardPage` | `/` inside `(app)` → `/` or `/(app)` | |
 | `treatment_list_page` | `/treatments` | Nested stack: `app/(app)/treatments/_layout.tsx` (own header). |
 | `treatment_detail_page` | `/treatments/:id` | Edit + Delete on screen; reload on focus. |
-| `new_treatment_page` | `/treatments/new` | Creates row via `createTreatmentForCurrentUser`. |
-| (edit treatment) | `/treatments/edit/:id` | `updateTreatmentForCurrentUser`. |
+| `new_treatment_page` | `/treatments/new` | Creates row via `createTreatmentForCurrentUser`; optional photos (online) → `treatment-photos` bucket. |
+| (edit treatment) | `/treatments/edit/:id` | `updateTreatmentForCurrentUser`; add/remove photos when online. |
 | `face_map_page` | `/face-map` | |
 | `providers_page` | `/providers` | Nested stack: `app/(app)/providers/_layout.tsx`. |
 | (provider detail) | `/providers/:id` | `fetchProviderByIdForCurrentUser`; edit/remove if `canMutate`. |
@@ -22,6 +22,7 @@ File-based routes under `app/`. URLs omit group segments `(auth)` and `(app)`.
 | `calendar_page` | `/calendar` | |
 | `settings_page` | `/settings` | Logout → `router.replace('/(auth)/login')`. |
 | (catalog admin) | `/catalog-admin` | Visible from Settings when `profiles.is_admin`; CRUD reference catalogs. |
+| (user admin) | `/admin-users` | Same gate; list profiles and toggle `is_admin` via `admin_set_user_admin` (not on self). |
 | `terms_and_conditions_page` | `/legal/terms` | Available without signing in (from login). |
 
 ## Auth gating

@@ -107,6 +107,12 @@ export const appStrings = {
     "Changes clear the local catalog cache and apply on next fetch. Assign admins in Supabase: update profiles set is_admin = true where id = '…'.",
   catalogAdminDeleteConfirmTitle: "Delete this row?",
   catalogAdminDeleteConfirmBody: "This cannot be undone. Chips may still show cached data until refresh.",
+
+  adminUsersTitle: "User admin",
+  adminUsersAccessDenied: "You need an admin account to manage other users.",
+  adminUsersHint:
+    "Toggle admin for other accounts only. Your own admin flag cannot be changed here. Promote the first admin via SQL in Supabase.",
+
   appliesToInjectable: "Injectable",
   appliesToLaser: "Laser",
   appliesToBoth: "Both",

@@ -1,9 +1,10 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,7 +15,11 @@ import type { Treatment } from "../../../src/domain/treatment";
 import { formatDisplayDateTime } from "../../../src/lib/datetime";
 import { formatCurrency } from "../../../src/lib/format";
 import { isWriteQueuedError } from "../../../src/lib/write-queued-error";
-import { deleteTreatmentForCurrentUser, fetchTreatmentById } from "../../../src/repositories/treatment.repository";
+import {
+  deleteTreatmentForCurrentUser,
+  fetchTreatmentById,
+  fetchTreatmentPhotoSignedUrls,
+} from "../../../src/repositories/treatment.repository";
 import { useSession } from "../../../src/store/session";
 import { colors } from "../../../src/theme/tokens";
 
@@ -24,6 +29,7 @@ export default function TreatmentDetailScreen() {
   const [row, setRow] = useState<Treatment | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     if (!supabaseEnabled || !id) {
@@ -45,6 +51,22 @@ export default function TreatmentDetailScreen() {
       void load();
     }, [load]),
   );
+
+  useEffect(() => {
+    if (!row?.photoUrls?.length) {
+      setPhotoUrls([]);
+      return;
+    }
+    let cancelled = false;
+    void fetchTreatmentPhotoSignedUrls(row.photoUrls).then((urls) => {
+      if (!cancelled) {
+        setPhotoUrls(urls);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [row?.photoUrls]);
 
   const onDelete = () => {
     if (!id) {
@@ -127,6 +149,17 @@ export default function TreatmentDetailScreen() {
       ) : null}
       {row.notes ? <Text style={styles.notes}>{row.notes}</Text> : null}
 
+      {photoUrls.length ? (
+        <>
+          <Text style={styles.photosLabel}>Photos</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoStrip}>
+            {photoUrls.map((uri) => (
+              <Image key={uri} source={{ uri }} style={styles.photo} />
+            ))}
+          </ScrollView>
+        </>
+      ) : null}
+
       <View style={styles.actions}>
         <Pressable style={styles.primaryBtn} onPress={() => router.push(`/treatments/edit/${id}`)}>
           <Text style={styles.primaryBtnText}>Edit</Text>
@@ -150,6 +183,15 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: "700", color: colors.primaryNavy },
   line: { marginTop: 8, fontSize: 16, color: colors.textPrimary },
   notes: { marginTop: 16, fontSize: 15, color: colors.textSecondary, lineHeight: 22 },
+  photosLabel: { marginTop: 20, fontSize: 13, fontWeight: "600", color: colors.textSecondary },
+  photoStrip: { marginTop: 10, flexGrow: 0 },
+  photo: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+    marginRight: 10,
+    backgroundColor: "#E9ECEF",
+  },
   p: { marginTop: 8, color: colors.textPrimary },
   muted: { marginTop: 8, color: colors.textSecondary },
   err: { color: colors.errorRed },

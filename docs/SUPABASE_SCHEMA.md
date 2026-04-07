@@ -1,6 +1,6 @@
 # Supabase schema sketch (from Flutter / Firestore)
 
-**Status:** Implemented as SQL in [`supabase/migrations/`](../supabase/migrations/) (`001` core + `002` catalogs). The **Expo app does not apply** these files; your cloud project must run them via [SQL Editor or CLI `db push`](./SUPABASE_SETUP.md). Names use `snake_case` in Postgres; mappers convert to/from TS `camelCase` as needed.
+**Status:** Implemented as SQL in [`supabase/migrations/`](../supabase/migrations/) (`001` core, `002` catalogs, `003` treatment photos + storage, `004` admin user listing + RPC). The **Expo app does not apply** these files; your cloud project must run them via [SQL Editor or CLI `db push`](./SUPABASE_SETUP.md). Names use `snake_case` in Postgres; mappers convert to/from TS `camelCase` as needed.
 
 ---
 
@@ -60,10 +60,15 @@ Replaces `users/{uid}/treatments/{id}`.
 | `treatment_date` | `timestamptz` | |
 | `notes` | `text` default '' | |
 | `cost` | `numeric` | nullable |
+| `photo_urls` | `text[]` default `{}` | Storage object paths in bucket `treatment-photos` (`{user_id}/{treatment_id}/{file}`) |
 | `created_at` | `timestamptz` | |
 | `updated_at` | `timestamptz` | |
 
 Index: `(user_id, treatment_date desc)` for list + calendar queries.
+
+**Storage:** private bucket `treatment-photos`; RLS on `storage.objects` restricts paths whose first folder equals `auth.uid()`.
+
+**Admin:** `current_user_is_admin()` (security definer) + policy `profiles_select_all_for_admin`; `admin_set_user_admin(p_user_id, p_is_admin)` RPC toggles `is_admin` for other users only (not self).
 
 ### `providers`
 

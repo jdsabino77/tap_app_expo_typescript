@@ -1,9 +1,10 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { format, isValid, parseISO } from "date-fns";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -23,6 +24,7 @@ import type { Provider } from "../../../../src/domain/provider";
 import { filterServiceTypesForTreatment } from "../../../../src/domain/reference-content";
 import type { TreatmentType } from "../../../../src/domain/treatment";
 import { useReferenceCatalogs } from "../../../../src/hooks/useReferenceCatalogs";
+import { pickTreatmentImages } from "../../../../src/lib/pick-treatment-photos";
 import { isWriteQueuedError } from "../../../../src/lib/write-queued-error";
 import {
   fetchProviderByIdForCurrentUser,
@@ -30,8 +32,10 @@ import {
 } from "../../../../src/repositories/provider.repository";
 import {
   fetchTreatmentById,
+  fetchTreatmentPhotoSignedUrls,
   updateTreatmentForCurrentUser,
 } from "../../../../src/repositories/treatment.repository";
+import { MAX_TREATMENT_PHOTOS } from "../../../../src/services/supabase/treatment-photos";
 import { useSession } from "../../../../src/store/session";
 import { colors } from "../../../../src/theme/tokens";
 
@@ -61,6 +65,11 @@ export default function EditTreatmentScreen() {
   const [dateStr, setDateStr] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [notes, setNotes] = useState("");
   const [costText, setCostText] = useState("");
+
+  const initialPathsRef = useRef<string[]>([]);
+  const [committedPaths, setCommittedPaths] = useState<string[]>([]);
+  const [localPicks, setLocalPicks] = useState<{ uri: string; mimeType?: string }[]>([]);
+  const [signedByPath, setSignedByPath] = useState<Record<string, string>>({});
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -133,6 +142,10 @@ export default function EditTreatmentScreen() {
         setDateStr(format(t.treatmentDate, "yyyy-MM-dd"));
         setNotes(t.notes ?? "");
         setCostText(t.cost != null ? String(t.cost) : "");
+        const paths = [...t.photoUrls];
+        initialPathsRef.current = paths;
+        setCommittedPaths(paths);
+        setLocalPicks([]);
         void loadProviders(pid);
       })
       .catch((e) => {
@@ -149,6 +162,29 @@ export default function EditTreatmentScreen() {
       cancelled = true;
     };
   }, [id, supabaseEnabled, loadProviders]);
+
+  useEffect(() => {
+    if (!supabaseEnabled || committedPaths.length === 0) {
+      setSignedByPath({});
+      return;
+    }
+    let cancelled = false;
+    void fetchTreatmentPhotoSignedUrls(committedPaths).then((urls) => {
+      if (cancelled) {
+        return;
+      }
+      const map: Record<string, string> = {};
+      committedPaths.forEach((path, i) => {
+        if (urls[i]) {
+          map[path] = urls[i];
+        }
+      });
+      setSignedByPath(map);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [committedPaths, supabaseEnabled]);
 
   const onSave = async () => {
     setError(null);
@@ -186,19 +222,33 @@ export default function EditTreatmentScreen() {
       cost = n;
     }
 
+    const removed = initialPathsRef.current.filter((p) => !committedPaths.includes(p));
+    const photoChanges =
+      localPicks.length || removed.length
+        ? {
+            ...(localPicks.length ? { addLocal: localPicks } : {}),
+            ...(removed.length ? { removeStoragePaths: removed } : {}),
+          }
+        : undefined;
+
     setSaving(true);
     try {
-      await updateTreatmentForCurrentUser(id, {
-        treatmentType,
-        serviceType: st,
-        brand: brand.trim(),
-        treatmentAreas: areas,
-        units,
-        providerId,
-        treatmentDate: d,
-        notes: notes.trim(),
-        cost,
-      });
+      await updateTreatmentForCurrentUser(
+        id,
+        {
+          treatmentType,
+          serviceType: st,
+          brand: brand.trim(),
+          treatmentAreas: areas,
+          units,
+          providerId,
+          treatmentDate: d,
+          notes: notes.trim(),
+          cost,
+          photoUrls: committedPaths,
+        },
+        photoChanges,
+      );
       router.back();
     } catch (e) {
       if (isWriteQueuedError(e)) {
@@ -354,6 +404,51 @@ export default function EditTreatmentScreen() {
           onChangeText={setNotes}
         />
 
+        <Text style={styles.label}>
+          Photos ({committedPaths.length + localPicks.length}/{MAX_TREATMENT_PHOTOS})
+        </Text>
+        <Text style={styles.photoHint}>Requires internet to add or remove. Signed URLs refresh while you edit.</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoStrip}>
+          {committedPaths.map((path) => (
+            <View key={path} style={styles.thumbWrap}>
+              {signedByPath[path] ? (
+                <Image source={{ uri: signedByPath[path] }} style={styles.thumb} />
+              ) : (
+                <View style={[styles.thumb, styles.thumbPlaceholder]} />
+              )}
+              <Pressable
+                style={styles.thumbRemove}
+                onPress={() => setCommittedPaths((cur) => cur.filter((p) => p !== path))}
+              >
+                <Text style={styles.thumbRemoveText}>×</Text>
+              </Pressable>
+            </View>
+          ))}
+          {localPicks.map((p, i) => (
+            <View key={`${p.uri}-${i}`} style={styles.thumbWrap}>
+              <Image source={{ uri: p.uri }} style={styles.thumb} />
+              <Pressable
+                style={styles.thumbRemove}
+                onPress={() => setLocalPicks((cur) => cur.filter((_, j) => j !== i))}
+              >
+                <Text style={styles.thumbRemoveText}>×</Text>
+              </Pressable>
+            </View>
+          ))}
+        </ScrollView>
+        <Pressable
+          style={styles.addPhotos}
+          onPress={() =>
+            void pickTreatmentImages(committedPaths.length + localPicks.length).then((next) => {
+              if (next.length) {
+                setLocalPicks((cur) => [...cur, ...next]);
+              }
+            })
+          }
+        >
+          <Text style={styles.addPhotosText}>Add photos</Text>
+        </Pressable>
+
         {error ? <Text style={styles.err}>{error}</Text> : null}
 
         <Pressable
@@ -415,4 +510,30 @@ const styles = StyleSheet.create({
   },
   saveDisabled: { opacity: 0.6 },
   saveText: { color: colors.primaryNavy, fontWeight: "700", fontSize: 16 },
+  photoHint: { fontSize: 12, color: colors.textSecondary, marginBottom: 8 },
+  photoStrip: { flexGrow: 0, marginBottom: 8 },
+  thumbWrap: { marginRight: 10, position: "relative" },
+  thumb: { width: 88, height: 88, borderRadius: 8, backgroundColor: "#E9ECEF" },
+  thumbPlaceholder: { borderWidth: 1, borderColor: "#DEE2E6" },
+  thumbRemove: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  thumbRemoveText: { color: "#fff", fontSize: 18, fontWeight: "700", lineHeight: 20 },
+  addPhotos: {
+    alignSelf: "flex-start",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primaryNavy,
+  },
+  addPhotosText: { color: colors.primaryNavy, fontWeight: "600" },
 });
