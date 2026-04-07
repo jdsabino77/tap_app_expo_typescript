@@ -1,6 +1,6 @@
 # Supabase schema sketch (from Flutter / Firestore)
 
-**Status:** Draft for Phase 2. Apply via Supabase SQL migrations when the Expo app is scaffolded. Names use `snake_case` in Postgres; mappers convert to/from TS `camelCase` as needed.
+**Status:** Implemented as SQL in [`supabase/migrations/`](../supabase/migrations/) (`001` core + `002` catalogs). The **Expo app does not apply** these files; your cloud project must run them via [SQL Editor or CLI `db push`](./SUPABASE_SETUP.md). Names use `snake_case` in Postgres; mappers convert to/from TS `camelCase` as needed.
 
 ---
 

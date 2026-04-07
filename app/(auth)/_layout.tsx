@@ -1,4 +1,5 @@
 import { Stack } from "expo-router";
+import { appStrings } from "../../src/strings/appStrings";
 
 export default function AuthLayout() {
   return (
@@ -8,10 +9,10 @@ export default function AuthLayout() {
         headerBackTitle: "Back",
       }}
     >
-      <Stack.Screen name="login" options={{ title: "Sign In" }} />
-      <Stack.Screen name="signup" options={{ title: "Sign Up" }} />
-      <Stack.Screen name="welcome" options={{ title: "Welcome", headerLeft: () => null }} />
-      <Stack.Screen name="splash" options={{ title: "T.A.P", headerShown: false }} />
+      <Stack.Screen name="login" options={{ title: appStrings.signIn }} />
+      <Stack.Screen name="signup" options={{ title: appStrings.createAccount }} />
+      <Stack.Screen name="welcome" options={{ title: appStrings.welcomeTitle, headerLeft: () => null }} />
+      <Stack.Screen name="splash" options={{ title: appStrings.appShortName, headerShown: false }} />
     </Stack>
   );
 }

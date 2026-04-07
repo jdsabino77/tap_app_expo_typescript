@@ -11,16 +11,23 @@
     "web": "expo start --web",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:push": "supabase db push",
+    "db:link": "supabase link",
+    "db:status": "supabase migration list"
   },
   "dependencies": {
     "@react-native-community/netinfo": "11.4.1",
     "@supabase/supabase-js": "^2.101.1",
+    "base64-arraybuffer": "^1.0.2",
     "date-fns": "^4.1.0",
     "expo": "~52.0.0",
     "expo-asset": "~11.0.0",
     "expo-constants": "~17.0.0",
     "expo-crypto": "~14.0.2",
+    "expo-file-system": "~18.0.12",
+    "expo-font": "~13.0.4",
+    "expo-image-picker": "~16.0.6",
     "expo-linking": "~7.0.0",
     "expo-router": "~4.0.0",
     "expo-secure-store": "~14.0.1",
@@ -37,6 +44,7 @@
     "@types/node": "^22.10.2",
     "@types/react": "^18.3.28",
     "babel-preset-expo": "~12.0.0",
+    "supabase": "^2.85.0",
     "typescript": "^5.7.2",
     "vitest": "^3.0.2"
   }

@@ -2,6 +2,7 @@ import { Link, router } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -11,6 +12,8 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { PassportLogo } from "../../src/components/PassportLogo";
+import { appStrings } from "../../src/strings/appStrings";
 import { useSession } from "../../src/store/session";
 import { colors } from "../../src/theme/tokens";
 
@@ -29,7 +32,7 @@ export default function LoginScreen() {
   const onSubmit = async () => {
     setError(null);
     if (!acceptedTerms) {
-      setError("Please accept the terms and conditions to continue.");
+      setError(appStrings.acceptTermsToContinue);
       return;
     }
     setLoading(true);
@@ -48,14 +51,15 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>T.A.P</Text>
-        <Text style={styles.sub}>Treatment &amp; Aesthetic Procedures</Text>
+        <PassportLogo size={100} />
+        <Text style={styles.headline}>{appStrings.loginHeadline}</Text>
+        <Text style={styles.sub}>{appStrings.loginSubtitle}</Text>
 
         {supabaseEnabled ? (
           <>
             <TextInput
               style={styles.input}
-              placeholder="Email"
+              placeholder={appStrings.emailHint}
               placeholderTextColor={colors.textLight}
               autoCapitalize="none"
               keyboardType="email-address"
@@ -64,21 +68,29 @@ export default function LoginScreen() {
             />
             <TextInput
               style={styles.input}
-              placeholder="Password"
+              placeholder={appStrings.passwordHint}
               placeholderTextColor={colors.textLight}
               secureTextEntry
               value={password}
               onChangeText={setPassword}
             />
             <Pressable
+              style={styles.forgotWrap}
+              onPress={() =>
+                Alert.alert(appStrings.forgotPassword.replace("?", ""), "This option is not wired yet in the Expo app.")
+              }
+            >
+              <Text style={styles.forgot}>{appStrings.forgotPassword}</Text>
+            </Pressable>
+            <Pressable
               style={styles.checkboxRow}
               onPress={() => setAcceptedTerms(!acceptedTerms)}
             >
               <View style={[styles.box, acceptedTerms && styles.boxOn]} />
               <Text style={styles.checkboxLabel}>
-                I agree to the{" "}
+                {appStrings.termsCheckboxLead}
                 <Text style={styles.linkInline} onPress={() => router.push("/legal/terms")}>
-                  Terms
+                  {appStrings.termsAndConditions}
                 </Text>
               </Text>
             </Pressable>
@@ -91,7 +103,7 @@ export default function LoginScreen() {
               {loading ? (
                 <ActivityIndicator color={colors.primaryNavy} />
               ) : (
-                <Text style={styles.primaryText}>Sign in</Text>
+                <Text style={styles.primaryText}>{appStrings.signIn}</Text>
               )}
             </Pressable>
           </>
@@ -124,13 +136,13 @@ export default function LoginScreen() {
 
         <Link href="/(auth)/signup" asChild>
           <Pressable style={styles.linkWrap}>
-            <Text style={styles.link}>Sign up</Text>
+            <Text style={styles.link}>{appStrings.signUpCta}</Text>
           </Pressable>
         </Link>
 
         <Link href="/legal/terms" asChild>
           <Pressable style={styles.linkWrap}>
-            <Text style={styles.muted}>Terms &amp; Conditions</Text>
+            <Text style={styles.muted}>{appStrings.termsAndConditions}</Text>
           </Pressable>
         </Link>
 
@@ -147,8 +159,17 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.lightGray },
   container: { padding: 24, paddingBottom: 48 },
-  title: { fontSize: 28, fontWeight: "700", color: colors.primaryNavy, textAlign: "center" },
-  sub: { marginTop: 8, color: colors.textSecondary, textAlign: "center", marginBottom: 24 },
+  headline: {
+    marginTop: 16,
+    fontSize: 22,
+    fontWeight: "700",
+    color: colors.primaryNavy,
+    textAlign: "center",
+    lineHeight: 28,
+  },
+  sub: { marginTop: 8, color: colors.textSecondary, textAlign: "center", marginBottom: 24, lineHeight: 20 },
+  forgotWrap: { alignSelf: "flex-end", marginBottom: 8 },
+  forgot: { color: colors.primaryNavy, fontSize: 14, textDecorationLine: "underline" },
   banner: {
     backgroundColor: colors.warningOrange,
     padding: 12,

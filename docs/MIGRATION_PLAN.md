@@ -173,7 +173,7 @@ Suggested **order** (adjust if product priority differs):
 | Task | Done |
 |------|------|
 | Define “done” per screen: loads data, handles empty/error, matches critical Flutter actions | ☑ (slice 1: auth + gate + dashboard header + treatments list/detail + providers list + medical save + settings logout) |
-| Copy assets and strings as needed per screen | ☐ |
+| Copy assets and strings as needed per screen | ☑ (slice 8: `appStrings` + `PassportLogo`; hub + auth aligned; raster assets N/A in Flutter source) |
 | Track deviations from Flutter in a short `docs/SCREEN_PARITY.md` (optional, add when first gap appears) | ☑ |
 
 **Deliverables — Phase 5 slice 1 (2026-04-06):** `@supabase/supabase-js` + **SecureStore** client, `supabase/migrations/001_phase5_core.sql`, repositories (`medical-profile`, `treatments`, `providers`, `profile`), real **login/signup/logout**, **medical profile upsert**, **treatments** list/detail, **providers** list, [SUPABASE_SETUP.md](./SUPABASE_SETUP.md), [SCREEN_PARITY.md](./SCREEN_PARITY.md), `.env.example`.
@@ -184,9 +184,15 @@ Suggested **order** (adjust if product priority differs):
 
 **Deliverables — Phase 5 slice 4 (2026-04-06):** **Reference catalogs** migration [`002_reference_catalogs.sql`](../supabase/migrations/002_reference_catalogs.sql) (`laser_types`, `service_types` with **`applies_to`**, `treatment_areas`, `provider_service_catalog`), RLS (authenticated **read** active; **admin** full CRUD), **seed** rows. **`catalog.repository`** + **`useReferenceCatalogs`**; **`filterServiceTypesForTreatment`**; UI chips on **new/edit treatment** and **new/edit provider** (`src/components/catalog-suggestions.tsx`, `toggleCommaListItem`).
 
-**Deliverables — Phase 5 slice 5 (2026-04-06):** **Team Supabase dashboard** noted in [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) (`pexgbpnsuavlaejwgxnx`). **`expo-sqlite`** + `expo-sqlite` config plugin; **`src/services/local/cache-db.ts`** (KV table) + **`reference-catalog-cache.ts`**; catalog fetch **writes cache** after remote success and **falls back** to SQLite when offline / remote error (web skips cache). **`ReferenceCatalogBundle`** + **`parseReferenceCatalogBundleJson`** in domain; **Settings** About (version) + Terms link + note on cache.
+**Deliverables — Phase 5 slice 5 (2026-04-06):** **Team Supabase dashboard** noted in [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) (`pexgbpnsuavlaejwgxnx`). **`expo-sqlite`** + `expo-sqlite` config plugin; **`src/services/local/cache-db.ts`** (KV table) + initial **`reference-catalog-cache.ts`** (later slice 7: **`kv-async`** for web). Catalog fetch **writes cache** after remote success and **falls back** when offline / remote error. **`ReferenceCatalogBundle`** + **`parseReferenceCatalogBundleJson`** in domain; **Settings** About (version) + Terms link + note on cache.
 
-**Deliverables — Phase 5 slice 6 (2026-04-06):** **Treatments/providers list KV cache** (`treatments-list-cache`, `providers-list-cache`; web: `localStorage` via `kv-async`). Repositories **persist lists after successful fetch**, **fall back to cache** on fetch failure, expose **`readCached*ForCurrentUser`** for cache-first UI. **`write_outbox`** table + **`write-queue`** (web: `tap_write_outbox_v1`); offline (or failed) mutations **enqueue**, **patch list cache**, throw **`WriteQueuedError`**; **`WriteQueueSync`** + **`flushWriteOutbox`** when **`useNetworkStatus` → online**; **logout** clears list caches + outbox via **`clearUserLocalCache`**. **Still next:** face-map ML, asset/string parity, catalog admin UI, treatment photos, optional reference-cache web parity.
+**Deliverables — Phase 5 slice 6 (2026-04-06):** **Treatments/providers list KV cache** (`treatments-list-cache`, `providers-list-cache`; web: `localStorage` via `kv-async`). Repositories **persist lists after successful fetch**, **fall back to cache** on fetch failure, expose **`readCached*ForCurrentUser`** for cache-first UI. **`write_outbox`** table + **`write-queue`** (web: `tap_write_outbox_v1`); offline (or failed) mutations **enqueue**, **patch list cache**, throw **`WriteQueuedError`**; **`WriteQueueSync`** + **`flushWriteOutbox`** when **`useNetworkStatus` → online**; **logout** clears list caches + outbox via **`clearUserLocalCache`**.
+
+**Deliverables — Phase 5 slice 7 (2026-04-06):** **Reference catalog bundle** persistence moved to **`kv-async`** (`reference-catalog-cache.ts`): same **`kv_cache` / `tap_kv_` localStorage** path as list caches; **offline / failed fetch** fallback works on **web**. **`clearReferenceCatalogBundleCache`** on **logout** with other local data. **Settings** copy updated.
+
+**Deliverables — Phase 5 slice 8 (2026-04-06):** **Copy + branding parity** with Flutter: **`src/strings/appStrings.ts`** (dashboard, auth, welcome, terms, nav labels); **`PassportLogo`** component (Flutter `passport_logo.dart` — vector, no PNG); **login / signup / welcome / splash** wired to strings + logo; **`app.config.js`** `name` → **T.A.P by YasaLaser** (`main.dart`); **dashboard** home: welcome card, **Quick Actions** grid (Flutter `HomePage`), **Recent Treatments** (up to 3) + empty state, **More** list + terms link; **stack titles** for face map, calendar, medical profile, settings.
+
+**Deliverables — Phase 5 slice 9 (2026-04-06):** **In-app reference catalog admin** for **`profiles.is_admin`**: **`catalog-admin.repository.ts`** (list / insert / update / delete on all four catalog tables; **`clearReferenceCatalogBundleCache`** after mutations); **`/catalog-admin`** screen (tabs + row editors: name, description where applicable, **`applies_to`** for service types, sort order, active/default, delete confirm); **Settings → Catalog admin** link when **`is_admin`**; **`fetchOwnProfileRow`** includes **`is_admin`**. [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) documents **`update profiles set is_admin = true`**. **Still next:** face-map ML, treatment photos, optional i18n / full string audit.
 
 ---
 
@@ -252,3 +258,7 @@ Track parity with the Flutter app version in this repo’s `package.json` or `ap
 | 2026-04-06 | Phase 3 complete: Expo Router `(auth)` / `(app)` / `legal`, session stub, dashboard hub stubs, `EXPO_ROUTES.md` |
 | 2026-04-06 | Phase 4 complete: shared lib (dates, Intl, ids, Supabase error mappers), NetInfo hook, expanded theme, `expo-crypto` |
 | 2026-04-06 | Phase 5 slice 1: Supabase auth + RLS schema migration + repositories + core screens wired |
+| 2026-04-06 | Phase 5 slice 7: reference catalog cache via `kv-async` (web parity); clear on logout; Settings copy |
+| 2026-04-06 | Phase 5 slice 8: `appStrings` + `PassportLogo`; dashboard quick actions + recent treatments; auth/splash copy; app display name |
+| 2026-04-06 | Phase 5 slice 9: catalog admin screen + repository; `is_admin` on profile; Settings link; Supabase setup note |
+| 2026-04-06 | Supabase CLI: `supabase init` + `config.toml`; `db:push` / `db:link` scripts; SUPABASE_SETUP clarifies schema not auto-applied by Expo |

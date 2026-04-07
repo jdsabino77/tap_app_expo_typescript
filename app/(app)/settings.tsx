@@ -1,6 +1,10 @@
+import { useFocusEffect } from "@react-navigation/native";
 import Constants from "expo-constants";
 import { Link, router } from "expo-router";
+import { useCallback, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { fetchOwnProfileRow } from "../../src/repositories/profile.repository";
+import { appStrings } from "../../src/strings/appStrings";
 import { useSession } from "../../src/store/session";
 import { colors } from "../../src/theme/tokens";
 
@@ -9,7 +13,20 @@ import { colors } from "../../src/theme/tokens";
  * Here: `signOut` + `router.replace` to auth stack (clears signed-in history for UX).
  */
 export default function SettingsScreen() {
-  const { signOut } = useSession();
+  const { signOut, supabaseEnabled } = useSession();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!supabaseEnabled) {
+        setIsAdmin(false);
+        return;
+      }
+      void fetchOwnProfileRow()
+        .then((p) => setIsAdmin(Boolean(p?.is_admin)))
+        .catch(() => setIsAdmin(false));
+    }, [supabaseEnabled]),
+  );
 
   const onLogout = () => {
     Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -43,13 +60,24 @@ export default function SettingsScreen() {
         </Pressable>
       </Link>
 
+      {isAdmin ? (
+        <>
+          <Text style={styles.section}>Admin</Text>
+          <Link href="/catalog-admin" asChild>
+            <Pressable style={styles.row}>
+              <Text style={styles.linkish}>{appStrings.catalogAdminTitle}</Text>
+            </Pressable>
+          </Link>
+        </>
+      ) : null}
+
       <Text style={styles.section}>Account</Text>
       <Pressable style={styles.row} onPress={onLogout}>
         <Text style={styles.danger}>Log out</Text>
       </Pressable>
       <Text style={styles.muted}>
-        More settings from Flutter are tracked in docs/SETTINGS_FEATURES.md. Reference catalogs cache locally on
-        device (SQLite) after the first successful load.
+        More settings from Flutter are tracked in docs/SETTINGS_FEATURES.md. Reference catalogs cache locally after
+        the first successful load (SQLite on iOS/Android; browser storage on web).
       </Text>
     </View>
   );

@@ -27,7 +27,7 @@ const supabaseAnonKey =
 
 module.exports = {
   expo: {
-    name: "T.A.P",
+    name: "T.A.P by YasaLaser",
     slug: "tap-app-expo-typescript",
     version: "1.0.1",
     orientation: "portrait",
@@ -41,7 +41,17 @@ module.exports = {
     android: {
       package: "com.yasalaser.tap",
     },
-    plugins: ["expo-router", "expo-secure-store", "expo-sqlite"],
+    plugins: [
+      "expo-router",
+      "expo-secure-store",
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          photosPermission: "Allow $(PRODUCT_NAME) to attach photos to your treatments.",
+        },
+      ],
+    ],
     extra: {
       supabaseUrl,
       supabaseAnonKey,

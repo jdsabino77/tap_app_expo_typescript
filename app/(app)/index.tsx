@@ -1,20 +1,54 @@
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import type { Treatment } from "../../src/domain/treatment";
+import { formatDisplayDate } from "../../src/lib/datetime";
 import { fetchOwnProfileRow } from "../../src/repositories/profile.repository";
+import { fetchTreatmentsForCurrentUser } from "../../src/repositories/treatment.repository";
+import { appStrings } from "../../src/strings/appStrings";
 import { useNetworkStatus } from "../../src/hooks/useNetworkStatus";
 import { useSession } from "../../src/store/session";
 import { colors } from "../../src/theme/tokens";
 
-function Row({ href, label }: { href: "/treatments" | "/face-map" | "/providers" | "/medical-profile" | "/calendar" | "/settings"; label: string }) {
+function HubRow({
+  href,
+  label,
+}: {
+  href: "/treatments" | "/face-map" | "/providers" | "/medical-profile" | "/calendar" | "/settings";
+  label: string;
+}) {
   return (
     <Link href={href} asChild>
-      <Pressable style={styles.row}>
-        <Text style={styles.rowText}>{label}</Text>
+      <Pressable style={styles.hubRow}>
+        <Text style={styles.hubRowText}>{label}</Text>
         <Text style={styles.chev}>›</Text>
       </Pressable>
     </Link>
+  );
+}
+
+function QuickActionCard({
+  title,
+  subtitle,
+  onPress,
+}: {
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable style={styles.qaCard} onPress={onPress}>
+      <Text style={styles.qaTitle}>{title}</Text>
+      <Text style={styles.qaSub}>{subtitle}</Text>
+    </Pressable>
   );
 }
 
@@ -24,6 +58,8 @@ export default function DashboardScreen() {
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [treatmentCount, setTreatmentCount] = useState<number | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
+  const [recent, setRecent] = useState<Treatment[] | null>(null);
+  const [loadingRecent, setLoadingRecent] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -60,60 +96,229 @@ export default function DashboardScreen() {
     }, [supabaseEnabled, email]),
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      if (!supabaseEnabled) {
+        setRecent(null);
+        return;
+      }
+      let cancelled = false;
+      setLoadingRecent(true);
+      void fetchTreatmentsForCurrentUser()
+        .then((rows) => {
+          if (!cancelled) {
+            setRecent(rows.slice(0, 3));
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setRecent([]);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setLoadingRecent(false);
+          }
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [supabaseEnabled, email]),
+  );
+
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
       {net === "offline" ? (
         <View style={styles.offlineBanner}>
-          <Text style={styles.offlineText}>Offline — changes may queue until you reconnect.</Text>
+          <Text style={styles.offlineText}>{appStrings.offlineBanner}</Text>
         </View>
       ) : null}
 
-      <View style={styles.header}>
+      <View style={styles.welcomeCard}>
+        <Text style={styles.welcomeTitle}>{appStrings.welcomeBackTitle}</Text>
+        <Text style={styles.welcomeSub}>{appStrings.welcomeBackSubtitle}</Text>
         {loadingProfile ? (
-          <ActivityIndicator color={colors.primaryNavy} />
-        ) : (
+          <ActivityIndicator color={colors.primaryNavy} style={styles.inlineLoader} />
+        ) : supabaseEnabled ? (
           <>
-            <Text style={styles.greeting}>
-              {displayName ? `Hi, ${displayName}` : supabaseEnabled ? (email ?? "Signed in") : "Dashboard (stub)"}
-            </Text>
+            {displayName ? (
+              <Text style={styles.signedInMeta}>{displayName}</Text>
+            ) : email ? (
+              <Text style={styles.signedInMeta}>{email}</Text>
+            ) : null}
             {treatmentCount != null ? (
-              <Text style={styles.meta}>Treatments logged: {treatmentCount}</Text>
+              <Text style={styles.countMeta}>{appStrings.treatmentsLogged(treatmentCount)}</Text>
             ) : null}
           </>
+        ) : (
+          <Text style={styles.signedInMeta}>Dashboard (stub)</Text>
         )}
       </View>
 
-      <Text style={styles.hint}>Hub (Flutter Dashboard). Open sections below.</Text>
-      <Row href="/treatments" label="Treatments" />
-      <Row href="/face-map" label="Face map" />
-      <Row href="/providers" label="Providers" />
-      <Row href="/medical-profile" label="Medical profile" />
-      <Row href="/calendar" label="Calendar" />
-      <Row href="/settings" label="Settings" />
+      <Text style={styles.sectionTitle}>{appStrings.quickActions}</Text>
+      <View style={styles.qaRow}>
+        <QuickActionCard
+          title={appStrings.quickActionNewTreatment}
+          subtitle={appStrings.quickActionNewTreatmentSub}
+          onPress={() => router.push("/treatments/new")}
+        />
+        <QuickActionCard
+          title={appStrings.quickActionFaceMap}
+          subtitle={appStrings.quickActionFaceMapSub}
+          onPress={() => router.push("/face-map")}
+        />
+      </View>
+      <View style={styles.qaRow}>
+        <QuickActionCard
+          title={appStrings.quickActionProviders}
+          subtitle={appStrings.quickActionProvidersSub}
+          onPress={() => router.push("/providers")}
+        />
+        <QuickActionCard
+          title={appStrings.quickActionCalendar}
+          subtitle={appStrings.quickActionCalendarSub}
+          onPress={() => router.push("/calendar")}
+        />
+      </View>
+      <View style={styles.qaRow}>
+        <QuickActionCard
+          title={appStrings.quickActionProfile}
+          subtitle={appStrings.quickActionProfileSub}
+          onPress={() => router.push("/medical-profile")}
+        />
+        <View style={styles.qaSpacer} />
+      </View>
+
+      <Text style={styles.sectionTitle}>{appStrings.recentTreatments}</Text>
+      {!supabaseEnabled ? (
+        <Text style={styles.muted}>Connect Supabase to load recent treatments.</Text>
+      ) : loadingRecent ? (
+        <View style={styles.recentLoading}>
+          <ActivityIndicator color={colors.primaryNavy} />
+        </View>
+      ) : recent != null && recent.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>{appStrings.noTreatmentsYet}</Text>
+          <Text style={styles.emptySub}>{appStrings.noTreatmentsHint}</Text>
+          <Link href="/treatments/new" asChild>
+            <Pressable style={styles.emptyBtn}>
+              <Text style={styles.emptyBtnText}>{appStrings.addFirstTreatment}</Text>
+            </Pressable>
+          </Link>
+        </View>
+      ) : (
+        (recent ?? []).map((t) => (
+          <Pressable
+            key={t.id}
+            style={styles.recentCard}
+            onPress={() => router.push(`/treatments/${t.id}`)}
+          >
+            <Text style={styles.recentTitle}>
+              {t.treatmentType} · {t.serviceType}
+            </Text>
+            <Text style={styles.recentSub}>{formatDisplayDate(t.treatmentDate)}</Text>
+          </Pressable>
+        ))
+      )}
+
+      <Text style={styles.sectionTitle}>More</Text>
+      <HubRow href="/treatments" label={appStrings.navTreatments} />
+      <HubRow href="/providers" label={appStrings.navProviders} />
+      <HubRow href="/calendar" label={appStrings.navCalendar} />
+      <HubRow href="/face-map" label={appStrings.navFaceMap} />
+      <HubRow href="/medical-profile" label={appStrings.navMedicalProfile} />
+      <HubRow href="/settings" label={appStrings.navSettings} />
+
       <Link href="/legal/terms" asChild>
         <Pressable style={styles.footerWrap}>
-          <Text style={styles.footer}>Terms &amp; Conditions</Text>
+          <Text style={styles.footer}>{appStrings.termsAndConditions}</Text>
         </Pressable>
       </Link>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.lightGray, paddingTop: 8 },
+  scroll: { flex: 1, backgroundColor: colors.lightGray },
+  scrollContent: { paddingTop: 8, paddingBottom: 32 },
   offlineBanner: {
     marginHorizontal: 16,
-    marginBottom: 8,
+    marginBottom: 12,
     padding: 10,
     backgroundColor: colors.warningOrange,
     borderRadius: 8,
   },
   offlineText: { color: colors.primaryNavy, fontWeight: "600", fontSize: 13 },
-  header: { paddingHorizontal: 16, paddingBottom: 8, minHeight: 48, justifyContent: "center" },
-  greeting: { fontSize: 20, fontWeight: "700", color: colors.primaryNavy },
-  meta: { marginTop: 4, fontSize: 14, color: colors.textSecondary },
-  hint: { paddingHorizontal: 16, paddingBottom: 12, color: colors.textSecondary, fontSize: 13 },
-  row: {
+  welcomeCard: {
+    marginHorizontal: 16,
+    marginBottom: 20,
+    padding: 20,
+    backgroundColor: colors.cleanWhite,
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  welcomeTitle: { fontSize: 20, fontWeight: "700", color: colors.primaryNavy },
+  welcomeSub: { marginTop: 8, fontSize: 15, color: colors.textSecondary, lineHeight: 22 },
+  signedInMeta: { marginTop: 12, fontSize: 14, color: colors.textPrimary, fontWeight: "600" },
+  countMeta: { marginTop: 4, fontSize: 14, color: colors.textSecondary },
+  inlineLoader: { marginTop: 12 },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: colors.primaryNavy,
+    marginBottom: 12,
+    paddingHorizontal: 16,
+  },
+  qaRow: { flexDirection: "row", gap: 12, paddingHorizontal: 16, marginBottom: 12 },
+  qaCard: {
+    flex: 1,
+    backgroundColor: colors.cleanWhite,
+    borderRadius: 12,
+    padding: 14,
+    minHeight: 88,
+    justifyContent: "center",
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  qaSpacer: { flex: 1 },
+  qaTitle: { fontSize: 15, fontWeight: "700", color: colors.primaryNavy },
+  qaSub: { marginTop: 6, fontSize: 13, color: colors.textSecondary, lineHeight: 18 },
+  recentLoading: { padding: 24, alignItems: "center" },
+  emptyCard: {
+    marginHorizontal: 16,
+    padding: 20,
+    backgroundColor: colors.cleanWhite,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  emptyTitle: { fontSize: 17, fontWeight: "600", color: colors.primaryNavy },
+  emptySub: { marginTop: 8, textAlign: "center", color: colors.textSecondary, lineHeight: 20 },
+  emptyBtn: {
+    marginTop: 16,
+    backgroundColor: colors.primaryGold,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  emptyBtnText: { color: colors.primaryNavy, fontWeight: "700" },
+  recentCard: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    padding: 16,
+    backgroundColor: colors.cleanWhite,
+    borderRadius: 12,
+  },
+  recentTitle: { fontSize: 16, fontWeight: "600", color: colors.primaryNavy },
+  recentSub: { marginTop: 4, fontSize: 14, color: colors.textSecondary },
+  muted: { paddingHorizontal: 16, color: colors.textSecondary, marginBottom: 12 },
+  hubRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -123,8 +328,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#ddd",
   },
-  rowText: { fontSize: 17, color: colors.primaryNavy, fontWeight: "500" },
+  hubRowText: { fontSize: 17, color: colors.primaryNavy, fontWeight: "500" },
   chev: { fontSize: 22, color: colors.textLight },
-  footerWrap: { marginTop: 24, padding: 12 },
+  footerWrap: { marginTop: 16, padding: 12 },
   footer: { textAlign: "center", color: colors.primaryNavy, textDecorationLine: "underline" },
 });

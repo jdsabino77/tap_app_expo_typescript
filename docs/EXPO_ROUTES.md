@@ -21,6 +21,7 @@ File-based routes under `app/`. URLs omit group segments `(auth)` and `(app)`.
 | `medical_profile_page` | `/medical-profile` | Query `?onboarding=true` from Welcome. |
 | `calendar_page` | `/calendar` | |
 | `settings_page` | `/settings` | Logout → `router.replace('/(auth)/login')`. |
+| (catalog admin) | `/catalog-admin` | Visible from Settings when `profiles.is_admin`; CRUD reference catalogs. |
 | `terms_and_conditions_page` | `/legal/terms` | Available without signing in (from login). |
 
 ## Auth gating

@@ -15,6 +15,12 @@ import {
   serializeTreatmentUpdatePayload,
 } from "../services/local/write-queue";
 import { getSupabase, isSupabaseConfigured } from "../services/supabase/client";
+import {
+  deleteTreatmentPhotoPaths,
+  MAX_TREATMENT_PHOTOS,
+  signedUrlsForTreatmentPhotoPaths,
+  uploadTreatmentPhotoFiles,
+} from "../services/supabase/treatment-photos";
 
 export type CreateTreatmentInput = {
   treatmentType: TreatmentType;
@@ -27,9 +33,26 @@ export type CreateTreatmentInput = {
   treatmentDate: Date;
   notes: string;
   cost: number | null;
+  /** Offline-queued creates only (storage paths). Local uploads use `photoChanges`. */
+  photoUrls?: string[];
 };
 
 export type UpdateTreatmentInput = CreateTreatmentInput;
+
+export type TreatmentPhotoChanges = {
+  addLocal?: { uri: string; mimeType?: string }[];
+  removeStoragePaths?: string[];
+};
+
+function hasPhotoWork(c?: TreatmentPhotoChanges): boolean {
+  return Boolean(c?.addLocal?.length || c?.removeStoragePaths?.length);
+}
+
+async function assertOnlineForTreatmentPhotos(c?: TreatmentPhotoChanges): Promise<void> {
+  if (hasPhotoWork(c) && (await isDeviceOffline())) {
+    throw new Error("Connect to the internet to add or remove treatment photos.");
+  }
+}
 
 /** Stale list from device cache (null if none). */
 export async function readCachedTreatmentsForCurrentUser(): Promise<Treatment[] | null> {
@@ -104,6 +127,13 @@ export async function fetchTreatmentById(id: string): Promise<Treatment | null> 
   return treatmentFromRow(data as TreatmentRow);
 }
 
+export async function fetchTreatmentPhotoSignedUrls(photoPaths: string[]): Promise<string[]> {
+  if (!isSupabaseConfigured() || photoPaths.length === 0) {
+    return [];
+  }
+  return signedUrlsForTreatmentPhotoPaths(getSupabase(), photoPaths);
+}
+
 async function adjustTreatmentCount(
   supabase: ReturnType<typeof getSupabase>,
   userId: string,
@@ -129,6 +159,7 @@ async function adjustTreatmentCount(
 
 async function queueTreatmentCreate(uid: string, input: CreateTreatmentInput): Promise<never> {
   const id = newUuid();
+  const photoUrls = input.photoUrls ?? [];
   await enqueueOutboxWrite(
     uid,
     "treatment_create",
@@ -142,14 +173,19 @@ async function queueTreatmentCreate(uid: string, input: CreateTreatmentInput): P
       treatmentDate: input.treatmentDate,
       notes: input.notes,
       cost: input.cost,
+      photoUrls,
     }),
   );
-  const syn = syntheticTreatmentFromInput(id, uid, input);
+  const syn = syntheticTreatmentFromInput(id, uid, { ...input, photoUrls });
   await patchTreatmentsListCache(uid, (cur) => [syn, ...cur.filter((t) => t.id !== id)]);
   throw new WriteQueuedError();
 }
 
 async function queueTreatmentUpdate(uid: string, id: string, input: UpdateTreatmentInput): Promise<never> {
+  const cur = (await readTreatmentsListCache(uid)) ?? [];
+  const prev = cur.find((t) => t.id === id);
+  const photoUrls = input.photoUrls ?? prev?.photoUrls ?? [];
+
   await enqueueOutboxWrite(
     uid,
     "treatment_update",
@@ -165,8 +201,8 @@ async function queueTreatmentUpdate(uid: string, id: string, input: UpdateTreatm
       cost: input.cost,
     }),
   );
-  const syn = syntheticTreatmentFromInput(id, uid, input);
-  await patchTreatmentsListCache(uid, (cur) => cur.map((t) => (t.id === id ? syn : t)));
+  const syn = syntheticTreatmentFromInput(id, uid, { ...input, photoUrls });
+  await patchTreatmentsListCache(uid, (curList) => curList.map((t) => (t.id === id ? syn : t)));
   throw new WriteQueuedError();
 }
 
@@ -176,7 +212,10 @@ async function queueTreatmentDelete(uid: string, id: string): Promise<never> {
   throw new WriteQueuedError();
 }
 
-export async function createTreatmentForCurrentUser(input: CreateTreatmentInput): Promise<Treatment> {
+export async function createTreatmentForCurrentUser(
+  input: CreateTreatmentInput,
+  photoChanges?: TreatmentPhotoChanges,
+): Promise<Treatment> {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
@@ -187,12 +226,20 @@ export async function createTreatmentForCurrentUser(input: CreateTreatmentInput)
   }
   const uid = userData.user.id;
 
+  await assertOnlineForTreatmentPhotos(photoChanges);
+
   if (await isDeviceOffline()) {
-    await queueTreatmentCreate(uid, input);
+    await queueTreatmentCreate(uid, { ...input, photoUrls: input.photoUrls ?? [] });
   }
 
   const providerId =
     input.providerId && input.providerId.trim() !== "" ? input.providerId.trim() : null;
+
+  const initialPhotos = input.photoUrls ?? [];
+  const addCount = photoChanges?.addLocal?.length ?? 0;
+  if (initialPhotos.length + addCount > MAX_TREATMENT_PHOTOS) {
+    throw new Error(`At most ${MAX_TREATMENT_PHOTOS} photos per treatment.`);
+  }
 
   const row = {
     user_id: uid,
@@ -205,6 +252,7 @@ export async function createTreatmentForCurrentUser(input: CreateTreatmentInput)
     treatment_date: input.treatmentDate.toISOString(),
     notes: input.notes.trim(),
     cost: input.cost,
+    photo_urls: initialPhotos,
   };
 
   try {
@@ -216,7 +264,27 @@ export async function createTreatmentForCurrentUser(input: CreateTreatmentInput)
 
     void adjustTreatmentCount(supabase, uid, 1);
 
-    const t = treatmentFromRow(data as TreatmentRow);
+    let t = treatmentFromRow(data as TreatmentRow);
+
+    if (photoChanges?.addLocal?.length) {
+      const uploaded = await uploadTreatmentPhotoFiles(supabase, uid, t.id, photoChanges.addLocal);
+      const merged = [...initialPhotos, ...uploaded];
+      const { data: u2, error: e2 } = await supabase
+        .from("treatments")
+        .update({
+          photo_urls: merged,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", t.id)
+        .eq("user_id", uid)
+        .select("*")
+        .single();
+      if (e2) {
+        throw new Error(e2.message);
+      }
+      t = treatmentFromRow(u2 as TreatmentRow);
+    }
+
     await patchTreatmentsListCache(uid, (cur) => {
       const rest = cur.filter((x) => x.id !== t.id);
       return [t, ...rest];
@@ -224,7 +292,7 @@ export async function createTreatmentForCurrentUser(input: CreateTreatmentInput)
     return t;
   } catch (e) {
     if (await isDeviceOffline()) {
-      await queueTreatmentCreate(uid, input);
+      await queueTreatmentCreate(uid, { ...input, photoUrls: input.photoUrls ?? [] });
     }
     throw e instanceof Error ? e : new Error(String(e));
   }
@@ -233,6 +301,7 @@ export async function createTreatmentForCurrentUser(input: CreateTreatmentInput)
 export async function updateTreatmentForCurrentUser(
   id: string,
   input: UpdateTreatmentInput,
+  photoChanges?: TreatmentPhotoChanges,
 ): Promise<Treatment> {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
@@ -244,6 +313,8 @@ export async function updateTreatmentForCurrentUser(
   }
   const uid = userData.user.id;
 
+  await assertOnlineForTreatmentPhotos(photoChanges);
+
   if (await isDeviceOffline()) {
     await queueTreatmentUpdate(uid, id, input);
   }
@@ -251,7 +322,7 @@ export async function updateTreatmentForCurrentUser(
   const providerId =
     input.providerId && input.providerId.trim() !== "" ? input.providerId.trim() : null;
 
-  const upd = {
+  const upd: Record<string, unknown> = {
     treatment_type: input.treatmentType,
     service_type: input.serviceType.trim(),
     brand: input.brand.trim(),
@@ -263,6 +334,28 @@ export async function updateTreatmentForCurrentUser(
     cost: input.cost,
     updated_at: new Date().toISOString(),
   };
+
+  let removeFromStorage: string[] = [];
+  if (hasPhotoWork(photoChanges)) {
+    const existing = await fetchTreatmentById(id);
+    if (!existing) {
+      throw new Error("Treatment not found or access denied.");
+    }
+    let nextPhotos = [...existing.photoUrls];
+    const remove = photoChanges?.removeStoragePaths ?? [];
+    removeFromStorage = remove;
+    if (remove.length) {
+      nextPhotos = nextPhotos.filter((p) => !remove.includes(p));
+    }
+    if (photoChanges?.addLocal?.length) {
+      const uploaded = await uploadTreatmentPhotoFiles(supabase, uid, id, photoChanges.addLocal);
+      nextPhotos = [...nextPhotos, ...uploaded];
+    }
+    if (nextPhotos.length > MAX_TREATMENT_PHOTOS) {
+      throw new Error(`At most ${MAX_TREATMENT_PHOTOS} photos per treatment.`);
+    }
+    upd.photo_urls = nextPhotos;
+  }
 
   try {
     const { data, error } = await supabase
@@ -279,6 +372,15 @@ export async function updateTreatmentForCurrentUser(
     if (!data) {
       throw new Error("Treatment not found or access denied.");
     }
+
+    if (removeFromStorage.length) {
+      try {
+        await deleteTreatmentPhotoPaths(supabase, removeFromStorage);
+      } catch {
+        /* best-effort cleanup */
+      }
+    }
+
     const t = treatmentFromRow(data as TreatmentRow);
     await patchTreatmentsListCache(uid, (cur) => cur.map((x) => (x.id === id ? t : x)));
     return t;
@@ -311,7 +413,7 @@ export async function deleteTreatmentForCurrentUser(id: string): Promise<void> {
       .delete()
       .eq("id", id)
       .eq("user_id", uid)
-      .select("id")
+      .select("photo_urls")
       .maybeSingle();
 
     if (error) {
@@ -319,6 +421,15 @@ export async function deleteTreatmentForCurrentUser(id: string): Promise<void> {
     }
     if (!data) {
       throw new Error("Treatment not found or access denied.");
+    }
+
+    const urls = (data as { photo_urls?: string[] | null }).photo_urls;
+    if (urls?.length) {
+      try {
+        await deleteTreatmentPhotoPaths(supabase, urls);
+      } catch {
+        /* best-effort */
+      }
     }
 
     void adjustTreatmentCount(supabase, uid, -1);

@@ -19,13 +19,14 @@ React Native rebuild of **T.A.P by YasaLaser** (Treatment & Aesthetic Procedures
 npm start
 ```
 
-Uses **Expo SDK 52** and **`expo-router`**. Optional **Supabase:** copy [`.env.example`](.env.example) → `.env` and follow [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md). Without env vars, **stub auth** buttons appear on the login screen.
+Uses **Expo SDK 52** and **`expo-router`**. **Supabase:** point the app at your project (env / `app.config.js` / `supabase.local.json`), then **apply** [`supabase/migrations/`](supabase/migrations/) to that project (SQL Editor or `npm run db:push` after `supabase link` — see [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md)). The app **never runs** migration SQL by itself. Without env vars, **stub auth** appears on login. Admins (`profiles.is_admin`) get **Settings → Catalog admin**.
 
 ## Domain code (Phase 2+)
 
 - **`src/domain/`** — Zod schemas and types: medical profile, provider, treatment, app user, reference catalogs.
 - **`src/lib/`** — dates (`date-fns`), numbers (`Intl`), `newUuid()`, `newSecureUuid()` (`expo-crypto`), Supabase-oriented error mappers, age helper.
 - **`src/hooks/`** — e.g. `useNetworkStatus` (NetInfo) for online-first UX.
+- **`src/strings/appStrings.ts`** — user-facing copy aligned with Flutter (`tap_app`); use for parity tweaks without hunting literals.
 - **`src/theme/`** — `tokens.ts` (colors) + `theme.ts` (typography, spacing, radii, light/dark component tokens from Flutter `AppTheme`).
 
 ```bash

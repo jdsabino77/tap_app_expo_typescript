@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { appStrings } from "../../src/strings/appStrings";
 import { colors } from "../../src/theme/tokens";
 
 /**
@@ -17,9 +18,9 @@ export default function SplashScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>T.A.P</Text>
+      <Text style={styles.title}>{appStrings.appShortName}</Text>
       <ActivityIndicator size="large" color={colors.primaryGold} style={styles.spinner} />
-      <Text style={styles.muted}>Redirecting to sign in…</Text>
+      <Text style={styles.muted}>{appStrings.splashRedirecting}</Text>
     </View>
   );
 }

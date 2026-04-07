@@ -13,6 +13,7 @@ export type TreatmentRow = {
   treatment_date: string;
   notes: string | null;
   cost: string | number | null;
+  photo_urls?: string[] | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -30,6 +31,7 @@ export function treatmentFromRow(row: TreatmentRow): Treatment {
     treatmentDate: row.treatment_date,
     notes: row.notes ?? "",
     cost: row.cost == null ? null : typeof row.cost === "string" ? parseFloat(row.cost) : row.cost,
+    photoUrls: row.photo_urls ?? [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   });

@@ -7,6 +7,8 @@ export type ProfileRow = {
   last_name: string | null;
   display_name: string | null;
   treatment_count: number | null;
+  /** When true, user may manage reference catalogs in-app (RLS `002_reference_catalogs.sql`). */
+  is_admin: boolean | null;
 };
 
 export async function fetchOwnProfileRow(): Promise<ProfileRow | null> {
@@ -20,7 +22,7 @@ export async function fetchOwnProfileRow(): Promise<ProfileRow | null> {
   }
   const { data, error } = await supabase
     .from("profiles")
-    .select("id,email,first_name,last_name,display_name,treatment_count")
+    .select("id,email,first_name,last_name,display_name,treatment_count,is_admin")
     .eq("id", auth.user.id)
     .maybeSingle();
 
