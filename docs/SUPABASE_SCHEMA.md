@@ -1,6 +1,6 @@
 # Supabase schema sketch (from Flutter / Firestore)
 
-**Status:** Implemented as SQL in [`supabase/migrations/`](../supabase/migrations/) (`001` core, `002` catalogs, `003` treatment photos + storage, `004` admin user listing + RPC, `005` service-type brands, `006` appointments). The **Expo app does not apply** these files; your cloud project must run them via [SQL Editor or CLI `db push`](./SUPABASE_SETUP.md). Names use `snake_case` in Postgres; mappers convert to/from TS `camelCase` as needed.
+**Status:** Implemented as SQL in [`supabase/migrations/`](../supabase/migrations/) (`001` core, `002` catalogs, `003` treatment photos + storage, `004` admin user listing + RPC, `005` service-type brands, `006` appointments, **`007` skin condition → service/laser map**). The **Expo app does not apply** these files; your cloud project must run them via [SQL Editor or CLI `db push`](./SUPABASE_SETUP.md). Names use `snake_case` in Postgres; mappers convert to/from TS `camelCase` as needed.
 
 ---
 
@@ -123,6 +123,7 @@ Replaces top-level `providers` collection.
 | `treatmentAreas` | `treatment_areas` | Optional `category` |
 | `providerServices` | `provider_service_catalog` | |
 | (per–service-type brands) | `service_type_brands` | Migration `005_service_type_brands.sql` — FK → `service_types`; `is_other` row → free-text detail in app; seeds e.g. neuromodulator + filler stubs |
+| Skin analyzer recommendations | `condition_service_map` | Migration **`007_condition_service_map.sql`** — FK → `service_types` and optionally `laser_types`; `condition_key` matches app/model ids (`melasma`, `solar_lentigines`, `freckles`, `pih`); optional `severity_band` for future tiered rules |
 
 **`laser_types`:** optional `is_other` (005) for catalog row **Other** (device not listed).
 

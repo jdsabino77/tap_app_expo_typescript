@@ -27,15 +27,32 @@ export const appStrings = {
   quickActionProfile: "Profile",
   quickActionProfileSub: "Medical info",
   quickActionSkinAnalyzer: "Face / Skin Analyzer",
-  quickActionSkinAnalyzerSub: "On-device pigmentation (iOS) — coming with dev build",
+  quickActionSkinAnalyzerSub: "On-device pigmentation (iOS, dev build)",
   /** Header: Face / Skin Analyzer screen */
   skinAnalyzerScreenTitle: "Skin analyzer",
   skinAnalyzerIntro:
-    "This flow will capture or import a photo and run the pigmentation model on-device (CoreML on iOS). The native module is not wired yet in standard Expo Go.",
+    "Choose a photo to run on-device pigmentation segmentation (Core ML). ",
+  skinAnalyzerPickPhoto: "Choose photo",
+  /** Shown after a successful run — same action re-opens the picker and re-runs the model. */
+  skinAnalyzerPickAnotherPhoto: "Choose another photo",
+  skinAnalyzerWorkflowHint:
+    "As soon as you confirm a photo in the picker, the app runs Core ML and updates the results below. Tap the button again to analyze a different image.",
+  skinAnalyzerAnalyzing: "Analyzing…",
+  skinAnalyzerAffectedLabel: "Pigmented area in frame (estimate)",
+  skinAnalyzerMaskCaption: "Model mask (PNG preview)",
+  skinAnalyzerConditionSectionTitle: "By condition (exclusive — preview)",
+  skinAnalyzerConditionPreviewDisclaimer:
+    "Layout preview only. Numbers are placeholders. The current model outputs one pigment mask, not separate classes. After multi-class training, these rows will reflect real exclusive-class area shares.",
+  skinAnalyzerConditionMelasma: "Melasma",
+  skinAnalyzerConditionSolarLentigines: "Solar lentigines (sun / age spots)",
+  skinAnalyzerConditionFreckles: "Freckles (ephelides)",
+  skinAnalyzerConditionPIH: "Post-inflammatory hyperpigmentation (PIH)",
+  skinAnalyzerRecommendedTitle: "Recommended treatments (preview)",
+  skinAnalyzerRecommendedDisclaimer:
+    "Educational suggestions only — not medical advice. Later: load from Supabase using condition → service / laser catalog mapping. ",
   skinAnalyzerBulletPipeline: "Train/export in skin_analyzer_model → pigment_segmentation.mlpackage",
   skinAnalyzerBulletXcode: "Development build + Xcode: bundle model, Vision inference, Expo Module → JS",
   skinAnalyzerBulletDocs: "See docs/SKIN_ANALYZER_IOS_DESIGN.md and sibling IOS_APP_INTEGRATION.md",
-  skinAnalyzerLinkFaceMap: "Open Face Map (diagram shell)",
 
   recentTreatments: "Recent Treatments",
   upcomingAppointments: "Upcoming appointments",

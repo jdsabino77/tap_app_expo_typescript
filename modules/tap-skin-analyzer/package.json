@@ -1,0 +1,13 @@
+{
+  "name": "tap-skin-analyzer",
+  "version": "1.0.0",
+  "description": "On-device pigment segmentation (Core ML) for T.A.P iOS.",
+  "main": "src/index.ts",
+  "license": "MIT",
+  "peerDependencies": {
+    "expo": "*"
+  },
+  "dependencies": {
+    "expo-modules-core": "2.2.3"
+  }
+}
