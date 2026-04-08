@@ -2,7 +2,6 @@ import { Link, router } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -74,12 +73,7 @@ export default function LoginScreen() {
               value={password}
               onChangeText={setPassword}
             />
-            <Pressable
-              style={styles.forgotWrap}
-              onPress={() =>
-                Alert.alert(appStrings.forgotPassword.replace("?", ""), "This option is not wired yet in the Expo app.")
-              }
-            >
+            <Pressable style={styles.forgotWrap} onPress={() => router.push("/(auth)/forgot-password")}>
               <Text style={styles.forgot}>{appStrings.forgotPassword}</Text>
             </Pressable>
             <Pressable

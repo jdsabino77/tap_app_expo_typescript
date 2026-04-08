@@ -69,6 +69,7 @@ export default function RootLayout() {
             <Stack.Screen name="index" />
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="(app)" />
+            <Stack.Screen name="auth" />
             <Stack.Screen name="legal" />
           </Stack>
         </SessionProvider>

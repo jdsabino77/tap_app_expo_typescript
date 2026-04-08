@@ -123,6 +123,13 @@ export const appStrings = {
   loginSubtitle: "Sign in to continue tracking your treatments",
   signIn: "Sign In",
   forgotPassword: "Forgot Password?",
+  forgotPasswordTitle: "Reset password",
+  forgotPasswordSubtitle:
+    "Enter the email for your account. We will send a link to open the app and sign you in so you can choose a new password.",
+  sendResetEmail: "Send reset link",
+  resetEmailSentNotice:
+    "If an account exists for that address, you will get an email with a link shortly. Open it on this device.",
+  backToSignIn: "Back to sign in",
   emailPlaceholder: "Email",
   emailHint: "Enter your email address",
   passwordPlaceholder: "Password",

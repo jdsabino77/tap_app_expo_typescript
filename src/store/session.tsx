@@ -8,7 +8,6 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import { Platform } from "react-native";
 import { applySupabaseAuthFromUrl, getAuthEmailRedirectUri } from "../lib/auth-deep-link";
 import { fetchMedicalProfileForUser } from "../repositories/medical-profile.repository";
 import { mapAuthErrorToUserMessage } from "../lib/supabase-errors";
@@ -39,6 +38,8 @@ export type SessionContextValue = {
     email: string;
     password: string;
   }) => Promise<SignUpResult>;
+  /** Supabase password reset email (`redirectTo` matches email confirmation). */
+  requestPasswordReset: (email: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   refreshMedicalProfileGate: () => Promise<void>;
   /** Stub mode (no env) — Phase 3 dev buttons. */
@@ -132,6 +133,23 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isSupabaseConfigured()) {
+      return;
+    }
+    const consumeUrl = (url: string | null) => {
+      if (!url) {
+        return;
+      }
+      void applySupabaseAuthFromUrl(url);
+    };
+    void Linking.getInitialURL().then(consumeUrl);
+    const sub = Linking.addEventListener("url", ({ url }) => {
+      consumeUrl(url);
+    });
+    return () => sub.remove();
+  }, []);
+
   const signInWithPassword = useCallback(async (email: string, password: string) => {
     if (!isSupabaseConfigured()) {
       return { error: "Supabase is not configured." };
@@ -183,6 +201,24 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
+  const requestPasswordReset = useCallback(async (email: string) => {
+    if (!isSupabaseConfigured()) {
+      return { error: "Supabase is not configured." };
+    }
+    try {
+      const supabase = getSupabase();
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: getAuthEmailRedirectUri(),
+      });
+      if (error) {
+        return { error: mapAuthErrorToUserMessage(error) };
+      }
+      return {};
+    } catch (e) {
+      return { error: mapAuthErrorToUserMessage(e) };
+    }
+  }, []);
+
   const signOut = useCallback(async () => {
     setSignupDashboardBypass(false);
     if (isSupabaseConfigured()) {
@@ -227,6 +263,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         signupDashboardBypass: false,
         signInWithPassword: async () => ({ error: "Supabase is not configured." }),
         signUpWithDetails: async () => ({ error: "Supabase is not configured." }),
+        requestPasswordReset: async () => ({ error: "Supabase is not configured." }),
         signOut,
         refreshMedicalProfileGate: async () => {},
         devSignInStub,
@@ -244,6 +281,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       signupDashboardBypass,
       signInWithPassword,
       signUpWithDetails,
+      requestPasswordReset,
       signOut,
       refreshMedicalProfileGate,
       devSignInStub,
@@ -258,6 +296,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     signupDashboardBypass,
     signInWithPassword,
     signUpWithDetails,
+    requestPasswordReset,
     signOut,
     refreshMedicalProfileGate,
     stubUserId,
