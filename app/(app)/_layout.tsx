@@ -15,6 +15,7 @@ export default function AppGroupLayout() {
       <Stack.Screen name="treatments" options={{ headerShown: false }} />
       <Stack.Screen name="providers" options={{ headerShown: false }} />
       <Stack.Screen name="face-map" options={{ title: appStrings.faceMapScreenTitle }} />
+      <Stack.Screen name="skin-analyzer" options={{ title: appStrings.skinAnalyzerScreenTitle }} />
       <Stack.Screen name="calendar" options={{ title: appStrings.quickActionCalendar }} />
       <Stack.Screen name="appointments" options={{ headerShown: false }} />
       <Stack.Screen name="medical-profile" options={{ title: appStrings.navMedicalProfile }} />

@@ -43,6 +43,45 @@ Implementation details and checklist: **[SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
 - Schema: **[SUPABASE_SCHEMA.md](./SUPABASE_SCHEMA.md)** (`appointments` section).
 - Apply migration: **[SUPABASE_SETUP.md](./SUPABASE_SETUP.md)** step **006**.
 
+## Face map & skin analyzer (on-device)
+
+**Goal:** Offer **pigmentation segmentation** and related **progress-style metrics** aligned with the sibling **`skin_analyzer_model`** project (capture → preprocess → **CoreML** on iOS → overlay / percentages). This is a **separate track** from Supabase CRUD: it requires **native iOS** code and typically **Expo development builds**, not Expo Go alone.
+
+### Product intent
+
+- **Face Map** (`/face-map`): remains a **lightweight shell / roadmap** surface for treatment-planning context.
+- **Face / Skin Analyzer** (`/skin-analyzer`): dedicated entry for **on-device analysis** once the native module and **`pigment_segmentation.mlpackage`** are wired.
+
+### Technical references (canonical)
+
+| Document | Location |
+|----------|----------|
+| iOS app integration (end-to-end flow, preprocessing, metrics) | [`../../skin_analyzer_model/docs/IOS_APP_INTEGRATION.md`](../../skin_analyzer_model/docs/IOS_APP_INTEGRATION.md) |
+| CoreML export, Xcode embedding, Vision pipeline | [`../../skin_analyzer_model/docs/IOS_DEPLOYMENT.md`](../../skin_analyzer_model/docs/IOS_DEPLOYMENT.md) |
+
+### Current state
+
+- **Model repo:** A **dummy** (or placeholder) export may exist to validate **export / generation** tooling (`pigment_segmentation.mlpackage`).
+- **Expo app:** TypeScript **facade** throws **not available** until an **Expo Module** loads CoreML; see **[SKIN_ANALYZER_IOS_DESIGN.md](./SKIN_ANALYZER_IOS_DESIGN.md)**.
+- **Production:** Re-export **`pigment_segmentation.mlpackage`** from trained weights when ready; bump versioning if model I/O shapes change.
+
+### Implementation checklist (Expo repo)
+
+- **Commands & ordering:** **[SKIN_ANALYZER_WORKFLOW.md](./SKIN_ANALYZER_WORKFLOW.md)** (train → export → Xcode → bridge).
+- **Architecture:** **[SKIN_ANALYZER_IOS_DESIGN.md](./SKIN_ANALYZER_IOS_DESIGN.md)**.
+
+- [x] Add **`expo-dev-client`** and **prebuild** scripts (run **`npm run prebuild:ios`** when ready).
+- [ ] Bundle **`pigment_segmentation.mlpackage`** in the iOS target; confirm it appears in the built app (Xcode compiles Core ML resources on build).
+- [ ] Swift: **Vision** + **CoreML** per upstream docs (input size / normalization parity).
+- [ ] **Expo Module** (or equivalent) exposing **`analyzePigmentation(imageUri)`** to JS.
+- [ ] Wire **`skin-analyzer`** screen: image picker → native call → overlay UI.
+- [ ] (Optional) Feature flag or remote config to hide the Quick Action until a build includes the module.
+- [ ] **Android:** stub or alternate stack; CoreML is **iOS-only**.
+
+### Migration plan alignment
+
+See **[MIGRATION_PLAN.md](./MIGRATION_PLAN.md)** — **Planned capability — Skin analyzer**.
+
 ## Current Implementation Status
 
 ### ✅ Completed Features

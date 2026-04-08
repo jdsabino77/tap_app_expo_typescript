@@ -18,7 +18,8 @@ File-based routes under `app/`. **URL paths omit group segments** such as `(auth
 | (appointments; Flutter N/A or partial) | `/appointments/new` | Nested stack: `app/(app)/appointments/_layout.tsx`. Creates `appointments` row (consult or future treatment visit). |
 | | `/appointments/:id` | Detail: cancel / mark complete / log treatment / edit (when **scheduled**). |
 | | `/appointments/edit/:id` | `updateAppointmentForCurrentUser`; **scheduled** only. |
-| `face_map_page` | `/face-map` | Product shell; analyzer is a separate track (see [MIGRATION_PLAN.md](./MIGRATION_PLAN.md)). |
+| `face_map_page` | `/face-map` | Diagram / planning shell; links to treatments. |
+| (skin analyzer; Flutter N/A) | `/skin-analyzer` | Dashboard **Face / Skin Analyzer**; on-device CoreML TBD — see [SKIN_ANALYZER_IOS_DESIGN.md](./SKIN_ANALYZER_IOS_DESIGN.md). |
 | `providers_page` | `/providers` | Nested stack: `app/(app)/providers/_layout.tsx`. |
 | (provider detail) | `/providers/:id` | `fetchProviderByIdForCurrentUser`; edit/remove if `canMutate`. |
 | `add_provider_page` | `/providers/new` | User-scoped provider (`is_global: false`). |

@@ -26,6 +26,16 @@ export const appStrings = {
   quickActionCalendarSub: "Appointments",
   quickActionProfile: "Profile",
   quickActionProfileSub: "Medical info",
+  quickActionSkinAnalyzer: "Face / Skin Analyzer",
+  quickActionSkinAnalyzerSub: "On-device pigmentation (iOS) — coming with dev build",
+  /** Header: Face / Skin Analyzer screen */
+  skinAnalyzerScreenTitle: "Skin analyzer",
+  skinAnalyzerIntro:
+    "This flow will capture or import a photo and run the pigmentation model on-device (CoreML on iOS). The native module is not wired yet in standard Expo Go.",
+  skinAnalyzerBulletPipeline: "Train/export in skin_analyzer_model → pigment_segmentation.mlpackage",
+  skinAnalyzerBulletXcode: "Development build + Xcode: bundle model, Vision inference, Expo Module → JS",
+  skinAnalyzerBulletDocs: "See docs/SKIN_ANALYZER_IOS_DESIGN.md and sibling IOS_APP_INTEGRATION.md",
+  skinAnalyzerLinkFaceMap: "Open Face Map (diagram shell)",
 
   recentTreatments: "Recent Treatments",
   upcomingAppointments: "Upcoming appointments",
@@ -173,6 +183,7 @@ export const appStrings = {
   navMedicalProfile: "Medical profile",
   navCalendar: "Calendar",
   navFaceMap: "Face map",
+  navSkinAnalyzer: "Skin analyzer",
 
   /** Face map shell */
   faceMapScreenTitle: "Face Map",

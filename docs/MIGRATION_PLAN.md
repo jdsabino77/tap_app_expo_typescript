@@ -53,6 +53,8 @@ These docs sit **outside** strict Flutter→Expo parity but define product scope
 |----------|----------|-------------------------|
 | **Settings & preferences roadmap** | [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md) (copied from `tap_app`; canonical Flutter-era source: `../tap_app/docs/SETTINGS_FEATURES.md`) | Product backlog for Settings, account, theme, notifications, legal, data export, etc. Use when rebuilding **Settings** and when deciding what is MVP vs. later. |
 | **Expo Router map** | [EXPO_ROUTES.md](./EXPO_ROUTES.md) | Canonical **`app/`** routes, query params, nested stacks (`treatments`, `providers`, `appointments`), and deep-link notes. Maintain alongside [SCREEN_PARITY.md](./SCREEN_PARITY.md). |
+| **Skin analyzer (Expo)** | [SKIN_ANALYZER_IOS_DESIGN.md](./SKIN_ANALYZER_IOS_DESIGN.md) | iOS CoreML / dev-client roadmap, JS facade, links to **`skin_analyzer_model`** docs. Paired with [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md) “Face map & skin analyzer”. |
+| **Skin analyzer workflow** | [SKIN_ANALYZER_WORKFLOW.md](./SKIN_ANALYZER_WORKFLOW.md) | Ordered commands: prebuild, export `pigment_segmentation.mlpackage`, Xcode bundle, native bridge. |
 | **Skin analyzer → iOS app integration** | [`../../skin_analyzer_model/docs/IOS_APP_INTEGRATION.md`](../../skin_analyzer_model/docs/IOS_APP_INTEGRATION.md) (sibling of `tap_app` under `development/`) | End-to-end plan for on-device segmentation (capture → preprocess → **CoreML** → overlays/metrics → progress). Not a Flutter port item: plan **Expo dev client / native module** (or alternative ML stack) and stub the feature surface until the pipeline is chosen. |
 
 ---
@@ -226,15 +228,15 @@ Suggested **order** (adjust if product priority differs):
 
 ## Planned capability — Skin analyzer (on-device ML)
 
-**Reference:** [`skin_analyzer_model/docs/IOS_APP_INTEGRATION.md`](../../skin_analyzer_model/docs/IOS_APP_INTEGRATION.md) (training → CoreML export → Xcode bundling → inference → UI).
+**References:** [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md) (Face map & skin analyzer), [SKIN_ANALYZER_IOS_DESIGN.md](./SKIN_ANALYZER_IOS_DESIGN.md) (Expo implementation steps), [`skin_analyzer_model/docs/IOS_APP_INTEGRATION.md`](../../skin_analyzer_model/docs/IOS_APP_INTEGRATION.md) (training → CoreML → UI).
 
 Treat this as a **separate track** from screen-for-screen Flutter porting: it needs native ML and likely **custom dev builds** (not Expo Go alone).
 
 | Task | Done |
 |------|------|
-| Define UX entry point in T.A.P (e.g. from treatment flow or profile) and keep it behind a **feature flag** or stub screen until ML is ready | ☐ |
+| Define UX entry point in T.A.P (e.g. from treatment flow or profile) and keep it behind a **feature flag** or stub screen until ML is ready | ☑ **Dashboard** Quick Action + **`/skin-analyzer`** shell; JS facade **`analyzePigmentation`** stubs until native module |
 | Decide stack: iOS **CoreML** (per integration guide) vs. cross-platform (e.g. ONNX / TFLite) vs. server-side fallback | ☐ |
-| Stub module: `analyzeSkinPhoto(imageUri) → Promise<AnalysisResult \| NotImplemented>` with typed result shape matching future metrics (scores, mask, percentages) | ☐ |
+| Stub module: `analyzeSkinPhoto(imageUri) → Promise<AnalysisResult \| NotImplemented>` with typed result shape matching future metrics (scores, mask, percentages) | ☑ **`analyzePigmentation`** in `src/services/skin-analyzer/` (throws `SkinAnalyzerNotAvailableError` until native) |
 | Plan bundling: model size (guide cites ~60–120 MB class of artifact), asset delivery, and EAS / Xcode integration | ☐ |
 | Validate camera + preprocessing parity with the guide (resize/normalize assumptions) before trusting clinical-style metrics in UI | ☐ |
 
@@ -280,3 +282,5 @@ Track parity with the Flutter app version in this repo’s `package.json` or `ap
 | 2026-04-07 | Phase 5 slice 10: **`006_appointments`**, calendar + dashboard upcoming visits, appointment detail/edit, **`providers(name)`** join, nested **`appointments`** stack; [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md) strategy updated |
 | 2026-04-07 | Phase 5 slice 11: appointment **cancel/complete**, **log visit** → new treatment + auto-complete when online; **`setAppointmentStatusForCurrentUser`** |
 | 2026-04-07 | Docs: [EXPO_ROUTES.md](./EXPO_ROUTES.md) + [SCREEN_PARITY.md](./SCREEN_PARITY.md) overhaul (appointments, query params, upkeep checklist); EMR integration explicitly **post-POC** |
+| 2026-04-08 | Skin analyzer: `/skin-analyzer` screen, dashboard Quick Action + More link, `src/services/skin-analyzer` facade, docs cross-links ([SKIN_ANALYZER_IOS design](./SKIN_ANALYZER_IOS_DESIGN.md), MIGRATION_PLAN table) |
+| 2026-04-08 | Skin analyzer workflow: `expo-dev-client`, `prebuild:ios` / `run:ios` scripts, [SKIN_ANALYZER_WORKFLOW.md](./SKIN_ANALYZER_WORKFLOW.md) (parallel to ML training) |

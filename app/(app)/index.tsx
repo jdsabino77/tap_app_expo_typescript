@@ -24,7 +24,14 @@ function HubRow({
   href,
   label,
 }: {
-  href: "/treatments" | "/face-map" | "/providers" | "/medical-profile" | "/calendar" | "/settings";
+  href:
+    | "/treatments"
+    | "/face-map"
+    | "/skin-analyzer"
+    | "/providers"
+    | "/medical-profile"
+    | "/calendar"
+    | "/settings";
   label: string;
 }) {
   return (
@@ -220,7 +227,11 @@ export default function DashboardScreen() {
           subtitle={appStrings.quickActionProfileSub}
           onPress={() => router.push("/medical-profile")}
         />
-        <View style={styles.qaSpacer} />
+        <QuickActionCard
+          title={appStrings.quickActionSkinAnalyzer}
+          subtitle={appStrings.quickActionSkinAnalyzerSub}
+          onPress={() => router.push("/skin-analyzer")}
+        />
       </View>
 
       <Text style={styles.sectionTitle}>{appStrings.upcomingAppointments}</Text>
@@ -295,6 +306,7 @@ export default function DashboardScreen() {
       <HubRow href="/providers" label={appStrings.navProviders} />
       <HubRow href="/calendar" label={appStrings.navCalendar} />
       <HubRow href="/face-map" label={appStrings.navFaceMap} />
+      <HubRow href="/skin-analyzer" label={appStrings.navSkinAnalyzer} />
       <HubRow href="/medical-profile" label={appStrings.navMedicalProfile} />
       <HubRow href="/settings" label={appStrings.navSettings} />
 
@@ -356,7 +368,6 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },
   },
-  qaSpacer: { flex: 1 },
   qaTitle: { fontSize: 15, fontWeight: "700", color: colors.primaryNavy },
   qaSub: { marginTop: 6, fontSize: 13, color: colors.textSecondary, lineHeight: 18 },
   recentLoading: { padding: 24, alignItems: "center" },
