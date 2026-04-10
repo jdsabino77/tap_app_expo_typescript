@@ -60,6 +60,9 @@ module.exports = {
       ],
     ],
     extra: {
+      eas: {
+        projectId: "84c71973-11ba-46c9-a35a-21c6673c24f0",
+      },
       supabaseUrl,
       supabaseAnonKey,
       authEmailRedirectUrl,
