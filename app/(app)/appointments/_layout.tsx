@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 import { NestedStackExitBackButton } from "../../../src/components/parent-stack-back-button";
 import { appStrings } from "../../../src/strings/appStrings";
+import { colors } from "../../../src/theme/tokens";
 
 export default function AppointmentsStackLayout() {
   return (
@@ -8,7 +9,7 @@ export default function AppointmentsStackLayout() {
       screenOptions={{
         headerShown: true,
         headerBackTitle: "Back",
-        headerTintColor: "#1A2332",
+        headerTintColor: colors.primaryNavy,
       }}
     >
       <Stack.Screen

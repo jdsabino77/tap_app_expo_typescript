@@ -312,7 +312,7 @@ export default function MedicalProfileScreen() {
         disabled={saving || (supabaseEnabled && loadingProfile && !loadError)}
       >
         {saving ? (
-          <ActivityIndicator color={colors.cleanWhite} />
+          <ActivityIndicator color={colors.primaryNavy} />
         ) : (
           <Text style={styles.primaryText}>{appStrings.medicalProfileSave}</Text>
         )}
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.cleanWhite,
     borderWidth: 1,
-    borderColor: "#E9ECEF",
+    borderColor: colors.borderSubtle,
     borderRadius: 8,
     padding: 12,
     marginBottom: 4,
@@ -380,12 +380,17 @@ const styles = StyleSheet.create({
   tall: { minHeight: 72, textAlignVertical: "top" },
   primary: {
     marginTop: 16,
-    backgroundColor: colors.primaryNavy,
+    backgroundColor: colors.primaryGold,
     paddingVertical: 14,
     borderRadius: 8,
     minHeight: 48,
     justifyContent: "center",
   },
   disabled: { opacity: 0.7 },
-  primaryText: { color: colors.cleanWhite, textAlign: "center", fontWeight: "600" },
+  primaryText: {
+    color: colors.primaryNavy,
+    textAlign: "center",
+    fontWeight: "700",
+    fontSize: 16,
+  },
 });

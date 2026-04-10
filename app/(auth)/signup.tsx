@@ -64,123 +64,131 @@ export default function SignUpScreen() {
     router.replace("/(app)");
   };
 
-  /** Extra space so users can scroll terms + button above the keyboard (do not auto-scroll on password focus — it hid the fields). */
+  /**
+   * Bottom padding for home indicator + room to scroll the primary button above the keyboard.
+   * On iOS we avoid KeyboardAvoidingView: Tab / simulator focus changes can flash the software
+   * keyboard and KAV `padding` shrinks the whole view, clipping the scroll area. ScrollView’s
+   * `automaticallyAdjustKeyboardInsets` adjusts insets only on the scroll view instead.
+   */
   const contentBottomPad = Math.max(insets.bottom, 16) + 100;
 
-  return (
-    <KeyboardAvoidingView
+  const scroll = (
+    <ScrollView
       style={styles.flex}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      contentContainerStyle={[styles.container, { paddingBottom: contentBottomPad }]}
+      contentInsetAdjustmentBehavior="never"
+      automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      showsVerticalScrollIndicator
     >
-      <ScrollView
-        contentContainerStyle={[styles.container, { paddingBottom: contentBottomPad }]}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        showsVerticalScrollIndicator
-      >
-        <PassportLogo size={100} />
-        <Text style={styles.headline}>{appStrings.joinHeadline}</Text>
-        <Text style={styles.sub}>{appStrings.joinSubtitle}</Text>
-        {supabaseEnabled ? (
-          <View style={styles.infoBox}>
-            <Text style={styles.infoText}>{appStrings.signUpWhatHappensHint}</Text>
-          </View>
-        ) : null}
+      <PassportLogo size={100} />
+      <Text style={styles.headline}>{appStrings.joinHeadline}</Text>
+      <Text style={styles.sub}>{appStrings.joinSubtitle}</Text>
+      {supabaseEnabled ? (
+        <View style={styles.infoBox}>
+          <Text style={styles.infoText}>{appStrings.signUpWhatHappensHint}</Text>
+        </View>
+      ) : null}
 
-        {supabaseEnabled ? (
-          <>
-            <TextInput
-              style={styles.input}
-              placeholder={appStrings.firstNameHint}
-              placeholderTextColor={colors.textLight}
-              value={firstName}
-              onChangeText={setFirstName}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder={appStrings.lastNameHint}
-              placeholderTextColor={colors.textLight}
-              value={lastName}
-              onChangeText={setLastName}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder={appStrings.emailHint}
-              placeholderTextColor={colors.textLight}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              textContentType="username"
-              autoComplete="email"
-              autoCorrect={false}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder={appStrings.passwordHint}
-              placeholderTextColor={colors.textLight}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              textContentType={Platform.OS === "ios" ? "newPassword" : "password"}
-              autoComplete="password-new"
-              autoCorrect={false}
-              passwordRules="minlength: 6; maxlength: 128;"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder={appStrings.confirmPasswordPlaceholder}
-              placeholderTextColor={colors.textLight}
-              secureTextEntry
-              value={confirm}
-              onChangeText={setConfirm}
-              textContentType={Platform.OS === "ios" ? "password" : "password"}
-              autoComplete="password"
-              autoCorrect={false}
-            />
-            <Pressable
-              style={styles.checkboxRow}
-              onPress={() => setAcceptedTerms(!acceptedTerms)}
-            >
-              <View style={[styles.box, acceptedTerms && styles.boxOn]} />
-              <Text style={styles.checkboxLabel}>
-                {appStrings.termsCheckboxLead}
-                <Text style={styles.linkInline} onPress={() => router.push("/legal/terms")}>
-                  {appStrings.termsAndConditions}
-                </Text>
+      {supabaseEnabled ? (
+        <>
+          <TextInput
+            style={styles.input}
+            placeholder={appStrings.firstNameHint}
+            placeholderTextColor={colors.textLight}
+            value={firstName}
+            onChangeText={setFirstName}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder={appStrings.lastNameHint}
+            placeholderTextColor={colors.textLight}
+            value={lastName}
+            onChangeText={setLastName}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder={appStrings.emailHint}
+            placeholderTextColor={colors.textLight}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+            textContentType="username"
+            autoComplete="email"
+            autoCorrect={false}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder={appStrings.passwordHint}
+            placeholderTextColor={colors.textLight}
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            textContentType="password"
+            autoComplete={Platform.OS === "android" ? "password-new" : "password"}
+            autoCorrect={false}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder={appStrings.confirmPasswordPlaceholder}
+            placeholderTextColor={colors.textLight}
+            secureTextEntry
+            value={confirm}
+            onChangeText={setConfirm}
+            textContentType="password"
+            autoComplete="password"
+            autoCorrect={false}
+          />
+          <Pressable style={styles.checkboxRow} onPress={() => setAcceptedTerms(!acceptedTerms)}>
+            <View style={[styles.box, acceptedTerms && styles.boxOn]} />
+            <Text style={styles.checkboxLabel}>
+              {appStrings.termsCheckboxLead}
+              <Text style={styles.linkInline} onPress={() => router.push("/legal/terms")}>
+                {appStrings.termsAndConditions}
               </Text>
-            </Pressable>
-            {error ? <Text style={styles.err}>{error}</Text> : null}
-            <Pressable
-              style={[styles.primary, loading && styles.disabled]}
-              onPress={() => void onSubmit()}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color={colors.primaryNavy} />
-              ) : (
-                <Text style={styles.primaryText}>{appStrings.createAccount}</Text>
-              )}
-            </Pressable>
-          </>
-        ) : (
+            </Text>
+          </Pressable>
+          {error ? <Text style={styles.err}>{error}</Text> : null}
           <Pressable
-            style={styles.primary}
-            onPress={() => {
-              devSignUpStub();
-              router.replace("/(app)");
-            }}
+            style={[styles.primary, loading && styles.disabled]}
+            onPress={() => void onSubmit()}
+            disabled={loading}
           >
-            <Text style={styles.primaryText}>Stub: sign up → Dashboard</Text>
+            {loading ? (
+              <ActivityIndicator color={colors.primaryNavy} />
+            ) : (
+              <Text style={styles.primaryText}>{appStrings.createAccount}</Text>
+            )}
           </Pressable>
-        )}
+        </>
+      ) : (
+        <Pressable
+          style={styles.primary}
+          onPress={() => {
+            devSignUpStub();
+            router.replace("/(app)");
+          }}
+        >
+          <Text style={styles.primaryText}>Stub: sign up → Dashboard</Text>
+        </Pressable>
+      )}
 
-        <Link href="/(auth)/login" asChild>
-          <Pressable style={styles.linkWrap}>
-            <Text style={styles.link}>{appStrings.alreadyHaveAccount}</Text>
-          </Pressable>
-        </Link>
-      </ScrollView>
+      <Link href="/(auth)/login" asChild>
+        <Pressable style={styles.linkWrap}>
+          <Text style={styles.link}>{appStrings.alreadyHaveAccount}</Text>
+        </Pressable>
+      </Link>
+    </ScrollView>
+  );
+
+  if (Platform.OS === "ios") {
+    return <View style={styles.flex}>{scroll}</View>;
+  }
+  return (
+    <KeyboardAvoidingView style={styles.flex} behavior="padding">
+      {scroll}
     </KeyboardAvoidingView>
   );
 }
@@ -206,7 +214,7 @@ const styles = StyleSheet.create({
   infoBox: {
     backgroundColor: colors.cleanWhite,
     borderWidth: 1,
-    borderColor: "#E9ECEF",
+    borderColor: colors.borderSubtle,
     borderRadius: 10,
     padding: 14,
     marginBottom: 20,
@@ -219,7 +227,7 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.cleanWhite,
     borderWidth: 1,
-    borderColor: "#E9ECEF",
+    borderColor: colors.borderSubtle,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,

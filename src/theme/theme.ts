@@ -23,7 +23,7 @@ export const lightTheme = {
     ...colors,
     surface: colors.cleanWhite,
     background: colors.lightGray,
-    inputBorder: "#E9ECEF",
+    inputBorder: colors.borderSubtle,
     inputBorderFocused: colors.primaryGold,
   },
   spacing,
@@ -127,6 +127,33 @@ export const darkTheme = {
       unselected: "#808080",
     },
   },
+} as const;
+
+/**
+ * Typography presets for full-bleed navy screens (e.g. splash). Spread into StyleSheets;
+ * layout (margins) stays local to each screen.
+ */
+export const textOnNavy = {
+  heroTitle: {
+    fontSize: 32,
+    fontWeight: "700" as const,
+    color: colors.cleanWhite,
+    textAlign: "center" as const,
+  },
+  tagline: {
+    fontSize: 18,
+    fontWeight: "500" as const,
+    color: colors.primaryGold,
+    textAlign: "center" as const,
+  },
+  body: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: colors.onNavyMuted,
+    textAlign: "center" as const,
+  },
+  featureTitle: { fontSize: 16, fontWeight: "700" as const, color: colors.cleanWhite },
+  featureSub: { fontSize: 14, lineHeight: 20, color: colors.onNavySubtle },
 } as const;
 
 export type AppTheme = typeof lightTheme;

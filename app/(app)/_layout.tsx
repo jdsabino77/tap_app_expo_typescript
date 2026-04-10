@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { appStrings } from "../../src/strings/appStrings";
+import { colors } from "../../src/theme/tokens";
 
 /** Signed-in stack (Flutter `DashboardPage` and all `Navigator.push` targets). */
 export default function AppGroupLayout() {
@@ -8,7 +9,7 @@ export default function AppGroupLayout() {
       screenOptions={{
         headerShown: true,
         headerBackTitle: "Back",
-        headerTintColor: "#1A2332",
+        headerTintColor: colors.primaryNavy,
       }}
     >
       <Stack.Screen name="index" options={{ title: appStrings.dashboardTitle }} />

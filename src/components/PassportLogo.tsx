@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryNavy,
     borderWidth: 2,
     borderColor: colors.primaryGold,
-    shadowColor: "#000",
+    shadowColor: colors.shadow,
     shadowOpacity: 0.3,
     elevation: 6,
     overflow: "hidden",
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   lineTop: {
     position: "absolute",
     height: 1,
-    backgroundColor: "rgba(212, 175, 55, 0.35)",
+    backgroundColor: colors.primaryGoldLineAccent,
   },
   iconCenter: {
     ...StyleSheet.absoluteFillObject,
@@ -67,6 +67,6 @@ const styles = StyleSheet.create({
   lineBottom: {
     position: "absolute",
     height: 1,
-    backgroundColor: "rgba(212, 175, 55, 0.35)",
+    backgroundColor: colors.primaryGoldLineAccent,
   },
 });

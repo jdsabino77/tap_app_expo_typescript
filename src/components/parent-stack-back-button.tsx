@@ -2,8 +2,9 @@ import { HeaderBackButton } from "@react-navigation/elements";
 import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { useCallback } from "react";
+import { colors } from "../theme/tokens";
 
-const HEADER_TINT = "#1A2332";
+const HEADER_TINT = colors.primaryNavy;
 
 function parentThatCanGoBack(
   navigation: NavigationProp<ParamListBase>,

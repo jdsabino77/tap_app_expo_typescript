@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.primaryNavy,
     borderWidth: 1,
-    borderColor: "#E9ECEF",
+    borderColor: colors.borderSubtle,
   },
   primary: {
     marginTop: 20,

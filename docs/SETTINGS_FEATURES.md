@@ -138,6 +138,16 @@ Bundle ID in **`app.config.js`** is **`com.yasalaser.tap`** — must match the *
 - Schema: **[SUPABASE_SCHEMA.md](./SUPABASE_SCHEMA.md)** (`appointments` section).
 - Apply migration: **[SUPABASE_SETUP.md](./SUPABASE_SETUP.md)** step **006**.
 
+## Treatment photos (New / Edit treatment)
+
+**Where:** **[`/treatments/new`](../app/(app)/treatments/new.tsx)** (“New Treatment”) and **[`/treatments/edit/[id]`](../app/(app)/treatments/edit/[id].tsx)**. Users attach images from the **photo library** (`expo-image-picker`), up to **six** per treatment, with thumbnails and remove-before-save in the form.
+
+**After a successful online save, photos are not device-only.** The app uploads each file to Supabase **Storage** bucket **`treatment-photos`** (private; object paths like `{user_id}/{treatment_id}/{uuid}.{ext}`), then stores those **storage paths** in Postgres on **`treatments.photo_urls`**. Detail views resolve paths to **time-limited signed URLs** for display. Schema and RLS: **[SUPABASE_SCHEMA.md](./SUPABASE_SCHEMA.md)** (`photo_urls`, `treatment-photos` bucket). Implementation details and Flutter parity notes: **[SCREEN_PARITY.md](./SCREEN_PARITY.md)** (Treatments list row), **[EXPO_ROUTES.md](./EXPO_ROUTES.md)** (`new_treatment_page`).
+
+**Offline / sync:** Adding or removing treatment photos **requires an online connection**; if the device is offline, save fails with a clear error (local picker URIs are **not** queued on the outbox—only already-uploaded storage paths could theoretically be replayed, and the create path does not persist new local picks offline). A **treatment with no new photo work** can still be **queued offline** like other writes. Appointment-linked flows: completing an appointment after **“Log treatment from this visit”** only auto-marks **`completed`** when the save finishes **online**; see Calendar section above.
+
+**Contrast:** **[Skin analyzer](./SKIN_ANALYZER_WORKFLOW.md)** (`/skin-analyzer`) runs **on-device** on a picked image and does **not** upload that analysis image to Supabase by default—treatment photos are a **separate**, cloud-backed attachment flow.
+
 ## Face map & skin analyzer (on-device)
 
 **Goal:** Offer **pigmentation segmentation** and related **progress-style metrics** aligned with the sibling **`skin_analyzer_model`** project (capture → preprocess → **CoreML** on iOS → overlay / percentages). This is a **separate track** from Supabase CRUD: it requires **native iOS** code and typically **Expo development builds**, not Expo Go alone.

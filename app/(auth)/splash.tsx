@@ -62,5 +62,5 @@ const styles = StyleSheet.create({
   skipText: { fontSize: 16, fontWeight: "600", color: colors.primaryGold },
   title: { fontSize: 32, fontWeight: "700", color: colors.cleanWhite },
   spinner: { marginTop: 24 },
-  muted: { marginTop: 16, color: "rgba(255,255,255,0.7)" },
+  muted: { marginTop: 16, color: colors.onNavySubtle },
 });

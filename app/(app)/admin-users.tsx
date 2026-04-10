@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: "#E9ECEF",
+    borderColor: colors.borderSubtle,
   },
   cardText: { flex: 1, marginRight: 12 },
   name: { fontSize: 16, fontWeight: "600", color: colors.primaryNavy },

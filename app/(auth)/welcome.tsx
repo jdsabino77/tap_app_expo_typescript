@@ -5,7 +5,7 @@ import { useLayoutEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { appStrings } from "../../src/strings/appStrings";
 import { useSession } from "../../src/store/session";
-import { colors } from "../../src/theme/tokens";
+import { colors, lightTheme } from "../../src/theme";
 
 function FeatureRow({
   icon,
@@ -84,7 +84,7 @@ export default function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.primaryNavy },
+  flex: { flex: 1, backgroundColor: lightTheme.colors.background },
   scroll: {
     padding: 24,
     paddingBottom: 40,
@@ -95,36 +95,45 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: "rgba(212, 175, 55, 0.2)",
+    backgroundColor: colors.primaryGoldMutedBg,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 16,
   },
-  title: { marginTop: 32, fontSize: 32, fontWeight: "700", color: colors.cleanWhite, textAlign: "center" },
+  title: {
+    marginTop: 32,
+    ...lightTheme.typography.headlineLarge,
+    fontSize: 32,
+    textAlign: "center",
+  },
   sub: {
     marginTop: 16,
     fontSize: 18,
+    fontWeight: "500",
     color: colors.primaryGold,
     textAlign: "center",
-    fontWeight: "500",
   },
   body: {
     marginTop: 24,
     marginBottom: 8,
-    color: "rgba(255,255,255,0.85)",
-    textAlign: "center",
-    lineHeight: 24,
     fontSize: 16,
+    lineHeight: 24,
+    color: colors.textSecondary,
+    textAlign: "center",
   },
   featureRow: { flexDirection: "row", alignItems: "flex-start", marginTop: 16 },
   featureIconWrap: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: "rgba(212, 175, 55, 0.2)",
+    backgroundColor: colors.primaryGoldMutedBg,
   },
   featureText: { flex: 1, marginLeft: 16 },
-  featureTitle: { color: colors.cleanWhite, fontSize: 16, fontWeight: "700" },
-  featureSub: { marginTop: 4, color: "rgba(255,255,255,0.7)", fontSize: 14, lineHeight: 20 },
+  featureTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  featureSub: { marginTop: 4, fontSize: 14, lineHeight: 20, color: colors.textSecondary },
   primary: {
     marginTop: 32,
     backgroundColor: colors.primaryGold,

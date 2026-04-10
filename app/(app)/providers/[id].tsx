@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: "#E9ECEF",
+    backgroundColor: colors.borderSubtle,
   },
   badgeMutedText: { color: colors.textSecondary, fontSize: 12, fontWeight: "600" },
   inactive: { marginTop: 8, color: colors.errorRed, fontWeight: "600" },

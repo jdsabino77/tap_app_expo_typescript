@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 8,
     marginRight: 10,
-    backgroundColor: "#E9ECEF",
+    backgroundColor: colors.borderSubtle,
   },
   p: { marginTop: 8, color: colors.textPrimary },
   muted: { marginTop: 8, color: colors.textSecondary },
