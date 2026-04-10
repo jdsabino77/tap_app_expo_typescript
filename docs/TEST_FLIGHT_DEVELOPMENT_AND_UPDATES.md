@@ -87,5 +87,6 @@ You can also ship by opening **`ios/*.xcworkspace`**, **Archive**, and uploading
 ## Related docs
 
 - [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md) — beta scope, compliance, Supabase notes.  
+- [BETA_POC_REVIEW_ITEMS.md](./BETA_POC_REVIEW_ITEMS.md) — App Store / tester follow-ups and deadlines from the POC.  
 - [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) — backend and client configuration.  
 - [SKIN_ANALYZER_WORKFLOW.md](./SKIN_ANALYZER_WORKFLOW.md) — model and iOS integration.

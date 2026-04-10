@@ -108,6 +108,7 @@ Bundle ID in **`app.config.js`** is **`com.yasalaser.tap`** — must match the *
 ### Reference
 
 - **Operational runbook (modify app, EAS build, TestFlight upload):** [TEST_FLIGHT_DEVELOPMENT_AND_UPDATES.md](./TEST_FLIGHT_DEVELOPMENT_AND_UPDATES.md).
+- **Beta POC follow-ups (Apple notices, tester items):** [BETA_POC_REVIEW_ITEMS.md](./BETA_POC_REVIEW_ITEMS.md).
 - Expo: [Submit to App Store](https://docs.expo.dev/submit/ios/), [EAS Build](https://docs.expo.dev/build/introduction/).
 - Older **Flutter** checklist (signing concepts still useful): [`../tap_app/docs/TESTFLIGHT_DEPLOYMENT_GUIDE.md`](../tap_app/docs/TESTFLIGHT_DEPLOYMENT_GUIDE.md).
 
