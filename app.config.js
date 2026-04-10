@@ -41,6 +41,8 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.yasalaser.tap",
+      /** CFBundleVersion; EAS bumps this when `eas.json` uses `appVersionSource: remote` + `autoIncrement`. */
+      buildNumber: "1",
     },
     android: {
       package: "com.yasalaser.tap",
