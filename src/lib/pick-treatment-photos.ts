@@ -1,5 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
-import { Alert } from "react-native";
+import { Alert, Linking } from "react-native";
+import { appStrings } from "../strings/appStrings";
 import { MAX_TREATMENT_PHOTOS } from "../services/supabase/treatment-photos";
 
 export async function pickTreatmentImages(
@@ -7,7 +8,10 @@ export async function pickTreatmentImages(
 ): Promise<{ uri: string; mimeType?: string }[]> {
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted) {
-    Alert.alert("Permission needed", "Allow photo library access to attach treatment images.");
+    Alert.alert(appStrings.photoPermissionDeniedTitle, appStrings.photoPermissionDeniedMessage, [
+      { text: "Cancel", style: "cancel" },
+      { text: appStrings.photoPermissionOpenSettings, onPress: () => void Linking.openSettings() },
+    ]);
     return [];
   }
   const remaining = MAX_TREATMENT_PHOTOS - currentCount;

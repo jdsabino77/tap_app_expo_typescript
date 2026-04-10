@@ -43,17 +43,31 @@ export default function SettingsScreen() {
     ]);
   };
 
-  const version =
-    Constants.expoConfig?.version ??
-    (typeof Constants.nativeAppVersion === "string" ? Constants.nativeAppVersion : "—");
+  const version = Constants.expoConfig?.version ?? "—";
+  const iosPlatform = Constants.platform?.ios as { buildNumber?: string | null } | undefined;
+  const build =
+    (typeof Constants.expoConfig?.ios?.buildNumber === "string" && Constants.expoConfig.ios.buildNumber) ||
+    (typeof iosPlatform?.buildNumber === "string" && iosPlatform.buildNumber.length > 0
+      ? iosPlatform.buildNumber
+      : null) ||
+    "—";
 
   return (
     <View style={styles.container}>
       <Text style={styles.section}>About</Text>
       <View style={styles.rowStatic}>
-        <Text style={styles.rowLabel}>Version</Text>
+        <Text style={styles.rowLabel}>{appStrings.settingsVersionLabel}</Text>
         <Text style={styles.rowValue}>{version}</Text>
       </View>
+      <View style={styles.rowStatic}>
+        <Text style={styles.rowLabel}>{appStrings.settingsBuildLabel}</Text>
+        <Text style={styles.rowValue}>{build}</Text>
+      </View>
+      <Link href="/legal/privacy" asChild>
+        <Pressable style={styles.row}>
+          <Text style={styles.linkish}>{appStrings.privacyPolicy}</Text>
+        </Pressable>
+      </Link>
       <Link href="/legal/terms" asChild>
         <Pressable style={styles.row}>
           <Text style={styles.linkish}>Terms &amp; Conditions</Text>

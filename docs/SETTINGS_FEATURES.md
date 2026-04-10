@@ -43,10 +43,10 @@ Use this to gate the first TestFlight. Check boxes as you confirm each item on a
 **Suggested ownership:** mark each **A** row `[x]` below when done.
 
 - [ ] **A1** — Auth end-to-end (release build + Supabase redirects) — *must complete for beta readiness*
-- [ ] **A2** — Core patient journeys on TF binary
-- [ ] **A3** — Skin analyzer demo path
-- [ ] **A4** — Photo permission + one happy path on TF binary
-- [ ] **A5** — Privacy, Terms, About/version
+- [ ] **A2** — Core patient journeys on TF binary *(manual QA on release IPA)*
+- [ ] **A3** — Skin analyzer demo path *(in-app: non-diagnostic banner + disclosures; still verify on TF)*
+- [ ] **A4** — Photo permission + one happy path on TF binary *(deny flow offers Open Settings; verify system prompt + Settings on TF)*
+- [ ] **A5** — Privacy, Terms, About/version *(in-app: Privacy → Safari to yasalaser.com; Terms placeholder + link to site; Settings version + native build)*
 
 #### B. Nice for beta (optional first drop)
 

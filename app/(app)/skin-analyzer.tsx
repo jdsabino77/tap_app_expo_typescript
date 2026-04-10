@@ -2,7 +2,9 @@ import * as ImagePicker from "expo-image-picker";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -55,7 +57,10 @@ export default function SkinAnalyzerScreen() {
 
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      setError("Photo library permission is required.");
+      Alert.alert(appStrings.photoPermissionDeniedTitle, appStrings.photoPermissionDeniedMessage, [
+        { text: "Cancel", style: "cancel" },
+        { text: appStrings.photoPermissionOpenSettings, onPress: () => void Linking.openSettings() },
+      ]);
       return;
     }
 
@@ -105,6 +110,7 @@ export default function SkinAnalyzerScreen() {
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
+      <Text style={styles.disclaimerBanner}>{appStrings.skinAnalyzerNonDiagnosticBanner}</Text>
       <Text style={styles.p}>{appStrings.skinAnalyzerIntro}</Text>
       {iosOnlyNote ? <Text style={styles.warn}>{iosOnlyNote}</Text> : null}
 
@@ -189,6 +195,16 @@ export default function SkinAnalyzerScreen() {
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: colors.lightGray },
   container: { padding: 20, paddingBottom: 40 },
+  disclaimerBanner: {
+    backgroundColor: colors.warningOrange,
+    color: colors.primaryNavy,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "600",
+  },
   p: { color: colors.textPrimary, lineHeight: 22, marginBottom: 16 },
   warn: {
     color: colors.warningOrange,

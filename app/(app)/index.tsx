@@ -310,11 +310,19 @@ export default function DashboardScreen() {
       <HubRow href="/medical-profile" label={appStrings.navMedicalProfile} />
       <HubRow href="/settings" label={appStrings.navSettings} />
 
-      <Link href="/legal/terms" asChild>
-        <Pressable style={styles.footerWrap}>
-          <Text style={styles.footer}>{appStrings.termsAndConditions}</Text>
-        </Pressable>
-      </Link>
+      <View style={styles.footerLinks}>
+        <Link href="/legal/privacy" asChild>
+          <Pressable style={styles.footerWrap}>
+            <Text style={styles.footer}>{appStrings.privacyPolicy}</Text>
+          </Pressable>
+        </Link>
+        <Text style={styles.footerSep}> · </Text>
+        <Link href="/legal/terms" asChild>
+          <Pressable style={styles.footerWrap}>
+            <Text style={styles.footer}>{appStrings.termsAndConditions}</Text>
+          </Pressable>
+        </Link>
+      </View>
     </ScrollView>
   );
 }
@@ -420,6 +428,15 @@ const styles = StyleSheet.create({
   },
   hubRowText: { fontSize: 17, color: colors.primaryNavy, fontWeight: "500" },
   chev: { fontSize: 22, color: colors.textLight },
-  footerWrap: { marginTop: 16, padding: 12 },
-  footer: { textAlign: "center", color: colors.primaryNavy, textDecorationLine: "underline" },
+  footerLinks: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 16,
+    paddingHorizontal: 12,
+  },
+  footerWrap: { paddingVertical: 8, paddingHorizontal: 4 },
+  footer: { color: colors.primaryNavy, textDecorationLine: "underline", fontSize: 14 },
+  footerSep: { color: colors.textSecondary, fontSize: 14 },
 });

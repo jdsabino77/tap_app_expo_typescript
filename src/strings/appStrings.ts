@@ -27,11 +27,14 @@ export const appStrings = {
   quickActionProfile: "Profile",
   quickActionProfileSub: "Medical info",
   quickActionSkinAnalyzer: "Face / Skin Analyzer",
-  quickActionSkinAnalyzerSub: "On-device pigmentation (iOS, dev build)",
+  quickActionSkinAnalyzerSub: "On-device pigmentation preview (iOS)",
   /** Header: Face / Skin Analyzer screen */
   skinAnalyzerScreenTitle: "Skin analyzer",
+  /** Beta / trust — shown prominently above the analyzer UI. */
+  skinAnalyzerNonDiagnosticBanner:
+    "Demonstration only — not a medical device. Results are not a diagnosis or treatment recommendation. For clinical decisions, see your licensed provider.",
   skinAnalyzerIntro:
-    "Choose a photo to run on-device pigmentation segmentation (Core ML). ",
+    "Choose a photo for on-device pigmentation segmentation (Core ML). Outputs are educational previews, not diagnostic.",
   skinAnalyzerPickPhoto: "Choose photo",
   /** Shown after a successful run — same action re-opens the picker and re-runs the model. */
   skinAnalyzerPickAnotherPhoto: "Choose another photo",
@@ -170,6 +173,17 @@ export const appStrings = {
 
   /** Legal / terms */
   termsAndConditions: "Terms and Conditions",
+  privacyPolicy: "Privacy Policy",
+  settingsVersionLabel: "Version",
+  settingsBuildLabel: "Native build",
+  legalOpenFullPrivacyWebsite: "View full privacy policy on yasalaser.com",
+  legalOpenFullTermsWebsite: "View terms of use on yasalaser.com",
+  legalPrivacySummaryLead:
+    "YASA Laser Clinic describes how we handle personal information on our website and services. The full policy lives on our site — use the button below to read it in Safari.",
+  photoPermissionDeniedTitle: "Photo access needed",
+  photoPermissionDeniedMessage:
+    "Allow photo library access to attach images, or enable it under Settings → T.A.P → Photos.",
+  photoPermissionOpenSettings: "Open Settings",
   termsCheckboxLead: "I agree to the ",
   acceptTermsToContinue: "Please accept the terms and conditions to continue",
 

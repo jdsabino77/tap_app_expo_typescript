@@ -2,7 +2,9 @@ import { HeaderBackButton, type HeaderBackButtonProps } from "@react-navigation/
 import { useNavigation } from "@react-navigation/native";
 import { Link, useRouter } from "expo-router";
 import { useLayoutEffect } from "react";
-import { ScrollView, StyleSheet, Text } from "react-native";
+import { Linking, Pressable, ScrollView, StyleSheet, Text } from "react-native";
+import { CLINIC_WEB } from "../../src/constants/clinicWeb";
+import { appStrings } from "../../src/strings/appStrings";
 import { colors } from "../../src/theme/tokens";
 
 /**
@@ -35,6 +37,14 @@ export default function TermsScreen() {
       <Text style={styles.warn}>
         Sample text only — not legal advice. Replace with your organization&apos;s final terms before release.
       </Text>
+      <Pressable
+        style={styles.cta}
+        onPress={() => {
+          void Linking.openURL(CLINIC_WEB.termsOfUse);
+        }}
+      >
+        <Text style={styles.ctaText}>{appStrings.legalOpenFullTermsWebsite}</Text>
+      </Pressable>
       <Text style={styles.h1}>Terms &amp; Conditions (placeholder)</Text>
       <Text style={styles.p}>
         By using T.A.P (&quot;the App&quot;), you agree to these terms. If you do not agree, do not use the App.
@@ -83,6 +93,15 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: "600",
   },
+  cta: {
+    backgroundColor: colors.primaryGold,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  ctaText: { color: colors.primaryNavy, fontWeight: "700", fontSize: 15 },
   h1: { fontSize: 22, fontWeight: "700", color: colors.primaryNavy, marginBottom: 12 },
   h2: { fontSize: 17, fontWeight: "700", color: colors.primaryNavy, marginTop: 16, marginBottom: 8 },
   p: { color: colors.textPrimary, lineHeight: 22, marginBottom: 8, fontSize: 15 },
