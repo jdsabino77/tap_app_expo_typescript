@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { CatalogItemSelect } from "../../../src/components/catalog-item-select";
+import { TreatmentTypeSelectGrid } from "../../../src/components/treatment-type-select-grid";
 import { TreatmentBrandFields } from "../../../src/components/treatment-brand-fields";
 import { CatalogLoadState } from "../../../src/components/catalog-suggestions";
 import type { AppointmentKind } from "../../../src/domain/appointment";
@@ -327,31 +328,22 @@ export default function NewAppointmentScreen() {
         {appointmentKind === "treatment" ? (
           <>
             <Text style={styles.label}>Type</Text>
-            <View style={styles.row}>
-              {(catalogs.treatmentTypes ?? []).map((t) => (
-                <Pressable
-                  key={t.slug}
-                  style={[styles.chip, treatmentType === t.slug && styles.chipOn]}
-                  onPress={() => {
-                    const nextSlug = t.slug;
-                    if (treatmentType !== nextSlug) {
-                      const nextFlags = treatmentTypeFlagsForSlug(nextSlug, catalogs.treatmentTypes ?? []);
-                      const hasEbd = (catalogs.ebdIndications?.length ?? 0) > 0;
-                      setEbdIndicationId("");
-                      setEbdModality("laser");
-                      if (nextFlags.useEbdServiceFlow && hasEbd) {
-                        setServiceType("");
-                      }
-                    }
-                    setTreatmentType(nextSlug);
-                  }}
-                >
-                  <Text style={[styles.ebdChipText, treatmentType === t.slug && styles.chipTextOn]}>
-                    {t.name}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+            <TreatmentTypeSelectGrid
+              types={catalogs.treatmentTypes ?? []}
+              selectedSlug={treatmentType}
+              onSelectType={(nextSlug) => {
+                if (treatmentType !== nextSlug) {
+                  const nextFlags = treatmentTypeFlagsForSlug(nextSlug, catalogs.treatmentTypes ?? []);
+                  const hasEbd = (catalogs.ebdIndications?.length ?? 0) > 0;
+                  setEbdIndicationId("");
+                  setEbdModality("laser");
+                  if (nextFlags.useEbdServiceFlow && hasEbd) {
+                    setServiceType("");
+                  }
+                }
+                setTreatmentType(nextSlug);
+              }}
+            />
 
             {useEbdLaser ? (
               <>
