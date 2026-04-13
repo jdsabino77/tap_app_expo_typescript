@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { CatalogItemSelect } from "../../../../src/components/catalog-item-select";
+import { TreatmentPhotoViewer } from "../../../../src/components/treatment-photo-viewer";
 import { CatalogLoadState, TreatmentAreaCatalogChips } from "../../../../src/components/catalog-suggestions";
 import { TreatmentBrandFields } from "../../../../src/components/treatment-brand-fields";
 import type { Provider } from "../../../../src/domain/provider";
@@ -87,6 +88,8 @@ export default function EditTreatmentScreen() {
   const [committedPaths, setCommittedPaths] = useState<string[]>([]);
   const [localPicks, setLocalPicks] = useState<{ uri: string; mimeType?: string }[]>([]);
   const [signedByPath, setSignedByPath] = useState<Record<string, string>>({});
+  const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
+  const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -406,6 +409,37 @@ export default function EditTreatmentScreen() {
     };
   }, [committedPaths, supabaseEnabled]);
 
+  const photoEntries = useMemo(
+    () => [
+      ...committedPaths.map((path) => ({ uri: signedByPath[path] })),
+      ...localPicks.map((p) => ({ uri: p.uri })),
+    ],
+    [committedPaths, signedByPath, localPicks],
+  );
+
+  const viewerUris = useMemo(
+    () => photoEntries.map((e) => e.uri).filter((u): u is string => Boolean(u)),
+    [photoEntries],
+  );
+
+  const openPhotoViewerAtStripIndex = useCallback(
+    (stripIndex: number) => {
+      const row = photoEntries[stripIndex];
+      if (!row?.uri) {
+        return;
+      }
+      let v = 0;
+      for (let k = 0; k < stripIndex; k++) {
+        if (photoEntries[k]?.uri) {
+          v++;
+        }
+      }
+      setPhotoViewerIndex(v);
+      setPhotoViewerOpen(true);
+    },
+    [photoEntries],
+  );
+
   const onSave = async () => {
     setError(null);
     if (!supabaseEnabled || !id) {
@@ -531,6 +565,7 @@ export default function EditTreatmentScreen() {
   }
 
   return (
+    <>
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -730,10 +765,16 @@ export default function EditTreatmentScreen() {
         </Text>
         <Text style={styles.photoHint}>Requires internet to add or remove. Signed URLs refresh while you edit.</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoStrip}>
-          {committedPaths.map((path) => (
+          {committedPaths.map((path, stripIndex) => (
             <View key={path} style={styles.thumbWrap}>
               {signedByPath[path] ? (
-                <Image source={{ uri: signedByPath[path] }} style={styles.thumb} />
+                <Pressable
+                  accessibilityRole="imagebutton"
+                  accessibilityLabel={appStrings.treatmentPhotoThumbnailA11y}
+                  onPress={() => openPhotoViewerAtStripIndex(stripIndex)}
+                >
+                  <Image source={{ uri: signedByPath[path] }} style={styles.thumb} />
+                </Pressable>
               ) : (
                 <View style={[styles.thumb, styles.thumbPlaceholder]} />
               )}
@@ -747,7 +788,13 @@ export default function EditTreatmentScreen() {
           ))}
           {localPicks.map((p, i) => (
             <View key={`${p.uri}-${i}`} style={styles.thumbWrap}>
-              <Image source={{ uri: p.uri }} style={styles.thumb} />
+              <Pressable
+                accessibilityRole="imagebutton"
+                accessibilityLabel={appStrings.treatmentPhotoThumbnailA11y}
+                onPress={() => openPhotoViewerAtStripIndex(committedPaths.length + i)}
+              >
+                <Image source={{ uri: p.uri }} style={styles.thumb} />
+              </Pressable>
               <Pressable
                 style={styles.thumbRemove}
                 onPress={() => setLocalPicks((cur) => cur.filter((_, j) => j !== i))}
@@ -785,6 +832,15 @@ export default function EditTreatmentScreen() {
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
+
+    <TreatmentPhotoViewer
+      visible={photoViewerOpen}
+      uris={viewerUris}
+      imageIndex={photoViewerIndex}
+      onImageIndexChange={setPhotoViewerIndex}
+      onRequestClose={() => setPhotoViewerOpen(false)}
+    />
+    </>
   );
 }
 

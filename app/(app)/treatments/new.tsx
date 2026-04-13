@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { CatalogItemSelect } from "../../../src/components/catalog-item-select";
+import { TreatmentPhotoViewer } from "../../../src/components/treatment-photo-viewer";
 import { TreatmentBrandFields } from "../../../src/components/treatment-brand-fields";
 import { CatalogLoadState, TreatmentAreaCatalogChips } from "../../../src/components/catalog-suggestions";
 import type { EbdModality } from "../../../src/domain/ebd-modality";
@@ -89,6 +90,8 @@ export default function NewTreatmentScreen() {
   const [notes, setNotes] = useState("");
   const [costText, setCostText] = useState("");
   const [localPicks, setLocalPicks] = useState<{ uri: string; mimeType?: string }[]>([]);
+  const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
+  const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -461,6 +464,8 @@ export default function NewTreatmentScreen() {
     }
   };
 
+  const photoViewerUris = useMemo(() => localPicks.map((p) => p.uri), [localPicks]);
+
   if (!supabaseEnabled) {
     return (
       <View style={styles.padded}>
@@ -470,6 +475,7 @@ export default function NewTreatmentScreen() {
   }
 
   return (
+    <>
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -667,7 +673,16 @@ export default function NewTreatmentScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoStrip}>
           {localPicks.map((p, i) => (
             <View key={`${p.uri}-${i}`} style={styles.thumbWrap}>
-              <Image source={{ uri: p.uri }} style={styles.thumb} />
+              <Pressable
+                accessibilityRole="imagebutton"
+                accessibilityLabel={appStrings.treatmentPhotoThumbnailA11y}
+                onPress={() => {
+                  setPhotoViewerIndex(i);
+                  setPhotoViewerOpen(true);
+                }}
+              >
+                <Image source={{ uri: p.uri }} style={styles.thumb} />
+              </Pressable>
               <Pressable
                 style={styles.thumbRemove}
                 onPress={() => setLocalPicks((cur) => cur.filter((_, j) => j !== i))}
@@ -705,6 +720,15 @@ export default function NewTreatmentScreen() {
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
+
+    <TreatmentPhotoViewer
+      visible={photoViewerOpen}
+      uris={photoViewerUris}
+      imageIndex={photoViewerIndex}
+      onImageIndexChange={setPhotoViewerIndex}
+      onRequestClose={() => setPhotoViewerOpen(false)}
+    />
+    </>
   );
 }
 
