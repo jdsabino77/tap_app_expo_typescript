@@ -135,6 +135,12 @@ export const appStrings = {
   treatmentAreasLegacyNote:
     "These areas are not in the current catalog. Tap × to remove, or keep them and they will still be saved.",
 
+  /** Full-screen treatment photo viewer (issue #25). */
+  /** Full-screen photo viewer — top-right control (see treatment-photo-viewer). */
+  treatmentPhotoViewerCloseA11y: "Close full screen photo",
+  treatmentPhotoViewerCounter: (current: number, total: number) => `${current} of ${total}`,
+  treatmentPhotoThumbnailA11y: "View photo full screen",
+
   /** Login (`login_page.dart`) */
   loginHeadline: "Welcome Back To Your\nAesthetic Passport",
   loginSubtitle: "Sign in to continue tracking your treatments",

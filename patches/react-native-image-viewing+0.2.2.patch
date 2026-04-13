@@ -1,0 +1,61 @@
+diff --git a/node_modules/react-native-image-viewing/dist/ImageViewing.js b/node_modules/react-native-image-viewing/dist/ImageViewing.js
+index 3d7641a..6b2bec5 100644
+--- a/node_modules/react-native-image-viewing/dist/ImageViewing.js
++++ b/node_modules/react-native-image-viewing/dist/ImageViewing.js
+@@ -37,15 +37,10 @@ function ImageViewing({ images, keyExtractor, imageIndex, visible, onRequestClos
+     if (!visible) {
+         return null;
+     }
+-    return (<Modal transparent={presentationStyle === "overFullScreen"} visible={visible} presentationStyle={presentationStyle} animationType={animationType} onRequestClose={onRequestCloseEnhanced} supportedOrientations={["portrait"]} hardwareAccelerated>
++    return (<Modal transparent={presentationStyle === "overFullScreen"} visible={visible} presentationStyle={presentationStyle} animationType={animationType} onRequestClose={onRequestCloseEnhanced} supportedOrientations={["portrait", "landscape", "landscape-left", "landscape-right", "portrait-upside-down"]} hardwareAccelerated>
+       <StatusBarManager presentationStyle={presentationStyle}/>
+       <View style={[styles.container, { opacity, backgroundColor }]}>
+-        <Animated.View style={[styles.header, { transform: headerTransform }]}>
+-          {typeof HeaderComponent !== "undefined" ? (React.createElement(HeaderComponent, {
+-        imageIndex: currentImageIndex,
+-    })) : (<ImageDefaultHeader onRequestClose={onRequestCloseEnhanced}/>)}
+-        </Animated.View>
+-        <VirtualizedList ref={imageList} data={images} horizontal pagingEnabled windowSize={2} initialNumToRender={1} maxToRenderPerBatch={1} showsHorizontalScrollIndicator={false} showsVerticalScrollIndicator={false} initialScrollIndex={imageIndex} getItem={(_, index) => images[index]} getItemCount={() => images.length} getItemLayout={(_, index) => ({
++        <VirtualizedList ref={imageList} style={styles.list} data={images} horizontal pagingEnabled windowSize={2} initialNumToRender={1} maxToRenderPerBatch={1} showsHorizontalScrollIndicator={false} showsVerticalScrollIndicator={false} initialScrollIndex={imageIndex} getItem={(_, index) => images[index]} getItemCount={() => images.length} getItemLayout={(_, index) => ({
+         length: SCREEN_WIDTH,
+         offset: SCREEN_WIDTH * index,
+         index,
+@@ -56,7 +51,12 @@ function ImageViewing({ images, keyExtractor, imageIndex, visible, onRequestClos
+         : typeof imageSrc === "number"
+             ? `${imageSrc}`
+             : imageSrc.uri}/>
+-        {typeof FooterComponent !== "undefined" && (<Animated.View style={[styles.footer, { transform: footerTransform }]}>
++        <Animated.View style={[styles.header, { transform: headerTransform }]} pointerEvents="box-none">
++          {typeof HeaderComponent !== "undefined" ? (React.createElement(HeaderComponent, {
++        imageIndex: currentImageIndex,
++    })) : (<ImageDefaultHeader onRequestClose={onRequestCloseEnhanced}/>)}
++        </Animated.View>
++        {typeof FooterComponent !== "undefined" && (<Animated.View style={[styles.footer, { transform: footerTransform }]} pointerEvents="box-none">
+             {React.createElement(FooterComponent, {
+         imageIndex: currentImageIndex,
+     })}
+@@ -69,16 +69,22 @@ const styles = StyleSheet.create({
+         flex: 1,
+         backgroundColor: "#000",
+     },
++    list: {
++        flex: 1,
++        zIndex: 0,
++    },
+     header: {
+         position: "absolute",
+         width: "100%",
+-        zIndex: 1,
++        zIndex: 100,
++        elevation: 100,
+         top: 0,
+     },
+     footer: {
+         position: "absolute",
+         width: "100%",
+-        zIndex: 1,
++        zIndex: 100,
++        elevation: 100,
+         bottom: 0,
+     },
+ });

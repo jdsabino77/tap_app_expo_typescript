@@ -1,6 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -25,6 +25,7 @@ import {
   fetchTreatmentById,
   fetchTreatmentPhotoSignedUrls,
 } from "../../../src/repositories/treatment.repository";
+import { TreatmentPhotoViewer } from "../../../src/components/treatment-photo-viewer";
 import { useSession } from "../../../src/store/session";
 import { colors } from "../../../src/theme/tokens";
 
@@ -40,6 +41,8 @@ export default function TreatmentDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
+  const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
 
   const load = useCallback(async () => {
     if (!supabaseEnabled || !id) {
@@ -77,6 +80,8 @@ export default function TreatmentDetailScreen() {
       cancelled = true;
     };
   }, [row?.photoUrls]);
+
+  const photoViewerUris = useMemo(() => photoUrls.filter(Boolean), [photoUrls]);
 
   const onDelete = () => {
     if (!id) {
@@ -146,6 +151,7 @@ export default function TreatmentDetailScreen() {
   }
 
   return (
+    <>
     <ScrollView contentContainerStyle={styles.scroll}>
       <Text style={styles.title}>
         {treatmentTypeDisplayLabel(row.treatmentType)} · {treatmentServiceLine(row, ebdLineLabels)}
@@ -165,8 +171,18 @@ export default function TreatmentDetailScreen() {
         <>
           <Text style={styles.photosLabel}>Photos</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoStrip}>
-            {photoUrls.map((uri) => (
-              <Image key={uri} source={{ uri }} style={styles.photo} />
+            {photoUrls.map((uri, i) => (
+              <Pressable
+                key={`${uri}-${i}`}
+                accessibilityRole="imagebutton"
+                accessibilityLabel={appStrings.treatmentPhotoThumbnailA11y}
+                onPress={() => {
+                  setPhotoViewerIndex(i);
+                  setPhotoViewerOpen(true);
+                }}
+              >
+                <Image source={{ uri }} style={styles.photo} />
+              </Pressable>
             ))}
           </ScrollView>
         </>
@@ -185,6 +201,15 @@ export default function TreatmentDetailScreen() {
         </Pressable>
       </View>
     </ScrollView>
+
+    <TreatmentPhotoViewer
+      visible={photoViewerOpen}
+      uris={photoViewerUris}
+      imageIndex={photoViewerIndex}
+      onImageIndexChange={setPhotoViewerIndex}
+      onRequestClose={() => setPhotoViewerOpen(false)}
+    />
+    </>
   );
 }
 
