@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  ebdIndicationsForModality,
   filterServiceTypesForTreatment,
   parseReferenceCatalogBundleJson,
+  type EbdIndication,
   type ServiceType,
 } from "./reference-content";
 
@@ -53,5 +55,20 @@ describe("parseReferenceCatalogBundleJson", () => {
 
   it("returns null on invalid json", () => {
     expect(parseReferenceCatalogBundleJson("not json")).toBeNull();
+  });
+});
+
+describe("ebdIndicationsForModality", () => {
+  const rows: EbdIndication[] = [
+    { id: "1", modality: "laser", name: "Hair Removal" },
+    { id: "2", modality: "photofacial", name: "Freckles" },
+  ];
+
+  it("filters by laser", () => {
+    expect(ebdIndicationsForModality(rows, "laser").map((r) => r.name)).toEqual(["Hair Removal"]);
+  });
+
+  it("filters by photofacial", () => {
+    expect(ebdIndicationsForModality(rows, "photofacial").map((r) => r.name)).toEqual(["Freckles"]);
   });
 });

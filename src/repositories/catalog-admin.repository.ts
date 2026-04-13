@@ -364,3 +364,85 @@ export async function adminDeleteProviderService(id: string): Promise<void> {
   }
   await afterCatalogMutation();
 }
+
+// --- EBD indications ---
+
+export type AdminEbdIndicationRow = {
+  id: string;
+  modality: "laser" | "photofacial";
+  name: string;
+  description: string;
+  sort_order: number;
+  is_active: boolean;
+};
+
+export async function adminListEbdIndications(): Promise<AdminEbdIndicationRow[]> {
+  requireConfigured();
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("ebd_indications")
+    .select("id,modality,name,description,sort_order,is_active")
+    .order("modality", { ascending: true })
+    .order("sort_order", { ascending: true });
+  if (error) {
+    throw new Error(error.message);
+  }
+  return (data ?? []).map((r) => ({
+    id: String(r.id),
+    modality: r.modality === "photofacial" ? "photofacial" : "laser",
+    name: String(r.name ?? ""),
+    description: r.description == null ? "" : String(r.description),
+    sort_order: typeof r.sort_order === "number" ? r.sort_order : 0,
+    is_active: Boolean(r.is_active),
+  }));
+}
+
+export async function adminUpdateEbdIndication(
+  id: string,
+  patch: Partial<Pick<AdminEbdIndicationRow, "modality" | "name" | "description" | "sort_order" | "is_active">>,
+): Promise<void> {
+  requireConfigured();
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from("ebd_indications")
+    .update({
+      ...patch,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  if (error) {
+    throw new Error(error.message);
+  }
+  await afterCatalogMutation();
+}
+
+export async function adminInsertEbdIndication(): Promise<string> {
+  requireConfigured();
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("ebd_indications")
+    .insert({
+      modality: "laser",
+      name: "New EBD category",
+      description: "",
+      sort_order: 999,
+      is_active: true,
+    })
+    .select("id")
+    .single();
+  if (error) {
+    throw new Error(error.message);
+  }
+  await afterCatalogMutation();
+  return String(data.id);
+}
+
+export async function adminDeleteEbdIndication(id: string): Promise<void> {
+  requireConfigured();
+  const supabase = getSupabase();
+  const { error } = await supabase.from("ebd_indications").delete().eq("id", id);
+  if (error) {
+    throw new Error(error.message);
+  }
+  await afterCatalogMutation();
+}

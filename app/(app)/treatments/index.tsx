@@ -11,6 +11,8 @@ import {
   View,
 } from "react-native";
 import { formatDisplayDate } from "../../../src/lib/datetime";
+import { treatmentServiceLine } from "../../../src/lib/treatment-service-line";
+import { appStrings } from "../../../src/strings/appStrings";
 import {
   fetchTreatmentsForCurrentUser,
   readCachedTreatmentsForCurrentUser,
@@ -18,6 +20,12 @@ import {
 import { useSession } from "../../../src/store/session";
 import { colors } from "../../../src/theme/tokens";
 import type { Treatment } from "../../../src/domain/treatment";
+
+const ebdLineLabels = {
+  ebdType: appStrings.ebdTypeLabel,
+  laserModality: appStrings.ebdModalityLaser,
+  photofacialModality: appStrings.ebdModalityPhotofacial,
+};
 
 export default function TreatmentListScreen() {
   const { supabaseEnabled } = useSession();
@@ -99,7 +107,7 @@ export default function TreatmentListScreen() {
             onPress={() => router.push(`/treatments/${item.id}`)}
           >
             <Text style={styles.cardTitle}>
-              {item.treatmentType} · {item.serviceType}
+              {item.treatmentType} · {treatmentServiceLine(item, ebdLineLabels)}
             </Text>
             <Text style={styles.cardSub}>{formatDisplayDate(item.treatmentDate)}</Text>
             <Text style={styles.cardSub}>{item.brand || "—"}</Text>

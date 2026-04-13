@@ -9,6 +9,7 @@ const emptyBundle: ReferenceCatalogBundle = {
   serviceTypeBrands: [],
   treatmentAreas: [],
   providerServices: [],
+  ebdIndications: [],
 };
 
 export function useReferenceCatalogs() {
@@ -46,6 +47,7 @@ export function useReferenceCatalogs() {
     serviceTypeBrands: bundle.serviceTypeBrands,
     treatmentAreas: bundle.treatmentAreas,
     providerServices: bundle.providerServices,
+    ebdIndications: bundle.ebdIndications,
     loading,
     error,
     refresh,

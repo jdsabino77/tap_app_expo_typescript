@@ -108,6 +108,14 @@ export const appStrings = {
   treatmentServiceTypeEmptyList:
     "No service types for this treatment type. Check your connection or ask an admin to add rows in Catalog admin.",
 
+  ebdTypeLabel: "EBD (Energy Based Devices)",
+  ebdModalityLabel: "Modality",
+  ebdModalityLaser: "Laser",
+  ebdModalityPhotofacial: "Photofacial",
+  ebdTreatmentCategoryLabel: "Treatment category",
+  ebdTreatmentCategorySheetTitle: "Treatment category",
+  ebdTreatmentCategoryPlaceholder: "Choose a treatment category",
+
   treatmentBrandLabel: "Brand",
   treatmentBrandLaserTitle: "Laser / device",
   treatmentBrandInjectableTitle: "Product / brand",
@@ -232,6 +240,7 @@ export const appStrings = {
   /** Reference catalog admin (`profiles.is_admin`) */
   catalogAdminTitle: "Catalog admin",
   catalogAdminLaserTab: "Laser types",
+  catalogAdminEbdTab: "EBD categories",
   catalogAdminServiceTab: "Service types",
   catalogAdminAreaTab: "Treatment areas",
   catalogAdminProviderTab: "Provider services",

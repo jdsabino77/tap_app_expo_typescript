@@ -46,6 +46,9 @@ export function syntheticTreatmentFromInput(
     treatmentType: Treatment["treatmentType"];
     serviceType: string;
     brand: string;
+    ebdIndicationId?: string | null;
+    ebdModality?: Treatment["ebdModality"];
+    ebdTreatmentCategory?: string;
     treatmentAreas: string[];
     units: number;
     providerId: string | null;
@@ -55,12 +58,17 @@ export function syntheticTreatmentFromInput(
     photoUrls?: string[];
   },
 ): Treatment {
+  const ebdId = input.ebdIndicationId?.trim() ? input.ebdIndicationId.trim() : null;
   return parseTreatment({
     id,
     userId,
     treatmentType: input.treatmentType,
     serviceType: input.serviceType.trim(),
     brand: input.brand.trim(),
+    ebdIndicationId: input.treatmentType === "laser" ? ebdId : null,
+    ebdModality: input.treatmentType === "laser" ? (input.ebdModality ?? null) : null,
+    ebdTreatmentCategory:
+      input.treatmentType === "laser" ? (input.ebdTreatmentCategory ?? "").trim() : "",
     treatmentAreas: input.treatmentAreas,
     units: input.units,
     providerId: input.providerId && input.providerId.trim() !== "" ? input.providerId.trim() : "",

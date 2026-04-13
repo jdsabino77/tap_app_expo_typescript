@@ -1,5 +1,7 @@
 import {
   appliesToSchema,
+  type EbdIndication,
+  ebdIndicationSchema,
   type LaserType,
   laserTypeSchema,
   type ProviderServiceCatalogItem,
@@ -85,6 +87,18 @@ function mapProviderServiceRow(row: Record<string, unknown>): ProviderServiceCat
   });
 }
 
+function mapEbdIndicationRow(row: Record<string, unknown>): EbdIndication {
+  const mod = row.modality === "photofacial" ? "photofacial" : "laser";
+  return ebdIndicationSchema.parse({
+    id: String(row.id),
+    modality: mod,
+    name: String(row.name ?? ""),
+    description: row.description == null ? undefined : String(row.description),
+    order: toInt(row.sort_order),
+    isActive: row.is_active == null ? undefined : Boolean(row.is_active),
+  });
+}
+
 function toInt(v: unknown, fallback = 0): number {
   if (typeof v === "number" && Number.isFinite(v)) {
     return v;
@@ -103,7 +117,7 @@ function toInt(v: unknown, fallback = 0): number {
 async function fetchReferenceCatalogBundleFromRemote(): Promise<ReferenceCatalogBundle> {
   const supabase = getSupabase();
 
-  const [laserRes, serviceRes, brandRes, areaRes, provRes] = await Promise.all([
+  const [laserRes, serviceRes, brandRes, areaRes, provRes, ebdRes] = await Promise.all([
     supabase.from("laser_types").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
     supabase.from("service_types").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
     supabase
@@ -117,6 +131,7 @@ async function fetchReferenceCatalogBundleFromRemote(): Promise<ReferenceCatalog
       .select("*")
       .eq("is_active", true)
       .order("sort_order", { ascending: true }),
+    supabase.from("ebd_indications").select("*").eq("is_active", true).order("modality", { ascending: true }).order("sort_order", { ascending: true }),
   ]);
 
   const err =
@@ -124,7 +139,8 @@ async function fetchReferenceCatalogBundleFromRemote(): Promise<ReferenceCatalog
     serviceRes.error?.message ||
     brandRes.error?.message ||
     areaRes.error?.message ||
-    provRes.error?.message;
+    provRes.error?.message ||
+    ebdRes.error?.message;
   if (err) {
     throw new Error(err);
   }
@@ -135,6 +151,7 @@ async function fetchReferenceCatalogBundleFromRemote(): Promise<ReferenceCatalog
     serviceTypeBrands: (brandRes.data ?? []).map((r) => mapServiceTypeBrandRow(r as Record<string, unknown>)),
     treatmentAreas: (areaRes.data ?? []).map((r) => mapAreaRow(r as Record<string, unknown>)),
     providerServices: (provRes.data ?? []).map((r) => mapProviderServiceRow(r as Record<string, unknown>)),
+    ebdIndications: (ebdRes.data ?? []).map((r) => mapEbdIndicationRow(r as Record<string, unknown>)),
   };
 }
 
@@ -149,6 +166,7 @@ export async function fetchReferenceCatalogBundle(): Promise<ReferenceCatalogBun
     serviceTypeBrands: [],
     treatmentAreas: [],
     providerServices: [],
+    ebdIndications: [],
   };
   if (!isSupabaseConfigured()) {
     return empty;

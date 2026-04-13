@@ -12,6 +12,7 @@ import {
 import type { Appointment } from "../../src/domain/appointment";
 import type { Treatment } from "../../src/domain/treatment";
 import { formatDisplayDate, formatDisplayDateTime } from "../../src/lib/datetime";
+import { appointmentServiceLine, treatmentServiceLine } from "../../src/lib/treatment-service-line";
 import { fetchUpcomingAppointmentsForCurrentUser } from "../../src/repositories/appointment.repository";
 import { fetchOwnProfileRow } from "../../src/repositories/profile.repository";
 import { fetchTreatmentsForCurrentUser } from "../../src/repositories/treatment.repository";
@@ -19,6 +20,12 @@ import { appStrings } from "../../src/strings/appStrings";
 import { useNetworkStatus } from "../../src/hooks/useNetworkStatus";
 import { useSession } from "../../src/store/session";
 import { colors } from "../../src/theme/tokens";
+
+const ebdLineLabels = {
+  ebdType: appStrings.ebdTypeLabel,
+  laserModality: appStrings.ebdModalityLaser,
+  photofacialModality: appStrings.ebdModalityPhotofacial,
+};
 
 function HubRow({
   href,
@@ -258,7 +265,7 @@ export default function DashboardScreen() {
             </Text>
             <Text style={styles.recentTitle}>
               {a.appointmentKind === "treatment" && a.treatmentType
-                ? `${a.treatmentType} · ${a.serviceType}`
+                ? `${a.treatmentType} · ${appointmentServiceLine(a, ebdLineLabels)}`
                 : a.serviceType}
             </Text>
             <Text style={styles.recentSub}>{formatDisplayDateTime(a.scheduledAt)}</Text>
@@ -294,7 +301,7 @@ export default function DashboardScreen() {
             onPress={() => router.push(`/treatments/${t.id}`)}
           >
             <Text style={styles.recentTitle}>
-              {t.treatmentType} · {t.serviceType}
+              {t.treatmentType} · {treatmentServiceLine(t, ebdLineLabels)}
             </Text>
             <Text style={styles.recentSub}>{formatDisplayDate(t.treatmentDate)}</Text>
           </Pressable>

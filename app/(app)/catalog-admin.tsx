@@ -13,22 +13,27 @@ import {
 } from "react-native";
 import type { AppliesTo } from "../../src/domain/reference-content";
 import {
+  adminDeleteEbdIndication,
   adminDeleteLaserType,
   adminDeleteProviderService,
   adminDeleteServiceType,
   adminDeleteTreatmentArea,
+  adminInsertEbdIndication,
   adminInsertLaserType,
   adminInsertProviderService,
   adminInsertServiceType,
   adminInsertTreatmentArea,
+  adminListEbdIndications,
   adminListLaserTypes,
   adminListProviderServices,
   adminListServiceTypes,
   adminListTreatmentAreas,
+  adminUpdateEbdIndication,
   adminUpdateLaserType,
   adminUpdateProviderService,
   adminUpdateServiceType,
   adminUpdateTreatmentArea,
+  type AdminEbdIndicationRow,
   type AdminLaserTypeRow,
   type AdminProviderServiceRow,
   type AdminServiceTypeRow,
@@ -38,7 +43,7 @@ import { fetchOwnProfileRow } from "../../src/repositories/profile.repository";
 import { appStrings } from "../../src/strings/appStrings";
 import { colors } from "../../src/theme/tokens";
 
-type Tab = "laser" | "service" | "area" | "provider";
+type Tab = "laser" | "ebd" | "service" | "area" | "provider";
 
 export default function CatalogAdminScreen() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
@@ -49,6 +54,7 @@ export default function CatalogAdminScreen() {
   const [services, setServices] = useState<AdminServiceTypeRow[]>([]);
   const [areas, setAreas] = useState<AdminTreatmentAreaRow[]>([]);
   const [provSvcs, setProvSvcs] = useState<AdminProviderServiceRow[]>([]);
+  const [ebdRows, setEbdRows] = useState<AdminEbdIndicationRow[]>([]);
 
   const gate = useCallback(async () => {
     const p = await fetchOwnProfileRow();
@@ -69,6 +75,8 @@ export default function CatalogAdminScreen() {
     try {
       if (tab === "laser") {
         setLasers(await adminListLaserTypes());
+      } else if (tab === "ebd") {
+        setEbdRows(await adminListEbdIndications());
       } else if (tab === "service") {
         setServices(await adminListServiceTypes());
       } else if (tab === "area") {
@@ -93,6 +101,8 @@ export default function CatalogAdminScreen() {
     try {
       if (tab === "laser") {
         await adminInsertLaserType();
+      } else if (tab === "ebd") {
+        await adminInsertEbdIndication();
       } else if (tab === "service") {
         await adminInsertServiceType();
       } else if (tab === "area") {
@@ -130,6 +140,7 @@ export default function CatalogAdminScreen() {
         {(
           [
             ["laser", appStrings.catalogAdminLaserTab],
+            ["ebd", appStrings.catalogAdminEbdTab],
             ["service", appStrings.catalogAdminServiceTab],
             ["area", appStrings.catalogAdminAreaTab],
             ["provider", appStrings.catalogAdminProviderTab],
@@ -185,6 +196,49 @@ export default function CatalogAdminScreen() {
                             void (async () => {
                               try {
                                 await adminDeleteLaserType(r.id);
+                                await load();
+                              } catch (e) {
+                                Alert.alert("Delete failed", e instanceof Error ? e.message : String(e));
+                              }
+                            })();
+                          },
+                        },
+                      ],
+                    );
+                  }}
+                />
+              ))
+            : null}
+          {tab === "ebd"
+            ? ebdRows.map((r) => (
+                <EbdIndicationEditor
+                  key={r.id}
+                  row={r}
+                  saving={savingId === r.id}
+                  onSave={async (patch) => {
+                    setSavingId(r.id);
+                    try {
+                      await adminUpdateEbdIndication(r.id, patch);
+                      await load();
+                    } catch (e) {
+                      Alert.alert("Save failed", e instanceof Error ? e.message : String(e));
+                    } finally {
+                      setSavingId(null);
+                    }
+                  }}
+                  onDelete={() => {
+                    Alert.alert(
+                      appStrings.catalogAdminDeleteConfirmTitle,
+                      appStrings.catalogAdminDeleteConfirmBody,
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: appStrings.catalogAdminDelete,
+                          style: "destructive",
+                          onPress: () => {
+                            void (async () => {
+                              try {
+                                await adminDeleteEbdIndication(r.id);
                                 await load();
                               } catch (e) {
                                 Alert.alert("Delete failed", e instanceof Error ? e.message : String(e));
@@ -329,6 +383,87 @@ export default function CatalogAdminScreen() {
             : null}
         </ScrollView>
       )}
+    </View>
+  );
+}
+
+function EbdIndicationEditor({
+  row,
+  saving,
+  onSave,
+  onDelete,
+}: {
+  row: AdminEbdIndicationRow;
+  saving: boolean;
+  onSave: (p: Partial<AdminEbdIndicationRow>) => Promise<void>;
+  onDelete: () => void;
+}) {
+  const [modality, setModality] = useState<"laser" | "photofacial">(row.modality);
+  const [name, setName] = useState(row.name);
+  const [description, setDescription] = useState(row.description);
+  const [sort, setSort] = useState(String(row.sort_order));
+  const [active, setActive] = useState(row.is_active);
+
+  useEffect(() => {
+    setModality(row.modality);
+    setName(row.name);
+    setDescription(row.description);
+    setSort(String(row.sort_order));
+    setActive(row.is_active);
+  }, [row]);
+
+  return (
+    <View style={styles.card}>
+      <Text style={styles.cardLabel}>Modality</Text>
+      <View style={styles.chips}>
+        {(["laser", "photofacial"] as const).map((k) => (
+          <Pressable key={k} style={[styles.chip, modality === k && styles.chipOn]} onPress={() => setModality(k)}>
+            <Text style={[styles.chipText, modality === k && styles.chipTextOn]}>
+              {k === "laser" ? appStrings.ebdModalityLaser : appStrings.ebdModalityPhotofacial}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      <Text style={styles.cardLabel}>Category name</Text>
+      <TextInput style={styles.input} value={name} onChangeText={setName} placeholderTextColor={colors.textLight} />
+      <Text style={styles.cardLabel}>Description</Text>
+      <TextInput style={styles.input} value={description} onChangeText={setDescription} placeholderTextColor={colors.textLight} />
+      <Text style={styles.cardLabel}>Sort order</Text>
+      <TextInput
+        style={styles.input}
+        value={sort}
+        onChangeText={setSort}
+        keyboardType="number-pad"
+        placeholderTextColor={colors.textLight}
+      />
+      <View style={styles.switchRow}>
+        <Text>Active</Text>
+        <Switch value={active} onValueChange={setActive} />
+      </View>
+      <View style={styles.cardActions}>
+        <Pressable
+          style={[styles.saveBtn, saving && styles.disabled]}
+          disabled={saving}
+          onPress={() =>
+            void onSave({
+              modality,
+              name: name.trim(),
+              description: description.trim(),
+              sort_order: Number.parseInt(sort, 10) || 0,
+              is_active: active,
+            })
+          }
+        >
+          {saving ? (
+            <ActivityIndicator color={colors.primaryNavy} />
+          ) : (
+            <Text style={styles.saveBtnText}>{appStrings.catalogAdminSave}</Text>
+          )}
+        </Pressable>
+        <Pressable style={styles.delBtn} onPress={onDelete}>
+          <Text style={styles.delBtnText}>{appStrings.catalogAdminDelete}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
