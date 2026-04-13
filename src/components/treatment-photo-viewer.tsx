@@ -1,11 +1,10 @@
-import * as ScreenOrientation from "expo-screen-orientation";
-import { useCallback, useEffect, useMemo } from "react";
-import { Platform, Pressable, StyleSheet, Text, useWindowDimensions } from "react-native";
+import { useCallback, useMemo } from "react";
+import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import ImageViewing from "react-native-image-viewing";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { appStrings } from "../strings/appStrings";
 
-const HIT_SLOP = { top: 12, left: 12, bottom: 12, right: 12 };
+const HIT_SLOP = { top: 16, left: 16, bottom: 16, right: 16 };
 
 export type TreatmentPhotoViewerProps = {
   visible: boolean;
@@ -16,8 +15,10 @@ export type TreatmentPhotoViewerProps = {
 };
 
 /**
- * Full-screen gallery with pinch-to-zoom, horizontal paging, and temporary orientation unlock
- * while open (app default remains portrait via `app.config.js`).
+ * Full-screen gallery with pinch-to-zoom and horizontal paging.
+ * Top-right ✕ + `useSafeAreaInsets()` — `SafeAreaView` inside a full-screen Modal often
+ * reports no top inset on iOS, which collides with the status bar clock.
+ * Patched `react-native-image-viewing` renders the list under the chrome so the close control receives taps.
  */
 export function TreatmentPhotoViewer({
   visible,
@@ -27,45 +28,36 @@ export function TreatmentPhotoViewer({
   onRequestClose,
 }: TreatmentPhotoViewerProps) {
   const { width, height } = useWindowDimensions();
-
-  useEffect(() => {
-    if (Platform.OS === "web" || !visible) {
-      return;
-    }
-    void ScreenOrientation.unlockAsync().catch(() => {});
-    return () => {
-      void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
-    };
-  }, [visible]);
+  const insets = useSafeAreaInsets();
 
   const images = useMemo(() => uris.map((uri) => ({ uri })), [uris]);
 
   const HeaderComponent = useCallback(
     (_props: { imageIndex: number }) => (
-      <SafeAreaView edges={["top"]} style={styles.headerSafe}>
+      <View style={[styles.headerBar, { paddingTop: insets.top + 6 }]}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={appStrings.treatmentPhotoViewerBackA11y}
+          accessibilityLabel={appStrings.treatmentPhotoViewerCloseA11y}
           hitSlop={HIT_SLOP}
-          style={styles.backBtn}
+          style={({ pressed }) => [styles.closeBtn, pressed && styles.closeBtnPressed]}
           onPress={onRequestClose}
         >
-          <Text style={styles.backText}>‹ {appStrings.treatmentPhotoViewerBack}</Text>
+          <Text style={styles.closeGlyph}>✕</Text>
         </Pressable>
-      </SafeAreaView>
+      </View>
     ),
-    [onRequestClose],
+    [onRequestClose, insets.top],
   );
 
   const FooterComponent = useCallback(
     ({ imageIndex: idx }: { imageIndex: number }) => (
-      <SafeAreaView edges={["bottom"]} style={styles.footerSafe}>
+      <View style={[styles.footerBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
         <Text style={styles.counterText}>
           {appStrings.treatmentPhotoViewerCounter(idx + 1, uris.length)}
         </Text>
-      </SafeAreaView>
+      </View>
     ),
-    [uris.length],
+    [uris.length, insets.bottom],
   );
 
   if (!uris.length) {
@@ -94,26 +86,35 @@ export function TreatmentPhotoViewer({
 }
 
 const styles = StyleSheet.create({
-  headerSafe: {
-    alignItems: "flex-start",
-    paddingLeft: 8,
+  headerBar: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingRight: 10,
   },
-  backBtn: {
-    minWidth: 44,
-    minHeight: 44,
-    paddingHorizontal: 12,
-    justifyContent: "center",
+  closeBtn: {
+    width: 44,
+    height: 44,
     borderRadius: 22,
     backgroundColor: "#00000077",
-  },
-  backText: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: "#FFF",
-  },
-  footerSafe: {
     alignItems: "center",
-    paddingBottom: 4,
+    justifyContent: "center",
+    zIndex: 10,
+    ...(Platform.OS === "android" ? { elevation: 24 } : {}),
+  },
+  closeBtnPressed: {
+    opacity: 0.8,
+  },
+  closeGlyph: {
+    fontSize: 20,
+    fontWeight: "500",
+    color: "#FFF",
+    lineHeight: 22,
+    textAlign: "center",
+  },
+  footerBar: {
+    width: "100%",
+    alignItems: "center",
   },
   counterText: {
     fontSize: 14,
