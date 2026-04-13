@@ -16,9 +16,25 @@ export const laserTypeSchema = z.object({
   createdBy: z.string().optional(),
 });
 
-/** Matches `service_types.applies_to` in Supabase. */
-export const appliesToSchema = z.enum(["injectable", "laser", "both"]);
+/**
+ * `service_types.applies_to` in Supabase: injectable | laser | both | all | or any `treatment_types.slug`.
+ * Semantics: see `matchesAppliesTo`.
+ */
+export const appliesToSchema = z.string().min(1);
 export type AppliesTo = z.infer<typeof appliesToSchema>;
+
+/** `treatment_types` reference rows (top-level modality + UX flags). */
+export const treatmentTypeCatalogRowSchema = z.object({
+  slug: z.string().min(1),
+  name: z.string(),
+  order: z.number().int().optional(),
+  isActive: z.boolean().optional(),
+  useEbdServiceFlow: z.boolean().optional(),
+  useLaserDeviceBrandPicker: z.boolean().optional(),
+  showUnitsField: z.boolean().optional(),
+});
+
+export type TreatmentTypeCatalogRow = z.infer<typeof treatmentTypeCatalogRowSchema>;
 
 /** `serviceTypes` collection */
 export const serviceTypeSchema = z.object({
@@ -93,6 +109,7 @@ export const referenceCatalogBundleSchema = z.object({
   laserTypes: z.array(laserTypeSchema),
   serviceTypes: z.array(serviceTypeSchema),
   serviceTypeBrands: z.array(serviceTypeBrandSchema).optional().default([]),
+  treatmentTypes: z.array(treatmentTypeCatalogRowSchema).optional().default([]),
   treatmentAreas: z.array(treatmentAreaSchema),
   providerServices: z.array(providerServiceCatalogSchema),
   ebdIndications: z.array(ebdIndicationSchema).optional().default([]),
@@ -111,12 +128,54 @@ export function parseReferenceCatalogBundleJson(json: string): ReferenceCatalogB
   }
 }
 
+/** Whether a `service_types.applies_to` value applies to the selected treatment type slug. */
+export function matchesAppliesTo(appliesTo: string, treatmentSlug: string): boolean {
+  const a = appliesTo.trim().toLowerCase();
+  const slug = treatmentSlug.trim().toLowerCase();
+  if (a === "all") {
+    return true;
+  }
+  if (a === "both") {
+    return slug === "injectable" || slug === "laser";
+  }
+  return a === slug;
+}
+
 /** Filter catalog service rows for the selected treatment modality. */
 export function filterServiceTypesForTreatment(
   items: ServiceType[],
   treatmentType: TreatmentType,
 ): ServiceType[] {
-  return items.filter((s) => s.appliesTo === "both" || s.appliesTo === treatmentType);
+  return items.filter((s) => matchesAppliesTo(s.appliesTo, treatmentType));
+}
+
+/** UX flags for a treatment type slug; falls back when catalog row missing (offline / stale). */
+export function treatmentTypeFlagsForSlug(
+  slug: string,
+  rows: TreatmentTypeCatalogRow[],
+): {
+  useEbdServiceFlow: boolean;
+  useLaserDeviceBrandPicker: boolean;
+  showUnitsField: boolean;
+} {
+  const row = rows.find((r) => r.slug === slug);
+  if (row) {
+    return {
+      useEbdServiceFlow: row.useEbdServiceFlow ?? false,
+      useLaserDeviceBrandPicker: row.useLaserDeviceBrandPicker ?? false,
+      showUnitsField: row.showUnitsField ?? false,
+    };
+  }
+  if (slug === "injectable") {
+    return { useEbdServiceFlow: false, useLaserDeviceBrandPicker: false, showUnitsField: true };
+  }
+  if (slug === "laser") {
+    return { useEbdServiceFlow: true, useLaserDeviceBrandPicker: true, showUnitsField: false };
+  }
+  if (slug === "skin_treatments") {
+    return { useEbdServiceFlow: false, useLaserDeviceBrandPicker: false, showUnitsField: false };
+  }
+  return { useEbdServiceFlow: false, useLaserDeviceBrandPicker: false, showUnitsField: false };
 }
 
 export function ebdIndicationsForModality(

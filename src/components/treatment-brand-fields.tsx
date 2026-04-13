@@ -1,14 +1,14 @@
 import { useMemo } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import type { LaserType, ServiceType, ServiceTypeBrand } from "../domain/reference-content";
-import type { TreatmentType } from "../domain/treatment";
 import { brandsForServiceTypeName } from "../lib/treatment-brand-form";
 import { appStrings } from "../strings/appStrings";
 import { colors } from "../theme/tokens";
 import { CatalogItemSelect } from "./catalog-item-select";
 
 export type TreatmentBrandFieldsProps = {
-  treatmentType: TreatmentType;
+  /** When true, brand UI uses `laserTypes` (device catalog); otherwise service-type brands. */
+  useLaserDeviceBrandPicker: boolean;
   serviceTypeName: string;
   serviceTypes: ServiceType[];
   serviceTypeBrands: ServiceTypeBrand[];
@@ -20,7 +20,7 @@ export type TreatmentBrandFieldsProps = {
 };
 
 export function TreatmentBrandFields({
-  treatmentType,
+  useLaserDeviceBrandPicker,
   serviceTypeName,
   serviceTypes,
   serviceTypeBrands,
@@ -35,26 +35,27 @@ export function TreatmentBrandFields({
     [serviceTypeName, serviceTypes, serviceTypeBrands],
   );
 
-  const isLaser = treatmentType === "laser";
   const pickerOptions = useMemo(
     () =>
-      isLaser
+      useLaserDeviceBrandPicker
         ? laserTypes.map((l) => ({ id: l.id, name: l.name }))
         : injectableOptions.map((b) => ({ id: b.id, name: b.name })),
-    [isLaser, laserTypes, injectableOptions],
+    [useLaserDeviceBrandPicker, laserTypes, injectableOptions],
   );
 
-  const selectedRow = isLaser
+  const selectedRow = useLaserDeviceBrandPicker
     ? laserTypes.find((l) => l.id === brandRowId)
     : injectableOptions.find((b) => b.id === brandRowId);
   const showOtherField = Boolean(selectedRow?.isOther);
-  const showInjectableFallback = !isLaser && injectableOptions.length === 0;
-  const showPicker = isLaser ? laserTypes.length > 0 : injectableOptions.length > 0;
+  const showInjectableFallback = !useLaserDeviceBrandPicker && injectableOptions.length === 0;
+  const showPicker = useLaserDeviceBrandPicker ? laserTypes.length > 0 : injectableOptions.length > 0;
 
   return (
     <View style={styles.wrap}>
       <Text style={styles.label}>
-        {isLaser ? appStrings.treatmentBrandLabelLaser : appStrings.treatmentBrandLabelInjectable}
+        {useLaserDeviceBrandPicker
+          ? appStrings.treatmentBrandLabelLaser
+          : appStrings.treatmentBrandLabelInjectable}
       </Text>
 
       {showInjectableFallback ? (
@@ -65,7 +66,9 @@ export function TreatmentBrandFields({
         <CatalogItemSelect
           valueKey="id"
           sheetTitle={
-            isLaser ? appStrings.treatmentBrandLaserTitle : appStrings.treatmentBrandInjectableTitle
+            useLaserDeviceBrandPicker
+              ? appStrings.treatmentBrandLaserTitle
+              : appStrings.treatmentBrandInjectableTitle
           }
           value={brandRowId}
           options={pickerOptions}

@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import { z } from "zod";
+import { treatmentTypeFlagsForSlug } from "../../domain/reference-content";
 import { newUuid } from "../../lib/ids";
 import { getSupabase, isSupabaseConfigured } from "../supabase/client";
 import { deleteTreatmentPhotoPaths } from "../supabase/treatment-photos";
@@ -203,7 +204,7 @@ async function adjustProfileTreatmentCount(
 const treatmentCreatePayload = z.object({
   clientRowId: z.string(),
   input: z.object({
-    treatmentType: z.enum(["injectable", "laser"]),
+    treatmentType: z.string().min(1),
     serviceType: z.string(),
     brand: z.string(),
     ebdIndicationId: z.string().nullable().optional(),
@@ -265,13 +266,14 @@ async function executeOutboxRow(
         p.input.ebdIndicationId && p.input.ebdIndicationId.trim() !== ""
           ? p.input.ebdIndicationId.trim()
           : null;
+      const usesEbd = treatmentTypeFlagsForSlug(p.input.treatmentType, []).useEbdServiceFlow;
       const insertRow = {
         id: p.clientRowId,
         user_id: userId,
         treatment_type: p.input.treatmentType,
         service_type: p.input.serviceType.trim(),
         brand: p.input.brand.trim(),
-        ebd_indication_id: p.input.treatmentType === "laser" ? ebdId : null,
+        ebd_indication_id: usesEbd ? ebdId : null,
         treatment_areas: p.input.treatmentAreas,
         units: p.input.units,
         provider_id: providerId,
@@ -295,11 +297,12 @@ async function executeOutboxRow(
         p.input.ebdIndicationId && p.input.ebdIndicationId.trim() !== ""
           ? p.input.ebdIndicationId.trim()
           : null;
+      const usesEbdUpd = treatmentTypeFlagsForSlug(p.input.treatmentType, []).useEbdServiceFlow;
       const upd = {
         treatment_type: p.input.treatmentType,
         service_type: p.input.serviceType.trim(),
         brand: p.input.brand.trim(),
-        ebd_indication_id: p.input.treatmentType === "laser" ? ebdId : null,
+        ebd_indication_id: usesEbdUpd ? ebdId : null,
         treatment_areas: p.input.treatmentAreas,
         units: p.input.units,
         provider_id: providerId,
@@ -467,7 +470,7 @@ export async function flushWriteOutbox(): Promise<{ processed: number; failed: n
 export function serializeTreatmentCreatePayload(
   clientRowId: string,
   input: {
-    treatmentType: "injectable" | "laser";
+    treatmentType: string;
     serviceType: string;
     brand: string;
     ebdIndicationId?: string | null;
@@ -503,7 +506,7 @@ export function serializeTreatmentCreatePayload(
 export function serializeTreatmentUpdatePayload(
   id: string,
   input: {
-    treatmentType: "injectable" | "laser";
+    treatmentType: string;
     serviceType: string;
     brand: string;
     ebdIndicationId?: string | null;

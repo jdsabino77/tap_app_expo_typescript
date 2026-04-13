@@ -111,6 +111,7 @@ export const appStrings = {
   /** Top-level treatment modality chip (maps to `treatment_type` = laser in DB). */
   treatmentTypeEnergyBasedDevicesLabel: "Energy Based Devices",
   treatmentTypeInjectableLabel: "Injectable",
+  treatmentTypeSkinTreatmentsLabel: "Skin Treatments",
   /** Long-form EBD name where useful (e.g. admin copy). */
   ebdTypeLabel: "EBD (Energy Based Devices)",
   ebdModalityLabel: "Modality",

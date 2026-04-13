@@ -21,4 +21,21 @@ describe("treatmentFromRow", () => {
     expect(t.cost).toBe(99.5);
     expect(t.photoUrls).toEqual([]);
   });
+
+  it("accepts skin_treatments slug", () => {
+    const t = treatmentFromRow({
+      id: "b",
+      user_id: "u",
+      treatment_type: "skin_treatments",
+      service_type: "Hydrafacial / facial",
+      brand: "",
+      treatment_areas: [],
+      units: 0,
+      provider_id: null,
+      treatment_date: "2026-01-15T10:00:00.000Z",
+      notes: "",
+      cost: null,
+    });
+    expect(t.treatmentType).toBe("skin_treatments");
+  });
 });

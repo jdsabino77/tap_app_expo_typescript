@@ -4,7 +4,7 @@ import {
 } from "../../domain/reference-content";
 import { kvDelete, kvRead, kvWrite } from "./kv-async";
 
-const CACHE_KEY = "reference_catalog_bundle_v1";
+const CACHE_KEY = "reference_catalog_bundle_v2";
 
 export async function saveReferenceCatalogBundleToCache(bundle: ReferenceCatalogBundle): Promise<void> {
   await kvWrite(CACHE_KEY, JSON.stringify(bundle));

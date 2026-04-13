@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { ebdModalitySchema } from "./ebd-modality";
 
-export const treatmentTypeSchema = z.enum(["injectable", "laser"]);
+/** Slug from `treatment_types.slug` (e.g. injectable, laser, skin_treatments). */
+export const treatmentTypeSchema = z.string().min(1);
 export type TreatmentType = z.infer<typeof treatmentTypeSchema>;
 
 export const treatmentSchema = z.object({
@@ -10,7 +11,7 @@ export const treatmentSchema = z.object({
   treatmentType: treatmentTypeSchema,
   serviceType: z.string(),
   brand: z.string(),
-  /** Set when `treatmentType === "laser"` and row uses EBD clinical categories. */
+  /** Set when type uses EBD flow and row stores an `ebd_indications` id. */
   ebdIndicationId: z.string().nullable().optional().default(null),
   ebdModality: ebdModalitySchema.nullable().optional().default(null),
   /** Resolved label from `ebd_indications.name` (for lists without a join). */
