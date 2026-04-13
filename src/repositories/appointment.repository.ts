@@ -3,13 +3,15 @@ import type { TreatmentType } from "../domain/treatment";
 import { appointmentFromRow, type AppointmentRowFromDb } from "../mappers/appointment.mapper";
 import { getSupabase, isSupabaseConfigured } from "../services/supabase/client";
 
-const APPOINTMENT_SELECT = "*, providers(name)";
+const APPOINTMENT_SELECT = "*, providers(name), ebd_indications ( id, modality, name )";
 
 export type CreateAppointmentInput = {
   appointmentKind: AppointmentKind;
   treatmentType: TreatmentType | null;
   serviceType: string;
   brand: string;
+  /** EBD treatment category row when `treatmentType === "laser"`. */
+  ebdIndicationId?: string | null;
   scheduledAt: Date;
   durationMinutes: number | null;
   providerId: string | null;
@@ -102,6 +104,7 @@ export type UpdateAppointmentInput = {
   treatmentType: TreatmentType | null;
   serviceType: string;
   brand: string;
+  ebdIndicationId?: string | null;
   scheduledAt: Date;
   durationMinutes: number | null;
   providerId: string | null;
@@ -158,6 +161,10 @@ export async function updateAppointmentForCurrentUser(
     treatment_type: input.treatmentType,
     service_type: input.serviceType.trim(),
     brand: input.brand.trim(),
+    ebd_indication_id:
+      input.ebdIndicationId && input.ebdIndicationId.trim() !== ""
+        ? input.ebdIndicationId.trim()
+        : null,
     scheduled_at: input.scheduledAt.toISOString(),
     duration_minutes: input.durationMinutes,
     provider_id: input.providerId,
@@ -196,6 +203,10 @@ export async function createAppointmentForCurrentUser(input: CreateAppointmentIn
     treatment_type: input.treatmentType,
     service_type: input.serviceType.trim(),
     brand: input.brand.trim(),
+    ebd_indication_id:
+      input.ebdIndicationId && input.ebdIndicationId.trim() !== ""
+        ? input.ebdIndicationId.trim()
+        : null,
     scheduled_at: input.scheduledAt.toISOString(),
     duration_minutes: input.durationMinutes,
     provider_id: input.providerId,

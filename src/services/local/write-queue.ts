@@ -206,6 +206,8 @@ const treatmentCreatePayload = z.object({
     treatmentType: z.enum(["injectable", "laser"]),
     serviceType: z.string(),
     brand: z.string(),
+    ebdIndicationId: z.string().nullable().optional(),
+    ebdModality: z.enum(["laser", "photofacial"]).nullable().optional(),
     treatmentAreas: z.array(z.string()),
     units: z.number(),
     providerId: z.string().nullable(),
@@ -259,12 +261,17 @@ async function executeOutboxRow(
       const p = treatmentCreatePayload.parse(JSON.parse(row.payload));
       const providerId =
         p.input.providerId && p.input.providerId.trim() !== "" ? p.input.providerId.trim() : null;
+      const ebdId =
+        p.input.ebdIndicationId && p.input.ebdIndicationId.trim() !== ""
+          ? p.input.ebdIndicationId.trim()
+          : null;
       const insertRow = {
         id: p.clientRowId,
         user_id: userId,
         treatment_type: p.input.treatmentType,
         service_type: p.input.serviceType.trim(),
         brand: p.input.brand.trim(),
+        ebd_indication_id: p.input.treatmentType === "laser" ? ebdId : null,
         treatment_areas: p.input.treatmentAreas,
         units: p.input.units,
         provider_id: providerId,
@@ -284,10 +291,15 @@ async function executeOutboxRow(
       const p = treatmentUpdatePayload.parse(JSON.parse(row.payload));
       const providerId =
         p.input.providerId && p.input.providerId.trim() !== "" ? p.input.providerId.trim() : null;
+      const ebdId =
+        p.input.ebdIndicationId && p.input.ebdIndicationId.trim() !== ""
+          ? p.input.ebdIndicationId.trim()
+          : null;
       const upd = {
         treatment_type: p.input.treatmentType,
         service_type: p.input.serviceType.trim(),
         brand: p.input.brand.trim(),
+        ebd_indication_id: p.input.treatmentType === "laser" ? ebdId : null,
         treatment_areas: p.input.treatmentAreas,
         units: p.input.units,
         provider_id: providerId,
@@ -458,6 +470,8 @@ export function serializeTreatmentCreatePayload(
     treatmentType: "injectable" | "laser";
     serviceType: string;
     brand: string;
+    ebdIndicationId?: string | null;
+    ebdModality?: "laser" | "photofacial" | null;
     treatmentAreas: string[];
     units: number;
     providerId: string | null;
@@ -473,6 +487,8 @@ export function serializeTreatmentCreatePayload(
       treatmentType: input.treatmentType,
       serviceType: input.serviceType,
       brand: input.brand,
+      ebdIndicationId: input.ebdIndicationId ?? null,
+      ebdModality: input.ebdModality ?? null,
       treatmentAreas: input.treatmentAreas,
       units: input.units,
       providerId: input.providerId,
@@ -490,6 +506,8 @@ export function serializeTreatmentUpdatePayload(
     treatmentType: "injectable" | "laser";
     serviceType: string;
     brand: string;
+    ebdIndicationId?: string | null;
+    ebdModality?: "laser" | "photofacial" | null;
     treatmentAreas: string[];
     units: number;
     providerId: string | null;
@@ -504,6 +522,8 @@ export function serializeTreatmentUpdatePayload(
       treatmentType: input.treatmentType,
       serviceType: input.serviceType,
       brand: input.brand,
+      ebdIndicationId: input.ebdIndicationId ?? null,
+      ebdModality: input.ebdModality ?? null,
       treatmentAreas: input.treatmentAreas,
       units: input.units,
       providerId: input.providerId,

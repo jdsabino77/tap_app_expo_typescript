@@ -13,22 +13,30 @@ import {
 } from "react-native";
 import type { AppliesTo } from "../../src/domain/reference-content";
 import {
+  adminDeleteEbdIndication,
   adminDeleteLaserType,
+  adminListEbdIndicationLaserTypeLinks,
   adminDeleteProviderService,
   adminDeleteServiceType,
   adminDeleteTreatmentArea,
+  adminInsertEbdIndication,
   adminInsertLaserType,
   adminInsertProviderService,
   adminInsertServiceType,
   adminInsertTreatmentArea,
+  adminListEbdIndications,
   adminListLaserTypes,
   adminListProviderServices,
   adminListServiceTypes,
   adminListTreatmentAreas,
+  adminUpdateEbdIndication,
   adminUpdateLaserType,
   adminUpdateProviderService,
   adminUpdateServiceType,
   adminUpdateTreatmentArea,
+  adminReplaceEbdIndicationLaserLinks,
+  type AdminEbdIndicationRow,
+  type AdminEbdLaserLinkRow,
   type AdminLaserTypeRow,
   type AdminProviderServiceRow,
   type AdminServiceTypeRow,
@@ -38,7 +46,7 @@ import { fetchOwnProfileRow } from "../../src/repositories/profile.repository";
 import { appStrings } from "../../src/strings/appStrings";
 import { colors } from "../../src/theme/tokens";
 
-type Tab = "laser" | "service" | "area" | "provider";
+type Tab = "laser" | "ebd" | "service" | "area" | "provider";
 
 export default function CatalogAdminScreen() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
@@ -49,6 +57,10 @@ export default function CatalogAdminScreen() {
   const [services, setServices] = useState<AdminServiceTypeRow[]>([]);
   const [areas, setAreas] = useState<AdminTreatmentAreaRow[]>([]);
   const [provSvcs, setProvSvcs] = useState<AdminProviderServiceRow[]>([]);
+  const [ebdRows, setEbdRows] = useState<AdminEbdIndicationRow[]>([]);
+  const [ebdLaserCatalog, setEbdLaserCatalog] = useState<AdminLaserTypeRow[]>([]);
+  const [ebdLaserLinks, setEbdLaserLinks] = useState<AdminEbdLaserLinkRow[]>([]);
+  const [laserLinkSavingEbdId, setLaserLinkSavingEbdId] = useState<string | null>(null);
 
   const gate = useCallback(async () => {
     const p = await fetchOwnProfileRow();
@@ -69,6 +81,15 @@ export default function CatalogAdminScreen() {
     try {
       if (tab === "laser") {
         setLasers(await adminListLaserTypes());
+      } else if (tab === "ebd") {
+        const [rows, lasers, links] = await Promise.all([
+          adminListEbdIndications(),
+          adminListLaserTypes(),
+          adminListEbdIndicationLaserTypeLinks(),
+        ]);
+        setEbdRows(rows);
+        setEbdLaserCatalog(lasers);
+        setEbdLaserLinks(links);
       } else if (tab === "service") {
         setServices(await adminListServiceTypes());
       } else if (tab === "area") {
@@ -93,6 +114,8 @@ export default function CatalogAdminScreen() {
     try {
       if (tab === "laser") {
         await adminInsertLaserType();
+      } else if (tab === "ebd") {
+        await adminInsertEbdIndication();
       } else if (tab === "service") {
         await adminInsertServiceType();
       } else if (tab === "area") {
@@ -130,6 +153,7 @@ export default function CatalogAdminScreen() {
         {(
           [
             ["laser", appStrings.catalogAdminLaserTab],
+            ["ebd", appStrings.catalogAdminEbdTab],
             ["service", appStrings.catalogAdminServiceTab],
             ["area", appStrings.catalogAdminAreaTab],
             ["provider", appStrings.catalogAdminProviderTab],
@@ -185,6 +209,75 @@ export default function CatalogAdminScreen() {
                             void (async () => {
                               try {
                                 await adminDeleteLaserType(r.id);
+                                await load();
+                              } catch (e) {
+                                Alert.alert("Delete failed", e instanceof Error ? e.message : String(e));
+                              }
+                            })();
+                          },
+                        },
+                      ],
+                    );
+                  }}
+                />
+              ))
+            : null}
+          {tab === "ebd"
+            ? ebdRows.map((r) => (
+                <EbdIndicationEditor
+                  key={r.id}
+                  row={r}
+                  laserCatalog={ebdLaserCatalog}
+                  linkedLaserTypeIds={ebdLaserLinks
+                    .filter((x) => x.ebd_indication_id === r.id)
+                    .sort((a, b) => a.sort_order - b.sort_order)
+                    .map((x) => x.laser_type_id)}
+                  laserLinksSaving={laserLinkSavingEbdId === r.id}
+                  onToggleLaserType={async (laserTypeId) => {
+                    const set = new Set(
+                      ebdLaserLinks.filter((x) => x.ebd_indication_id === r.id).map((x) => x.laser_type_id),
+                    );
+                    if (set.has(laserTypeId)) {
+                      set.delete(laserTypeId);
+                    } else {
+                      set.add(laserTypeId);
+                    }
+                    const nextIds = ebdLaserCatalog.filter((lt) => set.has(lt.id)).map((lt) => lt.id);
+                    setLaserLinkSavingEbdId(r.id);
+                    try {
+                      await adminReplaceEbdIndicationLaserLinks(r.id, nextIds);
+                      setEbdLaserLinks(await adminListEbdIndicationLaserTypeLinks());
+                    } catch (e) {
+                      Alert.alert("Update failed", e instanceof Error ? e.message : String(e));
+                    } finally {
+                      setLaserLinkSavingEbdId(null);
+                    }
+                  }}
+                  saving={savingId === r.id}
+                  onSave={async (patch) => {
+                    setSavingId(r.id);
+                    try {
+                      await adminUpdateEbdIndication(r.id, patch);
+                      await load();
+                    } catch (e) {
+                      Alert.alert("Save failed", e instanceof Error ? e.message : String(e));
+                    } finally {
+                      setSavingId(null);
+                    }
+                  }}
+                  onDelete={() => {
+                    Alert.alert(
+                      appStrings.catalogAdminDeleteConfirmTitle,
+                      appStrings.catalogAdminDeleteConfirmBody,
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: appStrings.catalogAdminDelete,
+                          style: "destructive",
+                          onPress: () => {
+                            void (async () => {
+                              try {
+                                await adminDeleteEbdIndication(r.id);
                                 await load();
                               } catch (e) {
                                 Alert.alert("Delete failed", e instanceof Error ? e.message : String(e));
@@ -329,6 +422,118 @@ export default function CatalogAdminScreen() {
             : null}
         </ScrollView>
       )}
+    </View>
+  );
+}
+
+function EbdIndicationEditor({
+  row,
+  laserCatalog,
+  linkedLaserTypeIds,
+  laserLinksSaving,
+  onToggleLaserType,
+  saving,
+  onSave,
+  onDelete,
+}: {
+  row: AdminEbdIndicationRow;
+  laserCatalog: AdminLaserTypeRow[];
+  linkedLaserTypeIds: string[];
+  laserLinksSaving: boolean;
+  onToggleLaserType: (laserTypeId: string) => Promise<void>;
+  saving: boolean;
+  onSave: (p: Partial<AdminEbdIndicationRow>) => Promise<void>;
+  onDelete: () => void;
+}) {
+  const [modality, setModality] = useState<"laser" | "photofacial">(row.modality);
+  const [name, setName] = useState(row.name);
+  const [description, setDescription] = useState(row.description);
+  const [sort, setSort] = useState(String(row.sort_order));
+  const [active, setActive] = useState(row.is_active);
+
+  useEffect(() => {
+    setModality(row.modality);
+    setName(row.name);
+    setDescription(row.description);
+    setSort(String(row.sort_order));
+    setActive(row.is_active);
+  }, [row]);
+
+  return (
+    <View style={styles.card}>
+      <Text style={styles.cardLabel}>Modality</Text>
+      <View style={styles.chips}>
+        {(["laser", "photofacial"] as const).map((k) => (
+          <Pressable key={k} style={[styles.chip, modality === k && styles.chipOn]} onPress={() => setModality(k)}>
+            <Text style={[styles.chipText, modality === k && styles.chipTextOn]}>
+              {k === "laser" ? appStrings.ebdModalityLaser : appStrings.ebdModalityPhotofacial}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      <Text style={styles.cardLabel}>Category name</Text>
+      <TextInput style={styles.input} value={name} onChangeText={setName} placeholderTextColor={colors.textLight} />
+      <Text style={styles.cardLabel}>Description</Text>
+      <TextInput style={styles.input} value={description} onChangeText={setDescription} placeholderTextColor={colors.textLight} />
+      <Text style={styles.cardLabel}>Sort order</Text>
+      <TextInput
+        style={styles.input}
+        value={sort}
+        onChangeText={setSort}
+        keyboardType="number-pad"
+        placeholderTextColor={colors.textLight}
+      />
+      <View style={styles.switchRow}>
+        <Text>Active</Text>
+        <Switch value={active} onValueChange={setActive} />
+      </View>
+      <Text style={styles.cardLabel}>{appStrings.catalogAdminEbdAllowedDevicesLabel}</Text>
+      {laserLinksSaving ? (
+        <ActivityIndicator color={colors.primaryNavy} style={styles.ebdLaserLinksSpinner} />
+      ) : null}
+      <View style={styles.ebdLaserLinkList}>
+        {laserCatalog.map((lt) => {
+          const on = linkedLaserTypeIds.includes(lt.id);
+          return (
+            <Pressable
+              key={lt.id}
+              style={[styles.ebdLaserLinkRow, laserLinksSaving && styles.disabled]}
+              disabled={laserLinksSaving}
+              onPress={() => void onToggleLaserType(lt.id)}
+            >
+              <Text style={styles.ebdLaserLinkCheck}>{on ? "☑" : "☐"}</Text>
+              <View style={styles.ebdLaserLinkMeta}>
+                <Text style={styles.ebdLaserLinkName}>{lt.name}</Text>
+                {!lt.is_active ? <Text style={styles.ebdLaserLinkInactive}>inactive</Text> : null}
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+      <View style={styles.cardActions}>
+        <Pressable
+          style={[styles.saveBtn, saving && styles.disabled]}
+          disabled={saving}
+          onPress={() =>
+            void onSave({
+              modality,
+              name: name.trim(),
+              description: description.trim(),
+              sort_order: Number.parseInt(sort, 10) || 0,
+              is_active: active,
+            })
+          }
+        >
+          {saving ? (
+            <ActivityIndicator color={colors.primaryNavy} />
+          ) : (
+            <Text style={styles.saveBtnText}>{appStrings.catalogAdminSave}</Text>
+          )}
+        </Pressable>
+        <Pressable style={styles.delBtn} onPress={onDelete}>
+          <Text style={styles.delBtnText}>{appStrings.catalogAdminDelete}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -715,4 +920,17 @@ const styles = StyleSheet.create({
   chipOn: { backgroundColor: colors.primaryGold, borderColor: colors.primaryGold },
   chipText: { fontSize: 13, color: colors.textPrimary, fontWeight: "500" },
   chipTextOn: { color: colors.primaryNavy },
+  ebdLaserLinksSpinner: { marginVertical: 8 },
+  ebdLaserLinkList: { marginBottom: 10 },
+  ebdLaserLinkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.borderSubtle,
+  },
+  ebdLaserLinkCheck: { fontSize: 18, marginRight: 10, color: colors.textPrimary },
+  ebdLaserLinkMeta: { flex: 1 },
+  ebdLaserLinkName: { fontSize: 15, color: colors.textPrimary },
+  ebdLaserLinkInactive: { fontSize: 12, color: colors.textLight, marginTop: 2 },
 });

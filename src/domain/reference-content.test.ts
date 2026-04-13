@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  ebdIndicationsForModality,
   filterServiceTypesForTreatment,
   parseReferenceCatalogBundleJson,
+  type EbdIndication,
   type ServiceType,
 } from "./reference-content";
 
@@ -49,9 +51,38 @@ describe("parseReferenceCatalogBundleJson", () => {
     expect(parsed).not.toBeNull();
     expect(parsed?.laserTypes[0]?.name).toBe("CO2");
     expect(parsed?.serviceTypes[0]?.appliesTo).toBe("injectable");
+    expect(parsed?.ebdIndicationLaserTypeLinks).toEqual([]);
+  });
+
+  it("defaults missing ebdIndicationLaserTypeLinks to empty array", () => {
+    const bundle = {
+      laserTypes: [{ id: "a", name: "CO2" }],
+      serviceTypes: [{ id: "b", name: "Botox", appliesTo: "injectable" as const }],
+      serviceTypeBrands: [],
+      treatmentAreas: [{ id: "c", name: "Forehead" }],
+      providerServices: [{ id: "d", name: "Injectables" }],
+      ebdIndications: [],
+    };
+    const parsed = parseReferenceCatalogBundleJson(JSON.stringify(bundle));
+    expect(parsed?.ebdIndicationLaserTypeLinks).toEqual([]);
   });
 
   it("returns null on invalid json", () => {
     expect(parseReferenceCatalogBundleJson("not json")).toBeNull();
+  });
+});
+
+describe("ebdIndicationsForModality", () => {
+  const rows: EbdIndication[] = [
+    { id: "1", modality: "laser", name: "Hair Removal" },
+    { id: "2", modality: "photofacial", name: "Freckles" },
+  ];
+
+  it("filters by laser", () => {
+    expect(ebdIndicationsForModality(rows, "laser").map((r) => r.name)).toEqual(["Hair Removal"]);
+  });
+
+  it("filters by photofacial", () => {
+    expect(ebdIndicationsForModality(rows, "photofacial").map((r) => r.name)).toEqual(["Freckles"]);
   });
 });

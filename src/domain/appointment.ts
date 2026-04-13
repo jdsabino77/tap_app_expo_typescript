@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ebdModalitySchema } from "./ebd-modality";
 import { treatmentTypeSchema } from "./treatment";
 
 export const appointmentKindSchema = z.enum(["consult", "treatment"]);
@@ -14,6 +15,9 @@ export const appointmentSchema = z.object({
   treatmentType: treatmentTypeSchema.nullable(),
   serviceType: z.string(),
   brand: z.string(),
+  ebdIndicationId: z.string().nullable().optional().default(null),
+  ebdModality: ebdModalitySchema.nullable().optional().default(null),
+  ebdTreatmentCategory: z.string().optional().default(""),
   scheduledAt: z.coerce.date(),
   durationMinutes: z.number().int().positive().nullable(),
   providerId: z.string().nullable(),

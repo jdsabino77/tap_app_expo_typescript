@@ -37,16 +37,16 @@ export function stubRecommendedTreatments(
 
 const STUB_RECOMMENDATIONS_BY_CONDITION: Record<string, RecommendedTreatmentDisplay[]> = {
   solar_lentigines: [
-    { title: "Laser resurfacing", subtitle: "Ablative / fractional resurfacing (catalog)" },
-    { title: "IPL photofacial", subtitle: "Intense pulsed light" },
+    { title: "EBD · Laser · Pigment / Sun Spots", subtitle: "Maps from condition_service_map + ebd_indications" },
+    { title: "EBD · Photofacial · Brown Spots / Pigment", subtitle: "IPL-style options (catalog)" },
   ],
-  freckles: [{ title: "IPL photofacial", subtitle: "Often used for ephelides" }],
+  freckles: [{ title: "EBD · Photofacial · Freckles", subtitle: "Often used for ephelides" }],
   melasma: [
     { title: "Chemical peel", subtitle: "Superficial / medium — provider plan" },
-    { title: "Laser resurfacing", subtitle: "Selected protocols only" },
+    { title: "EBD · Laser · Fractional Resurfacing", subtitle: "Selected protocols only" },
   ],
   pih: [
     { title: "Chemical peel" },
-    { title: "Microneedling (RF)", subtitle: "Adjunct example" },
+    { title: "EBD · Laser · Non-Ablative Resurfacing", subtitle: "Adjunct example" },
   ],
 };

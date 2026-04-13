@@ -53,7 +53,9 @@ export function TreatmentBrandFields({
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label}>{appStrings.treatmentBrandLabel}</Text>
+      <Text style={styles.label}>
+        {isLaser ? appStrings.treatmentBrandLabelLaser : appStrings.treatmentBrandLabelInjectable}
+      </Text>
 
       {showInjectableFallback ? (
         <Text style={styles.hint}>{appStrings.treatmentBrandNoCatalogListHint}</Text>

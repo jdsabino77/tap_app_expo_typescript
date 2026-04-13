@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ebdModalitySchema, type EbdModality } from "./ebd-modality";
 import type { TreatmentType } from "./treatment";
 
 /** `laserTypes` collection / seed rows */
@@ -61,11 +62,31 @@ export const providerServiceCatalogSchema = z.object({
   order: z.number().int().default(0),
 });
 
+/** `ebd_indications` — EBD treatment categories per modality (laser vs photofacial). */
+export const ebdIndicationSchema = z.object({
+  id: z.string(),
+  modality: ebdModalitySchema,
+  name: z.string(),
+  description: z.string().optional(),
+  order: z.number().int().optional(),
+  isActive: z.boolean().optional(),
+});
+
 export type LaserType = z.infer<typeof laserTypeSchema>;
 export type ServiceType = z.infer<typeof serviceTypeSchema>;
 export type ServiceTypeBrand = z.infer<typeof serviceTypeBrandSchema>;
 export type TreatmentArea = z.infer<typeof treatmentAreaSchema>;
 export type ProviderServiceCatalogItem = z.infer<typeof providerServiceCatalogSchema>;
+export type EbdIndication = z.infer<typeof ebdIndicationSchema>;
+
+/** Junction: `ebd_indication_laser_types` — device pick list per EBD category. */
+export const ebdIndicationLaserTypeLinkSchema = z.object({
+  ebdIndicationId: z.string(),
+  laserTypeId: z.string(),
+  order: z.number().int().optional(),
+});
+
+export type EbdIndicationLaserTypeLink = z.infer<typeof ebdIndicationLaserTypeLinkSchema>;
 
 /** Serialized reference data for treatment/provider form chips (API + local cache). */
 export const referenceCatalogBundleSchema = z.object({
@@ -74,6 +95,8 @@ export const referenceCatalogBundleSchema = z.object({
   serviceTypeBrands: z.array(serviceTypeBrandSchema).optional().default([]),
   treatmentAreas: z.array(treatmentAreaSchema),
   providerServices: z.array(providerServiceCatalogSchema),
+  ebdIndications: z.array(ebdIndicationSchema).optional().default([]),
+  ebdIndicationLaserTypeLinks: z.array(ebdIndicationLaserTypeLinkSchema).optional().default([]),
 });
 
 export type ReferenceCatalogBundle = z.infer<typeof referenceCatalogBundleSchema>;
@@ -94,4 +117,11 @@ export function filterServiceTypesForTreatment(
   treatmentType: TreatmentType,
 ): ServiceType[] {
   return items.filter((s) => s.appliesTo === "both" || s.appliesTo === treatmentType);
+}
+
+export function ebdIndicationsForModality(
+  items: EbdIndication[],
+  modality: EbdModality,
+): EbdIndication[] {
+  return items.filter((r) => r.modality === modality);
 }

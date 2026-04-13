@@ -1,3 +1,4 @@
+import type { EbdModality } from "../domain/ebd-modality";
 import type { Treatment, TreatmentType } from "../domain/treatment";
 import { newUuid } from "../lib/ids";
 import { isDeviceOffline } from "../lib/device-offline";
@@ -22,10 +23,16 @@ import {
   uploadTreatmentPhotoFiles,
 } from "../services/supabase/treatment-photos";
 
+const TREATMENT_SELECT = "*, ebd_indications ( id, modality, name )";
+
 export type CreateTreatmentInput = {
   treatmentType: TreatmentType;
   serviceType: string;
   brand: string;
+  /** When `treatmentType === "laser"`, links to `ebd_indications`. */
+  ebdIndicationId?: string | null;
+  /** Client-known modality for offline optimistic rows (matches selected EBD modality). */
+  ebdModality?: EbdModality | null;
   treatmentAreas: string[];
   units: number;
   /** Empty or null → stored as null */
@@ -81,7 +88,7 @@ export async function fetchTreatmentsForCurrentUser(): Promise<Treatment[]> {
   try {
     const { data, error } = await supabase
       .from("treatments")
-      .select("*")
+      .select(TREATMENT_SELECT)
       .eq("user_id", uid)
       .order("treatment_date", { ascending: false });
 
@@ -113,7 +120,7 @@ export async function fetchTreatmentById(id: string): Promise<Treatment | null> 
 
   const { data, error } = await supabase
     .from("treatments")
-    .select("*")
+    .select(TREATMENT_SELECT)
     .eq("id", id)
     .eq("user_id", userData.user.id)
     .maybeSingle();
@@ -167,6 +174,8 @@ async function queueTreatmentCreate(uid: string, input: CreateTreatmentInput): P
       treatmentType: input.treatmentType,
       serviceType: input.serviceType,
       brand: input.brand,
+      ebdIndicationId: input.ebdIndicationId ?? null,
+      ebdModality: input.ebdModality ?? null,
       treatmentAreas: input.treatmentAreas,
       units: input.units,
       providerId: input.providerId,
@@ -176,7 +185,12 @@ async function queueTreatmentCreate(uid: string, input: CreateTreatmentInput): P
       photoUrls,
     }),
   );
-  const syn = syntheticTreatmentFromInput(id, uid, { ...input, photoUrls });
+  const syn = syntheticTreatmentFromInput(id, uid, {
+    ...input,
+    photoUrls,
+    ebdTreatmentCategory: input.treatmentType === "laser" ? input.serviceType.trim() : "",
+    ebdModality: input.ebdModality ?? null,
+  });
   await patchTreatmentsListCache(uid, (cur) => [syn, ...cur.filter((t) => t.id !== id)]);
   throw new WriteQueuedError();
 }
@@ -193,6 +207,8 @@ async function queueTreatmentUpdate(uid: string, id: string, input: UpdateTreatm
       treatmentType: input.treatmentType,
       serviceType: input.serviceType,
       brand: input.brand,
+      ebdIndicationId: input.ebdIndicationId ?? null,
+      ebdModality: input.ebdModality ?? null,
       treatmentAreas: input.treatmentAreas,
       units: input.units,
       providerId: input.providerId,
@@ -201,7 +217,12 @@ async function queueTreatmentUpdate(uid: string, id: string, input: UpdateTreatm
       cost: input.cost,
     }),
   );
-  const syn = syntheticTreatmentFromInput(id, uid, { ...input, photoUrls });
+  const syn = syntheticTreatmentFromInput(id, uid, {
+    ...input,
+    photoUrls,
+    ebdTreatmentCategory: input.treatmentType === "laser" ? input.serviceType.trim() : "",
+    ebdModality: input.ebdModality ?? null,
+  });
   await patchTreatmentsListCache(uid, (curList) => curList.map((t) => (t.id === id ? syn : t)));
   throw new WriteQueuedError();
 }
@@ -241,11 +262,17 @@ export async function createTreatmentForCurrentUser(
     throw new Error(`At most ${MAX_TREATMENT_PHOTOS} photos per treatment.`);
   }
 
+  const ebdId =
+    input.ebdIndicationId && input.ebdIndicationId.trim() !== ""
+      ? input.ebdIndicationId.trim()
+      : null;
+
   const row = {
     user_id: uid,
     treatment_type: input.treatmentType,
     service_type: input.serviceType.trim(),
     brand: input.brand.trim(),
+    ebd_indication_id: input.treatmentType === "laser" ? ebdId : null,
     treatment_areas: input.treatmentAreas,
     units: input.units,
     provider_id: providerId,
@@ -256,7 +283,7 @@ export async function createTreatmentForCurrentUser(
   };
 
   try {
-    const { data, error } = await supabase.from("treatments").insert(row).select("*").single();
+    const { data, error } = await supabase.from("treatments").insert(row).select(TREATMENT_SELECT).single();
 
     if (error) {
       throw new Error(error.message);
@@ -277,7 +304,7 @@ export async function createTreatmentForCurrentUser(
         })
         .eq("id", t.id)
         .eq("user_id", uid)
-        .select("*")
+        .select(TREATMENT_SELECT)
         .single();
       if (e2) {
         throw new Error(e2.message);
@@ -322,10 +349,16 @@ export async function updateTreatmentForCurrentUser(
   const providerId =
     input.providerId && input.providerId.trim() !== "" ? input.providerId.trim() : null;
 
+  const ebdId =
+    input.ebdIndicationId && input.ebdIndicationId.trim() !== ""
+      ? input.ebdIndicationId.trim()
+      : null;
+
   const upd: Record<string, unknown> = {
     treatment_type: input.treatmentType,
     service_type: input.serviceType.trim(),
     brand: input.brand.trim(),
+    ebd_indication_id: input.treatmentType === "laser" ? ebdId : null,
     treatment_areas: input.treatmentAreas,
     units: input.units,
     provider_id: providerId,
@@ -363,7 +396,7 @@ export async function updateTreatmentForCurrentUser(
       .update(upd)
       .eq("id", id)
       .eq("user_id", uid)
-      .select("*")
+      .select(TREATMENT_SELECT)
       .maybeSingle();
 
     if (error) {

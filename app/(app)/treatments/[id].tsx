@@ -13,6 +13,11 @@ import {
 } from "react-native";
 import type { Treatment } from "../../../src/domain/treatment";
 import { formatDisplayDateTime } from "../../../src/lib/datetime";
+import {
+  treatmentServiceLine,
+  treatmentTypeDisplayLabel,
+} from "../../../src/lib/treatment-service-line";
+import { appStrings } from "../../../src/strings/appStrings";
 import { formatCurrency } from "../../../src/lib/format";
 import { isWriteQueuedError } from "../../../src/lib/write-queued-error";
 import {
@@ -22,6 +27,11 @@ import {
 } from "../../../src/repositories/treatment.repository";
 import { useSession } from "../../../src/store/session";
 import { colors } from "../../../src/theme/tokens";
+
+const ebdLineLabels = {
+  laserModality: appStrings.ebdModalityLaser,
+  photofacialModality: appStrings.ebdModalityPhotofacial,
+};
 
 export default function TreatmentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -138,7 +148,7 @@ export default function TreatmentDetailScreen() {
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
       <Text style={styles.title}>
-        {row.treatmentType} · {row.serviceType}
+        {treatmentTypeDisplayLabel(row.treatmentType)} · {treatmentServiceLine(row, ebdLineLabels)}
       </Text>
       <Text style={styles.line}>{formatDisplayDateTime(row.treatmentDate)}</Text>
       <Text style={styles.line}>Brand: {row.brand || "—"}</Text>

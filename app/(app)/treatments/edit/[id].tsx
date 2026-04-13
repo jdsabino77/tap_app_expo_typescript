@@ -19,7 +19,12 @@ import { CatalogItemSelect } from "../../../../src/components/catalog-item-selec
 import { CatalogLoadState, TreatmentAreaCatalogChips } from "../../../../src/components/catalog-suggestions";
 import { TreatmentBrandFields } from "../../../../src/components/treatment-brand-fields";
 import type { Provider } from "../../../../src/domain/provider";
-import { filterServiceTypesForTreatment } from "../../../../src/domain/reference-content";
+import type { EbdModality } from "../../../../src/domain/ebd-modality";
+import {
+  ebdIndicationsForModality,
+  filterServiceTypesForTreatment,
+} from "../../../../src/domain/reference-content";
+import { laserTypesForEbdIndication } from "../../../../src/lib/treatment-ebd-laser-types";
 import {
   brandsForServiceTypeName,
   buildTreatmentBrandValue,
@@ -67,6 +72,8 @@ export default function EditTreatmentScreen() {
 
   const [treatmentType, setTreatmentType] = useState<TreatmentType>("injectable");
   const [serviceType, setServiceType] = useState("");
+  const [ebdModality, setEbdModality] = useState<EbdModality>("laser");
+  const [ebdIndicationId, setEbdIndicationId] = useState("");
   const [brandRowId, setBrandRowId] = useState("");
   const [brandOtherDetail, setBrandOtherDetail] = useState("");
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
@@ -92,12 +99,26 @@ export default function EditTreatmentScreen() {
   } | null>(null);
   const lastBrandHydrateKeyRef = useRef<string>("");
 
+  const useEbdLaser =
+    treatmentType === "laser" && (catalogs.ebdIndications?.length ?? 0) > 0;
+
   const filteredServiceTypes = useMemo(
-    () => filterServiceTypesForTreatment(catalogs.serviceTypes, treatmentType),
-    [catalogs.serviceTypes, treatmentType],
+    () =>
+      useEbdLaser
+        ? []
+        : filterServiceTypesForTreatment(catalogs.serviceTypes, treatmentType),
+    [catalogs.serviceTypes, treatmentType, useEbdLaser],
+  );
+
+  const filteredEbdIndications = useMemo(
+    () => ebdIndicationsForModality(catalogs.ebdIndications ?? [], ebdModality),
+    [catalogs.ebdIndications, ebdModality],
   );
 
   useEffect(() => {
+    if (useEbdLaser) {
+      return;
+    }
     if (filteredServiceTypes.length === 0) {
       return;
     }
@@ -107,7 +128,18 @@ export default function EditTreatmentScreen() {
       );
       return ok ? prev : "";
     });
-  }, [treatmentType, filteredServiceTypes]);
+  }, [treatmentType, filteredServiceTypes, useEbdLaser]);
+
+  useEffect(() => {
+    if (!useEbdLaser || !ebdIndicationId.trim()) {
+      return;
+    }
+    const ok = filteredEbdIndications.some((r) => r.id === ebdIndicationId);
+    if (!ok) {
+      setEbdIndicationId("");
+      setServiceType("");
+    }
+  }, [ebdModality, filteredEbdIndications, useEbdLaser, ebdIndicationId]);
 
   const prevModalityRef = useRef<TreatmentType | null>(null);
   const prevServiceRef = useRef<string | null>(null);
@@ -131,6 +163,32 @@ export default function EditTreatmentScreen() {
     [serviceType, catalogs.serviceTypes, catalogs.serviceTypeBrands],
   );
 
+  const ebdLaserPickerTypes = useMemo(() => {
+    if (!useEbdLaser || !ebdIndicationId.trim()) {
+      return catalogs.laserTypes;
+    }
+    return laserTypesForEbdIndication(
+      ebdIndicationId,
+      catalogs.laserTypes,
+      catalogs.ebdIndicationLaserTypeLinks ?? [],
+    );
+  }, [useEbdLaser, ebdIndicationId, catalogs.laserTypes, catalogs.ebdIndicationLaserTypeLinks]);
+
+  useEffect(() => {
+    if (!useEbdLaser || !ebdIndicationId.trim()) {
+      return;
+    }
+    const allowed = laserTypesForEbdIndication(
+      ebdIndicationId,
+      catalogs.laserTypes,
+      catalogs.ebdIndicationLaserTypeLinks ?? [],
+    );
+    if (brandRowId && !allowed.some((l) => l.id === brandRowId)) {
+      setBrandRowId(allowed.find((l) => l.isOther)?.id ?? "");
+      setBrandOtherDetail("");
+    }
+  }, [useEbdLaser, ebdIndicationId, catalogs.laserTypes, catalogs.ebdIndicationLaserTypeLinks, brandRowId]);
+
   useEffect(() => {
     lastBrandHydrateKeyRef.current = "";
   }, [id]);
@@ -147,20 +205,40 @@ export default function EditTreatmentScreen() {
       return;
     }
     const inj = injectableBrandOptions;
+    const laserListForKey =
+      treatmentType === "laser" && useEbdLaser && ebdIndicationId.trim()
+        ? laserTypesForEbdIndication(
+            ebdIndicationId,
+            catalogs.laserTypes,
+            catalogs.ebdIndicationLaserTypeLinks ?? [],
+          )
+        : catalogs.laserTypes;
     const brandIdsKey =
       treatmentType === "laser"
-        ? catalogs.laserTypes.map((l) => l.id).join(",")
+        ? laserListForKey.map((l) => l.id).join(",")
         : inj.map((b) => b.id).join(",");
     const hydrateKey = `${id}:${brandIdsKey}:${snap.savedBrand}`;
     if (lastBrandHydrateKeyRef.current === hydrateKey) {
       return;
     }
-    const { rowId, otherDetail } = resolveBrandPickFromSaved(
+    let { rowId, otherDetail } = resolveBrandPickFromSaved(
       snap.savedBrand,
       inj,
       catalogs.laserTypes,
       treatmentType,
     );
+    if (treatmentType === "laser" && useEbdLaser && ebdIndicationId.trim()) {
+      const allowed = laserTypesForEbdIndication(
+        ebdIndicationId,
+        catalogs.laserTypes,
+        catalogs.ebdIndicationLaserTypeLinks ?? [],
+      );
+      if (rowId && !allowed.some((l) => l.id === rowId)) {
+        const other = allowed.find((l) => l.isOther);
+        rowId = other?.id ?? "";
+        otherDetail = "";
+      }
+    }
     setBrandRowId(rowId);
     setBrandOtherDetail(otherDetail);
     lastBrandHydrateKeyRef.current = hydrateKey;
@@ -169,8 +247,11 @@ export default function EditTreatmentScreen() {
     loadingTreatment,
     catalogs.loading,
     catalogs.laserTypes,
+    catalogs.ebdIndicationLaserTypeLinks,
+    ebdIndicationId,
     serviceType,
     treatmentType,
+    useEbdLaser,
     injectableBrandOptions,
   ]);
 
@@ -235,6 +316,13 @@ export default function EditTreatmentScreen() {
         }
         setTreatmentType(t.treatmentType);
         setServiceType(t.serviceType);
+        if (t.treatmentType === "laser" && t.ebdIndicationId) {
+          setEbdIndicationId(t.ebdIndicationId);
+          setEbdModality(t.ebdModality ?? "laser");
+        } else {
+          setEbdIndicationId("");
+          setEbdModality("laser");
+        }
         treatmentBrandSnapshotRef.current = {
           savedBrand: t.brand,
           treatmentType: t.treatmentType,
@@ -271,6 +359,31 @@ export default function EditTreatmentScreen() {
   }, [id, supabaseEnabled, loadProviders]);
 
   useEffect(() => {
+    if (loadingTreatment || catalogs.loading || treatmentType !== "laser") {
+      return;
+    }
+    if ((catalogs.ebdIndications?.length ?? 0) === 0 || ebdIndicationId.trim() !== "") {
+      return;
+    }
+    const st = serviceType.trim();
+    if (!st) {
+      return;
+    }
+    const match = catalogs.ebdIndications?.find((i) => i.name.trim() === st);
+    if (match) {
+      setEbdIndicationId(match.id);
+      setEbdModality(match.modality);
+    }
+  }, [
+    loadingTreatment,
+    catalogs.loading,
+    catalogs.ebdIndications,
+    treatmentType,
+    serviceType,
+    ebdIndicationId,
+  ]);
+
+  useEffect(() => {
     if (!supabaseEnabled || committedPaths.length === 0) {
       setSignedByPath({});
       return;
@@ -299,8 +412,23 @@ export default function EditTreatmentScreen() {
       setError("Cannot save.");
       return;
     }
-    const st = serviceType.trim();
-    if (!st) {
+    let st = serviceType.trim();
+    let ebdId: string | null = null;
+    let ebdMod: EbdModality | null = null;
+    if (treatmentType === "laser" && useEbdLaser) {
+      if (!ebdIndicationId.trim()) {
+        setError(`${appStrings.ebdTreatmentCategoryLabel} is required.`);
+        return;
+      }
+      ebdId = ebdIndicationId.trim();
+      ebdMod = ebdModality;
+      const row = catalogs.ebdIndications?.find((x) => x.id === ebdId);
+      st = row?.name.trim() ?? "";
+      if (!st) {
+        setError("Could not resolve EBD category.");
+        return;
+      }
+    } else if (!st) {
       setError("Service type is required.");
       return;
     }
@@ -354,6 +482,8 @@ export default function EditTreatmentScreen() {
           treatmentType,
           serviceType: st,
           brand: brandValue.trim(),
+          ebdIndicationId: ebdId,
+          ebdModality: ebdMod,
           treatmentAreas: areas,
           units,
           providerId,
@@ -413,32 +543,88 @@ export default function EditTreatmentScreen() {
             <Pressable
               key={t}
               style={[styles.chip, treatmentType === t && styles.chipOn]}
-              onPress={() => setTreatmentType(t)}
+              onPress={() => {
+                if (treatmentType !== t) {
+                  if (t === "injectable") {
+                    setEbdIndicationId("");
+                    setEbdModality("laser");
+                  } else if (t === "laser" && (catalogs.ebdIndications?.length ?? 0) > 0) {
+                    setEbdIndicationId("");
+                    setEbdModality("laser");
+                    setServiceType("");
+                  }
+                }
+                setTreatmentType(t);
+              }}
             >
-              <Text style={[styles.chipText, treatmentType === t && styles.chipTextOn]}>{t}</Text>
+              <Text style={[styles.ebdChipText, treatmentType === t && styles.chipTextOn]}>
+                {t === "laser"
+                  ? appStrings.treatmentTypeEnergyBasedDevicesLabel
+                  : appStrings.treatmentTypeInjectableLabel}
+              </Text>
             </Pressable>
           ))}
         </View>
 
-        <Text style={styles.label}>Service type *</Text>
-        {filteredServiceTypes.length === 0 ? (
-          <Text style={styles.catalogWarn}>{appStrings.treatmentServiceTypeEmptyList}</Text>
-        ) : null}
-        <CatalogItemSelect
-          sheetTitle={appStrings.treatmentServiceTypeSheetTitle}
-          value={serviceType}
-          options={filteredServiceTypes}
-          placeholder={appStrings.treatmentServiceTypePlaceholder}
-          onChange={setServiceType}
-          disabled={filteredServiceTypes.length === 0}
-        />
+        {useEbdLaser ? (
+          <>
+            <Text style={styles.label}>{appStrings.ebdModalityLabel}</Text>
+            <View style={styles.row}>
+              {(["laser", "photofacial"] as const).map((m) => (
+                <Pressable
+                  key={m}
+                  style={[styles.chip, ebdModality === m && styles.chipOn]}
+                  onPress={() => setEbdModality(m)}
+                >
+                  <Text style={[styles.ebdChipText, ebdModality === m && styles.chipTextOn]}>
+                    {m === "laser"
+                      ? appStrings.ebdModalityLaser
+                      : appStrings.ebdModalityPhotofacial}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={styles.label}>{appStrings.ebdTreatmentCategoryLabel} *</Text>
+            {filteredEbdIndications.length === 0 ? (
+              <Text style={styles.catalogWarn}>{appStrings.treatmentServiceTypeEmptyList}</Text>
+            ) : null}
+            <CatalogItemSelect
+              sheetTitle={appStrings.ebdTreatmentCategorySheetTitle}
+              valueKey="id"
+              value={ebdIndicationId}
+              options={filteredEbdIndications}
+              placeholder={appStrings.ebdTreatmentCategoryPlaceholder}
+              onChange={(id) => {
+                setEbdIndicationId(id);
+                const row = catalogs.ebdIndications?.find((x) => x.id === id);
+                setServiceType(row?.name ?? "");
+              }}
+              disabled={filteredEbdIndications.length === 0}
+            />
+          </>
+        ) : (
+          <>
+            <Text style={styles.label}>Service type *</Text>
+            {filteredServiceTypes.length === 0 ? (
+              <Text style={styles.catalogWarn}>{appStrings.treatmentServiceTypeEmptyList}</Text>
+            ) : null}
+            <CatalogItemSelect
+              sheetTitle={appStrings.treatmentServiceTypeSheetTitle}
+              value={serviceType}
+              options={filteredServiceTypes}
+              placeholder={appStrings.treatmentServiceTypePlaceholder}
+              onChange={setServiceType}
+              disabled={filteredServiceTypes.length === 0}
+            />
+          </>
+        )}
 
         <TreatmentBrandFields
           treatmentType={treatmentType}
           serviceTypeName={serviceType}
           serviceTypes={catalogs.serviceTypes}
           serviceTypeBrands={catalogs.serviceTypeBrands}
-          laserTypes={catalogs.laserTypes}
+          laserTypes={ebdLaserPickerTypes}
           brandRowId={brandRowId}
           onBrandRowId={setBrandRowId}
           brandOtherDetail={brandOtherDetail}
@@ -668,6 +854,7 @@ const styles = StyleSheet.create({
   },
   chipOn: { backgroundColor: colors.primaryGold, borderColor: colors.primaryGold },
   chipText: { color: colors.textPrimary, fontWeight: "500", textTransform: "capitalize" },
+  ebdChipText: { color: colors.textPrimary, fontWeight: "500" },
   chipTextOn: { color: colors.primaryNavy },
   providerStrip: { flexGrow: 0, marginVertical: 4 },
   loader: { marginVertical: 8 },

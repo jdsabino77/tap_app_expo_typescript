@@ -1,6 +1,6 @@
 # Supabase schema sketch (from Flutter / Firestore)
 
-**Status:** Implemented as SQL in [`supabase/migrations/`](../supabase/migrations/) (`001` core, `002` catalogs, `003` treatment photos + storage, `004` admin user listing + RPC, `005` service-type brands, `006` appointments, **`007` skin condition → service/laser map**). The **Expo app does not apply** these files; your cloud project must run them via [SQL Editor or CLI `db push`](./SUPABASE_SETUP.md). Names use `snake_case` in Postgres; mappers convert to/from TS `camelCase` as needed.
+**Status:** Implemented as SQL in [`supabase/migrations/`](../supabase/migrations/) (`001` core, `002` catalogs, `003` treatment photos + storage, `004` admin user listing + RPC, `005` service-type brands, `006` appointments, `007` skin condition → service/laser map, **`008` EBD clinical categories**, **`009` EBD ↔ laser_types junction**). The **Expo app does not apply** these files; your cloud project must run them via [SQL Editor or CLI `db push`](./SUPABASE_SETUP.md). Names use `snake_case` in Postgres; mappers convert to/from TS `camelCase` as needed.
 
 ---
 
@@ -52,7 +52,8 @@ Replaces `users/{uid}/treatments/{id}`.
 | `id` | `uuid` PK default `gen_random_uuid()` | |
 | `user_id` | `uuid` FK → `profiles.id` | |
 | `treatment_type` | `text` | `injectable` \| `laser` |
-| `service_type` | `text` | |
+| `service_type` | `text` | Injectable: catalog name; laser/EBD: treatment category label |
+| `ebd_indication_id` | `uuid` nullable FK → `ebd_indications` | Set for laser rows using EBD hierarchy (issue #22) |
 | `brand` | `text` | |
 | `treatment_areas` | `text[]` | |
 | `units` | `int` | |
@@ -70,6 +71,7 @@ Upcoming or historical **scheduled visits** (consult or treatment service). Dist
 | `appointment_kind` | `text` | `consult` \| `treatment` |
 | `treatment_type` | `text` | `injectable` \| `laser` if kind is `treatment`; **null** for `consult` |
 | `service_type` | `text` | Catalog-backed label; consult may use e.g. `Consultation` |
+| `ebd_indication_id` | `uuid` nullable FK → `ebd_indications` | Laser treatment visits using EBD categories |
 | `brand` | `text` | Optional product/device |
 | `scheduled_at` | `timestamptz` | Start time |
 | `duration_minutes` | `int` | Optional |
@@ -123,7 +125,11 @@ Replaces top-level `providers` collection.
 | `treatmentAreas` | `treatment_areas` | Optional `category` |
 | `providerServices` | `provider_service_catalog` | |
 | (per–service-type brands) | `service_type_brands` | Migration `005_service_type_brands.sql` — FK → `service_types`; `is_other` row → free-text detail in app; seeds e.g. neuromodulator + filler stubs |
-| Skin analyzer recommendations | `condition_service_map` | Migration **`007_condition_service_map.sql`** — FK → `service_types` and optionally `laser_types`; `condition_key` matches app/model ids (`melasma`, `solar_lentigines`, `freckles`, `pih`); optional `severity_band` for future tiered rules |
+| Skin analyzer recommendations | `condition_service_map` | Migration **`007_condition_service_map.sql`** — FK → `service_types` and optionally `laser_types`; optional **`ebd_indication_id`** (migration **`008_ebd_indications.sql`**) → `ebd_indications`; `condition_key` matches app/model ids (`melasma`, `solar_lentigines`, `freckles`, `pih`); optional `severity_band` for future tiered rules |
+| EBD treatment categories | `ebd_indications` | Migration **`008_ebd_indications.sql`** — `modality` ∈ `laser` \| `photofacial`; `name` = treatment category (master lists); seeded 20 rows; RLS like other catalogs |
+| EBD category → device list | `ebd_indication_laser_types` | Migration **`009_ebd_indication_laser_types.sql`** — many-to-many `ebd_indications` ↔ `laser_types`; `sort_order` per pair; seeds editorial device↔category links + **Other** on every category; RLS: authenticated read when both parents active; admin CRUD; app filters device picker by selected `ebd_indication_id` (like `service_type_brands` → `service_types` for injectables) |
+
+**`ebd_indications`:** clinical **Energy Based Devices** categories per modality; laser appointments/treatments set `ebd_indication_id` and store the category name in `service_type` for readable lists.
 
 **`laser_types`:** optional `is_other` (005) for catalog row **Other** (device not listed).
 

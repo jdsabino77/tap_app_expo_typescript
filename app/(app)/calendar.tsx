@@ -14,6 +14,11 @@ import {
 import type { Appointment } from "../../src/domain/appointment";
 import type { Treatment } from "../../src/domain/treatment";
 import { formatDisplayDate, formatDisplayDateTime } from "../../src/lib/datetime";
+import {
+  appointmentServiceLine,
+  treatmentServiceLine,
+  treatmentTypeDisplayLabel,
+} from "../../src/lib/treatment-service-line";
 import { fetchAppointmentsForCurrentUser } from "../../src/repositories/appointment.repository";
 import {
   fetchTreatmentsForCurrentUser,
@@ -22,6 +27,11 @@ import {
 import { appStrings } from "../../src/strings/appStrings";
 import { useSession } from "../../src/store/session";
 import { colors } from "../../src/theme/tokens";
+
+const ebdLineLabels = {
+  laserModality: appStrings.ebdModalityLaser,
+  photofacialModality: appStrings.ebdModalityPhotofacial,
+};
 
 type CalendarRow =
   | { rowType: "treatment"; treatment: Treatment }
@@ -169,7 +179,8 @@ export default function CalendarScreen() {
             >
               <Text style={styles.badge}>Treatment</Text>
               <Text style={styles.cardTitle}>
-                {item.treatment.treatmentType} · {item.treatment.serviceType}
+                {treatmentTypeDisplayLabel(item.treatment.treatmentType)} ·{" "}
+                {treatmentServiceLine(item.treatment, ebdLineLabels)}
               </Text>
               <Text style={styles.cardSub}>{item.treatment.brand || "—"}</Text>
             </Pressable>
@@ -183,7 +194,7 @@ export default function CalendarScreen() {
               </Text>
               <Text style={styles.cardTitle}>
                 {item.appointment.appointmentKind === "treatment" && item.appointment.treatmentType
-                  ? `${item.appointment.treatmentType} · ${item.appointment.serviceType}`
+                  ? `${treatmentTypeDisplayLabel(item.appointment.treatmentType)} · ${appointmentServiceLine(item.appointment, ebdLineLabels)}`
                   : item.appointment.serviceType}
               </Text>
               <Text style={styles.cardSub}>{formatDisplayDateTime(item.appointment.scheduledAt)}</Text>
