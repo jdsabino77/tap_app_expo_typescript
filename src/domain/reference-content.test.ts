@@ -1,88 +1,25 @@
 import { describe, expect, it } from "vitest";
-import {
-  ebdIndicationsForModality,
-  filterServiceTypesForTreatment,
-  parseReferenceCatalogBundleJson,
-  type EbdIndication,
-  type ServiceType,
-} from "./reference-content";
+import { matchesAppliesTo } from "./reference-content";
 
-describe("filterServiceTypesForTreatment", () => {
-  const items: ServiceType[] = [
-    {
-      id: "1",
-      name: "Botox",
-      appliesTo: "injectable",
-    },
-    {
-      id: "2",
-      name: "IPL",
-      appliesTo: "laser",
-    },
-    {
-      id: "3",
-      name: "Peel",
-      appliesTo: "both",
-    },
-  ];
-
-  it("keeps injectable and both for injectable treatments", () => {
-    const r = filterServiceTypesForTreatment(items, "injectable");
-    expect(r.map((x) => x.name)).toEqual(["Botox", "Peel"]);
+describe("matchesAppliesTo", () => {
+  it("matches exact slug", () => {
+    expect(matchesAppliesTo("skin_treatments", "skin_treatments")).toBe(true);
+    expect(matchesAppliesTo("injectable", "laser")).toBe(false);
   });
 
-  it("keeps laser and both for laser treatments", () => {
-    const r = filterServiceTypesForTreatment(items, "laser");
-    expect(r.map((x) => x.name)).toEqual(["IPL", "Peel"]);
-  });
-});
-
-describe("parseReferenceCatalogBundleJson", () => {
-  it("round-trips a minimal bundle", () => {
-    const bundle = {
-      laserTypes: [{ id: "a", name: "CO2" }],
-      serviceTypes: [{ id: "b", name: "Botox", appliesTo: "injectable" as const }],
-      serviceTypeBrands: [],
-      treatmentAreas: [{ id: "c", name: "Forehead" }],
-      providerServices: [{ id: "d", name: "Injectables" }],
-    };
-    const json = JSON.stringify(bundle);
-    const parsed = parseReferenceCatalogBundleJson(json);
-    expect(parsed).not.toBeNull();
-    expect(parsed?.laserTypes[0]?.name).toBe("CO2");
-    expect(parsed?.serviceTypes[0]?.appliesTo).toBe("injectable");
-    expect(parsed?.ebdIndicationLaserTypeLinks).toEqual([]);
+  it("both applies only to injectable and laser", () => {
+    expect(matchesAppliesTo("both", "injectable")).toBe(true);
+    expect(matchesAppliesTo("both", "laser")).toBe(true);
+    expect(matchesAppliesTo("both", "skin_treatments")).toBe(false);
   });
 
-  it("defaults missing ebdIndicationLaserTypeLinks to empty array", () => {
-    const bundle = {
-      laserTypes: [{ id: "a", name: "CO2" }],
-      serviceTypes: [{ id: "b", name: "Botox", appliesTo: "injectable" as const }],
-      serviceTypeBrands: [],
-      treatmentAreas: [{ id: "c", name: "Forehead" }],
-      providerServices: [{ id: "d", name: "Injectables" }],
-      ebdIndications: [],
-    };
-    const parsed = parseReferenceCatalogBundleJson(JSON.stringify(bundle));
-    expect(parsed?.ebdIndicationLaserTypeLinks).toEqual([]);
+  it("all applies to any slug", () => {
+    expect(matchesAppliesTo("all", "skin_treatments")).toBe(true);
+    expect(matchesAppliesTo("all", "injectable")).toBe(true);
   });
 
-  it("returns null on invalid json", () => {
-    expect(parseReferenceCatalogBundleJson("not json")).toBeNull();
-  });
-});
-
-describe("ebdIndicationsForModality", () => {
-  const rows: EbdIndication[] = [
-    { id: "1", modality: "laser", name: "Hair Removal" },
-    { id: "2", modality: "photofacial", name: "Freckles" },
-  ];
-
-  it("filters by laser", () => {
-    expect(ebdIndicationsForModality(rows, "laser").map((r) => r.name)).toEqual(["Hair Removal"]);
-  });
-
-  it("filters by photofacial", () => {
-    expect(ebdIndicationsForModality(rows, "photofacial").map((r) => r.name)).toEqual(["Freckles"]);
+  it("is case-insensitive on applies_to and slug", () => {
+    expect(matchesAppliesTo("BOTH", "Injectable")).toBe(true);
+    expect(matchesAppliesTo("Skin_Treatments", "skin_treatments")).toBe(true);
   });
 });

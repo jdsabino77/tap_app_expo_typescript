@@ -1,5 +1,4 @@
 import {
-  appliesToSchema,
   type EbdIndication,
   type EbdIndicationLaserTypeLink,
   ebdIndicationLaserTypeLinkSchema,
@@ -15,6 +14,7 @@ import {
   serviceTypeSchema,
   type TreatmentArea,
   treatmentAreaSchema,
+  treatmentTypeCatalogRowSchema,
 } from "../domain/reference-content";
 import { getSupabase, isSupabaseConfigured } from "../services/supabase/client";
 import {
@@ -24,9 +24,11 @@ import {
 
 export type { ReferenceCatalogBundle } from "../domain/reference-content";
 
-function parseAppliesTo(raw: unknown): "injectable" | "laser" | "both" {
-  const r = appliesToSchema.safeParse(raw);
-  return r.success ? r.data : "both";
+function parseAppliesTo(raw: unknown): string {
+  if (typeof raw !== "string" || raw.trim() === "") {
+    return "both";
+  }
+  return raw.trim();
 }
 
 function mapLaserRow(row: Record<string, unknown>): LaserType {
@@ -40,6 +42,18 @@ function mapLaserRow(row: Record<string, unknown>): LaserType {
     isActive: row.is_active == null ? undefined : Boolean(row.is_active),
     isOther: row.is_other == null ? false : Boolean(row.is_other),
     createdBy: row.created_by == null ? undefined : String(row.created_by),
+  });
+}
+
+function mapTreatmentTypeRow(row: Record<string, unknown>) {
+  return treatmentTypeCatalogRowSchema.parse({
+    slug: String(row.slug ?? ""),
+    name: String(row.name ?? ""),
+    order: toInt(row.sort_order),
+    isActive: row.is_active == null ? undefined : Boolean(row.is_active),
+    useEbdServiceFlow: Boolean(row.use_ebd_service_flow),
+    useLaserDeviceBrandPicker: Boolean(row.use_laser_device_brand_picker),
+    showUnitsField: Boolean(row.show_units_field),
   });
 }
 
@@ -127,7 +141,7 @@ function toInt(v: unknown, fallback = 0): number {
 async function fetchReferenceCatalogBundleFromRemote(): Promise<ReferenceCatalogBundle> {
   const supabase = getSupabase();
 
-  const [laserRes, serviceRes, brandRes, areaRes, provRes, ebdRes, ebdLaserRes] = await Promise.all([
+  const [laserRes, serviceRes, brandRes, ttRes, areaRes, provRes, ebdRes, ebdLaserRes] = await Promise.all([
     supabase.from("laser_types").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
     supabase.from("service_types").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
     supabase
@@ -135,6 +149,7 @@ async function fetchReferenceCatalogBundleFromRemote(): Promise<ReferenceCatalog
       .select("*")
       .eq("is_active", true)
       .order("sort_order", { ascending: true }),
+    supabase.from("treatment_types").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
     supabase.from("treatment_areas").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
     supabase
       .from("provider_service_catalog")
@@ -153,6 +168,7 @@ async function fetchReferenceCatalogBundleFromRemote(): Promise<ReferenceCatalog
     laserRes.error?.message ||
     serviceRes.error?.message ||
     brandRes.error?.message ||
+    ttRes.error?.message ||
     areaRes.error?.message ||
     provRes.error?.message ||
     ebdRes.error?.message ||
@@ -165,6 +181,7 @@ async function fetchReferenceCatalogBundleFromRemote(): Promise<ReferenceCatalog
     laserTypes: (laserRes.data ?? []).map((r) => mapLaserRow(r as Record<string, unknown>)),
     serviceTypes: (serviceRes.data ?? []).map((r) => mapServiceRow(r as Record<string, unknown>)),
     serviceTypeBrands: (brandRes.data ?? []).map((r) => mapServiceTypeBrandRow(r as Record<string, unknown>)),
+    treatmentTypes: (ttRes.data ?? []).map((r) => mapTreatmentTypeRow(r as Record<string, unknown>)),
     treatmentAreas: (areaRes.data ?? []).map((r) => mapAreaRow(r as Record<string, unknown>)),
     providerServices: (provRes.data ?? []).map((r) => mapProviderServiceRow(r as Record<string, unknown>)),
     ebdIndications: (ebdRes.data ?? []).map((r) => mapEbdIndicationRow(r as Record<string, unknown>)),
@@ -183,6 +200,7 @@ export async function fetchReferenceCatalogBundle(): Promise<ReferenceCatalogBun
     laserTypes: [],
     serviceTypes: [],
     serviceTypeBrands: [],
+    treatmentTypes: [],
     treatmentAreas: [],
     providerServices: [],
     ebdIndications: [],

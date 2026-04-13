@@ -1,5 +1,4 @@
 import type { LaserType, ServiceType, ServiceTypeBrand } from "../domain/reference-content";
-import type { TreatmentType } from "../domain/treatment";
 
 /** Brands configured for the selected service type (injectable / both forms). */
 export function brandsForServiceTypeName(
@@ -22,10 +21,10 @@ export function resolveBrandPickFromSaved(
   savedBrand: string,
   injectableBrandRows: ServiceTypeBrand[],
   laserRows: LaserType[],
-  treatmentType: TreatmentType,
+  useLaserDeviceBrandPicker: boolean,
 ): { rowId: string; otherDetail: string } {
   const s = savedBrand.trim();
-  if (treatmentType === "laser") {
+  if (useLaserDeviceBrandPicker) {
     if (!s) {
       return { rowId: "", otherDetail: "" };
     }
@@ -55,13 +54,13 @@ export function resolveBrandPickFromSaved(
 
 /** Value stored on `treatments.brand`. */
 export function buildTreatmentBrandValue(
-  treatmentType: TreatmentType,
+  useLaserDeviceBrandPicker: boolean,
   brandRowId: string,
   brandOtherDetail: string,
   injectableBrandRows: ServiceTypeBrand[],
   laserRows: LaserType[],
 ): string {
-  if (treatmentType === "laser") {
+  if (useLaserDeviceBrandPicker) {
     const row = laserRows.find((l) => l.id === brandRowId);
     if (!row) {
       return brandOtherDetail.trim();

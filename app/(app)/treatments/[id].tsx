@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import type { Treatment } from "../../../src/domain/treatment";
+import { treatmentTypeFlagsForSlug } from "../../../src/domain/reference-content";
 import { formatDisplayDateTime } from "../../../src/lib/datetime";
 import {
   treatmentServiceLine,
@@ -26,6 +27,7 @@ import {
   fetchTreatmentPhotoSignedUrls,
 } from "../../../src/repositories/treatment.repository";
 import { TreatmentPhotoViewer } from "../../../src/components/treatment-photo-viewer";
+import { useReferenceCatalogs } from "../../../src/hooks/useReferenceCatalogs";
 import { useSession } from "../../../src/store/session";
 import { colors } from "../../../src/theme/tokens";
 
@@ -37,6 +39,7 @@ const ebdLineLabels = {
 export default function TreatmentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { supabaseEnabled } = useSession();
+  const catalogs = useReferenceCatalogs();
   const [row, setRow] = useState<Treatment | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -82,6 +85,11 @@ export default function TreatmentDetailScreen() {
   }, [row?.photoUrls]);
 
   const photoViewerUris = useMemo(() => photoUrls.filter(Boolean), [photoUrls]);
+
+  const showUnitsField = useMemo(
+    () => treatmentTypeFlagsForSlug(row?.treatmentType ?? "", catalogs.treatmentTypes ?? []).showUnitsField,
+    [row?.treatmentType, catalogs.treatmentTypes],
+  );
 
   const onDelete = () => {
     if (!id) {
@@ -154,13 +162,12 @@ export default function TreatmentDetailScreen() {
     <>
     <ScrollView contentContainerStyle={styles.scroll}>
       <Text style={styles.title}>
-        {treatmentTypeDisplayLabel(row.treatmentType)} · {treatmentServiceLine(row, ebdLineLabels)}
+        {treatmentTypeDisplayLabel(row.treatmentType, catalogs.treatmentTypes)} ·{" "}
+        {treatmentServiceLine(row, ebdLineLabels)}
       </Text>
       <Text style={styles.line}>{formatDisplayDateTime(row.treatmentDate)}</Text>
       <Text style={styles.line}>Brand: {row.brand || "—"}</Text>
-      {row.treatmentType === "injectable" ? (
-        <Text style={styles.line}>Units: {row.units}</Text>
-      ) : null}
+      {showUnitsField ? <Text style={styles.line}>Units: {row.units}</Text> : null}
       <Text style={styles.line}>Areas: {row.treatmentAreas.join(", ") || "—"}</Text>
       {row.cost != null ? (
         <Text style={styles.line}>Cost: {formatCurrency(Number(row.cost))}</Text>

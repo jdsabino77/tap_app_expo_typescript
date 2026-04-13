@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { CatalogItemSelect } from "../../../src/components/catalog-item-select";
+import { TreatmentTypeSelectGrid } from "../../../src/components/treatment-type-select-grid";
 import { TreatmentPhotoViewer } from "../../../src/components/treatment-photo-viewer";
 import { TreatmentBrandFields } from "../../../src/components/treatment-brand-fields";
 import { CatalogLoadState, TreatmentAreaCatalogChips } from "../../../src/components/catalog-suggestions";
@@ -23,6 +24,7 @@ import type { EbdModality } from "../../../src/domain/ebd-modality";
 import {
   ebdIndicationsForModality,
   filterServiceTypesForTreatment,
+  treatmentTypeFlagsForSlug,
 } from "../../../src/domain/reference-content";
 import { laserTypesForEbdIndication } from "../../../src/lib/treatment-ebd-laser-types";
 import {
@@ -105,8 +107,24 @@ export default function NewTreatmentScreen() {
   } | null>(null);
   const lastBrandHydrateKeyRef = useRef("");
 
+  const typeFlags = useMemo(
+    () => treatmentTypeFlagsForSlug(treatmentType, catalogs.treatmentTypes ?? []),
+    [treatmentType, catalogs.treatmentTypes],
+  );
   const useEbdLaser =
-    treatmentType === "laser" && (catalogs.ebdIndications?.length ?? 0) > 0;
+    typeFlags.useEbdServiceFlow && (catalogs.ebdIndications?.length ?? 0) > 0;
+  const useLaserPicker = typeFlags.useLaserDeviceBrandPicker;
+
+  useEffect(() => {
+    if (catalogs.loading || !catalogs.treatmentTypes?.length) {
+      return;
+    }
+    setTreatmentType((prev) =>
+      catalogs.treatmentTypes.some((x) => x.slug === prev)
+        ? prev
+        : catalogs.treatmentTypes[0].slug,
+    );
+  }, [catalogs.loading, catalogs.treatmentTypes]);
 
   const filteredServiceTypes = useMemo(
     () =>
@@ -269,8 +287,9 @@ export default function NewTreatmentScreen() {
           const tt = appt.treatmentType;
           setTreatmentType(tt);
           setServiceType(appt.serviceType);
-          if (tt === "laser" && appt.ebdIndicationId) {
-            setEbdIndicationId(appt.ebdIndicationId);
+          const apptEbd = treatmentTypeFlagsForSlug(tt, []).useEbdServiceFlow && appt.ebdIndicationId;
+          if (apptEbd) {
+            setEbdIndicationId(appt.ebdIndicationId ?? "");
             setEbdModality(appt.ebdModality ?? "laser");
           } else {
             setEbdIndicationId("");
@@ -316,17 +335,16 @@ export default function NewTreatmentScreen() {
     }
     const inj = injectableBrandOptions;
     const laserListForKey =
-      treatmentType === "laser" && useEbdLaser && ebdIndicationId.trim()
+      useLaserPicker && useEbdLaser && ebdIndicationId.trim()
         ? laserTypesForEbdIndication(
             ebdIndicationId,
             catalogs.laserTypes,
             catalogs.ebdIndicationLaserTypeLinks ?? [],
           )
         : catalogs.laserTypes;
-    const brandIdsKey =
-      treatmentType === "laser"
-        ? laserListForKey.map((l) => l.id).join(",")
-        : inj.map((b) => b.id).join(",");
+    const brandIdsKey = useLaserPicker
+      ? laserListForKey.map((l) => l.id).join(",")
+      : inj.map((b) => b.id).join(",");
     const hydrateKey = `${fromAppointmentId}:${brandIdsKey}:${snap.savedBrand}`;
     if (lastBrandHydrateKeyRef.current === hydrateKey) {
       return;
@@ -335,9 +353,9 @@ export default function NewTreatmentScreen() {
       snap.savedBrand,
       inj,
       catalogs.laserTypes,
-      treatmentType,
+      useLaserPicker,
     );
-    if (treatmentType === "laser" && useEbdLaser && ebdIndicationId.trim()) {
+    if (useLaserPicker && useEbdLaser && ebdIndicationId.trim()) {
       const allowed = laserTypesForEbdIndication(
         ebdIndicationId,
         catalogs.laserTypes,
@@ -361,6 +379,7 @@ export default function NewTreatmentScreen() {
     serviceType,
     treatmentType,
     useEbdLaser,
+    useLaserPicker,
     injectableBrandOptions,
   ]);
 
@@ -373,7 +392,7 @@ export default function NewTreatmentScreen() {
     let st = serviceType.trim();
     let ebdId: string | null = null;
     let ebdMod: EbdModality | null = null;
-    if (treatmentType === "laser" && useEbdLaser) {
+    if (useEbdLaser) {
       if (!ebdIndicationId.trim()) {
         setError(`${appStrings.ebdTreatmentCategoryLabel} is required.`);
         return;
@@ -396,7 +415,7 @@ export default function NewTreatmentScreen() {
       return;
     }
     let units = 0;
-    if (treatmentType === "injectable") {
+    if (typeFlags.showUnitsField) {
       const u = Number.parseInt(unitsText.trim(), 10);
       if (!Number.isFinite(u) || u < 0) {
         setError("Units must be a non-negative whole number.");
@@ -417,7 +436,7 @@ export default function NewTreatmentScreen() {
     }
 
     const brandValue = buildTreatmentBrandValue(
-      treatmentType,
+      useLaserPicker,
       brandRowId,
       brandOtherDetail,
       injectableBrandOptions,
@@ -493,33 +512,22 @@ export default function NewTreatmentScreen() {
           <Text style={styles.prefillOk}>{appStrings.appointmentLogVisitHint}</Text>
         ) : null}
         <Text style={styles.label}>Type</Text>
-        <View style={styles.row}>
-          {(["injectable", "laser"] as const).map((t) => (
-            <Pressable
-              key={t}
-              style={[styles.chip, treatmentType === t && styles.chipOn]}
-              onPress={() => {
-                if (treatmentType !== t) {
-                  if (t === "injectable") {
-                    setEbdIndicationId("");
-                    setEbdModality("laser");
-                  } else if (t === "laser" && (catalogs.ebdIndications?.length ?? 0) > 0) {
-                    setEbdIndicationId("");
-                    setEbdModality("laser");
-                    setServiceType("");
-                  }
-                }
-                setTreatmentType(t);
-              }}
-            >
-              <Text style={[styles.ebdChipText, treatmentType === t && styles.chipTextOn]}>
-                {t === "laser"
-                  ? appStrings.treatmentTypeEnergyBasedDevicesLabel
-                  : appStrings.treatmentTypeInjectableLabel}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <TreatmentTypeSelectGrid
+          types={catalogs.treatmentTypes ?? []}
+          selectedSlug={treatmentType}
+          onSelectType={(nextSlug) => {
+            if (treatmentType !== nextSlug) {
+              const nextFlags = treatmentTypeFlagsForSlug(nextSlug, catalogs.treatmentTypes ?? []);
+              const hasEbd = (catalogs.ebdIndications?.length ?? 0) > 0;
+              setEbdIndicationId("");
+              setEbdModality("laser");
+              if (nextFlags.useEbdServiceFlow && hasEbd) {
+                setServiceType("");
+              }
+            }
+            setTreatmentType(nextSlug);
+          }}
+        />
 
         {useEbdLaser ? (
           <>
@@ -575,7 +583,7 @@ export default function NewTreatmentScreen() {
         )}
 
         <TreatmentBrandFields
-          treatmentType={treatmentType}
+          useLaserDeviceBrandPicker={useLaserPicker}
           serviceTypeName={serviceType}
           serviceTypes={catalogs.serviceTypes}
           serviceTypeBrands={catalogs.serviceTypeBrands}
@@ -598,7 +606,7 @@ export default function NewTreatmentScreen() {
           onChangeSelected={setSelectedAreas}
         />
 
-        {treatmentType === "injectable" ? (
+        {typeFlags.showUnitsField ? (
           <>
             <Text style={styles.label}>Units</Text>
             <TextInput
