@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import type { Appointment } from "../../../src/domain/appointment";
 import { formatDisplayDateTime } from "../../../src/lib/datetime";
-import { appointmentServiceLine } from "../../../src/lib/treatment-service-line";
+import { appointmentServiceLine, treatmentTypeDisplayLabel } from "../../../src/lib/treatment-service-line";
 import {
   fetchAppointmentByIdForCurrentUser,
   setAppointmentStatusForCurrentUser,
@@ -22,7 +22,6 @@ import { useSession } from "../../../src/store/session";
 import { colors } from "../../../src/theme/tokens";
 
 const ebdLineLabels = {
-  ebdType: appStrings.ebdTypeLabel,
   laserModality: appStrings.ebdModalityLaser,
   photofacialModality: appStrings.ebdModalityPhotofacial,
 };
@@ -146,7 +145,7 @@ export default function AppointmentDetailScreen() {
   const a = appointment;
   const titleLine =
     a.appointmentKind === "treatment" && a.treatmentType
-      ? `${a.treatmentType} · ${appointmentServiceLine(a, ebdLineLabels)}`
+      ? `${treatmentTypeDisplayLabel(a.treatmentType)} · ${appointmentServiceLine(a, ebdLineLabels)}`
       : a.serviceType;
 
   return (

@@ -23,6 +23,7 @@ import {
   ebdIndicationsForModality,
   filterServiceTypesForTreatment,
 } from "../../../src/domain/reference-content";
+import { laserTypesForEbdIndication } from "../../../src/lib/treatment-ebd-laser-types";
 import {
   brandsForServiceTypeName,
   buildTreatmentBrandValue,
@@ -163,6 +164,32 @@ export default function NewTreatmentScreen() {
     [serviceType, catalogs.serviceTypes, catalogs.serviceTypeBrands],
   );
 
+  const ebdLaserPickerTypes = useMemo(() => {
+    if (!useEbdLaser || !ebdIndicationId.trim()) {
+      return catalogs.laserTypes;
+    }
+    return laserTypesForEbdIndication(
+      ebdIndicationId,
+      catalogs.laserTypes,
+      catalogs.ebdIndicationLaserTypeLinks ?? [],
+    );
+  }, [useEbdLaser, ebdIndicationId, catalogs.laserTypes, catalogs.ebdIndicationLaserTypeLinks]);
+
+  useEffect(() => {
+    if (!useEbdLaser || !ebdIndicationId.trim()) {
+      return;
+    }
+    const allowed = laserTypesForEbdIndication(
+      ebdIndicationId,
+      catalogs.laserTypes,
+      catalogs.ebdIndicationLaserTypeLinks ?? [],
+    );
+    if (brandRowId && !allowed.some((l) => l.id === brandRowId)) {
+      setBrandRowId(allowed.find((l) => l.isOther)?.id ?? "");
+      setBrandOtherDetail("");
+    }
+  }, [useEbdLaser, ebdIndicationId, catalogs.laserTypes, catalogs.ebdIndicationLaserTypeLinks, brandRowId]);
+
   const mergeProviderForPicker = useCallback(
     async (list: Provider[], currentPid: string | null) => {
       if (!currentPid || list.some((p) => p.id === currentPid)) {
@@ -285,20 +312,40 @@ export default function NewTreatmentScreen() {
       return;
     }
     const inj = injectableBrandOptions;
+    const laserListForKey =
+      treatmentType === "laser" && useEbdLaser && ebdIndicationId.trim()
+        ? laserTypesForEbdIndication(
+            ebdIndicationId,
+            catalogs.laserTypes,
+            catalogs.ebdIndicationLaserTypeLinks ?? [],
+          )
+        : catalogs.laserTypes;
     const brandIdsKey =
       treatmentType === "laser"
-        ? catalogs.laserTypes.map((l) => l.id).join(",")
+        ? laserListForKey.map((l) => l.id).join(",")
         : inj.map((b) => b.id).join(",");
     const hydrateKey = `${fromAppointmentId}:${brandIdsKey}:${snap.savedBrand}`;
     if (lastBrandHydrateKeyRef.current === hydrateKey) {
       return;
     }
-    const { rowId, otherDetail } = resolveBrandPickFromSaved(
+    let { rowId, otherDetail } = resolveBrandPickFromSaved(
       snap.savedBrand,
       inj,
       catalogs.laserTypes,
       treatmentType,
     );
+    if (treatmentType === "laser" && useEbdLaser && ebdIndicationId.trim()) {
+      const allowed = laserTypesForEbdIndication(
+        ebdIndicationId,
+        catalogs.laserTypes,
+        catalogs.ebdIndicationLaserTypeLinks ?? [],
+      );
+      if (rowId && !allowed.some((l) => l.id === rowId)) {
+        const other = allowed.find((l) => l.isOther);
+        rowId = other?.id ?? "";
+        otherDetail = "";
+      }
+    }
     setBrandRowId(rowId);
     setBrandOtherDetail(otherDetail);
     lastBrandHydrateKeyRef.current = hydrateKey;
@@ -306,8 +353,11 @@ export default function NewTreatmentScreen() {
     fromAppointmentId,
     catalogs.loading,
     catalogs.laserTypes,
+    catalogs.ebdIndicationLaserTypeLinks,
+    ebdIndicationId,
     serviceType,
     treatmentType,
+    useEbdLaser,
     injectableBrandOptions,
   ]);
 
@@ -456,15 +506,17 @@ export default function NewTreatmentScreen() {
                 setTreatmentType(t);
               }}
             >
-              <Text style={[styles.chipText, treatmentType === t && styles.chipTextOn]}>{t}</Text>
+              <Text style={[styles.ebdChipText, treatmentType === t && styles.chipTextOn]}>
+                {t === "laser"
+                  ? appStrings.treatmentTypeEnergyBasedDevicesLabel
+                  : appStrings.treatmentTypeInjectableLabel}
+              </Text>
             </Pressable>
           ))}
         </View>
 
         {useEbdLaser ? (
           <>
-            <Text style={styles.label}>Type</Text>
-            <Text style={styles.ebdStatic}>{appStrings.ebdTypeLabel}</Text>
             <Text style={styles.label}>{appStrings.ebdModalityLabel}</Text>
             <View style={styles.row}>
               {(["laser", "photofacial"] as const).map((m) => (
@@ -521,7 +573,7 @@ export default function NewTreatmentScreen() {
           serviceTypeName={serviceType}
           serviceTypes={catalogs.serviceTypes}
           serviceTypeBrands={catalogs.serviceTypeBrands}
-          laserTypes={catalogs.laserTypes}
+          laserTypes={ebdLaserPickerTypes}
           brandRowId={brandRowId}
           onBrandRowId={setBrandRowId}
           brandOtherDetail={brandOtherDetail}
@@ -666,13 +718,6 @@ const styles = StyleSheet.create({
   prefillErr: { color: colors.errorRed, marginBottom: 8, lineHeight: 20 },
   prefillOk: { fontSize: 13, color: colors.textSecondary, marginBottom: 8, lineHeight: 18 },
   label: { fontSize: 13, fontWeight: "600", color: colors.textSecondary, marginBottom: 6, marginTop: 12 },
-  ebdStatic: {
-    fontSize: 15,
-    color: colors.textPrimary,
-    fontWeight: "600",
-    marginBottom: 4,
-    lineHeight: 22,
-  },
   catalogWarn: {
     fontSize: 13,
     color: colors.warningOrange,

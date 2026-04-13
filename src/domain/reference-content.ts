@@ -79,6 +79,15 @@ export type TreatmentArea = z.infer<typeof treatmentAreaSchema>;
 export type ProviderServiceCatalogItem = z.infer<typeof providerServiceCatalogSchema>;
 export type EbdIndication = z.infer<typeof ebdIndicationSchema>;
 
+/** Junction: `ebd_indication_laser_types` — device pick list per EBD category. */
+export const ebdIndicationLaserTypeLinkSchema = z.object({
+  ebdIndicationId: z.string(),
+  laserTypeId: z.string(),
+  order: z.number().int().optional(),
+});
+
+export type EbdIndicationLaserTypeLink = z.infer<typeof ebdIndicationLaserTypeLinkSchema>;
+
 /** Serialized reference data for treatment/provider form chips (API + local cache). */
 export const referenceCatalogBundleSchema = z.object({
   laserTypes: z.array(laserTypeSchema),
@@ -87,6 +96,7 @@ export const referenceCatalogBundleSchema = z.object({
   treatmentAreas: z.array(treatmentAreaSchema),
   providerServices: z.array(providerServiceCatalogSchema),
   ebdIndications: z.array(ebdIndicationSchema).optional().default([]),
+  ebdIndicationLaserTypeLinks: z.array(ebdIndicationLaserTypeLinkSchema).optional().default([]),
 });
 
 export type ReferenceCatalogBundle = z.infer<typeof referenceCatalogBundleSchema>;

@@ -1,11 +1,18 @@
 import type { Appointment } from "../domain/appointment";
-import type { Treatment } from "../domain/treatment";
+import type { Treatment, TreatmentType } from "../domain/treatment";
+import { appStrings } from "../strings/appStrings";
 
 export type EbdLineLabels = {
-  ebdType: string;
   laserModality: string;
   photofacialModality: string;
 };
+
+/** User-facing label for the top-level `treatments.treatment_type` value. */
+export function treatmentTypeDisplayLabel(treatmentType: TreatmentType): string {
+  return treatmentType === "laser"
+    ? appStrings.treatmentTypeEnergyBasedDevicesLabel
+    : appStrings.treatmentTypeInjectableLabel;
+}
 
 function ebdLine(
   modality: "laser" | "photofacial",
@@ -13,7 +20,7 @@ function ebdLine(
   labels: EbdLineLabels,
 ): string {
   const mod = modality === "laser" ? labels.laserModality : labels.photofacialModality;
-  return `${labels.ebdType} · ${mod} · ${category}`;
+  return `${mod} · ${category}`;
 }
 
 /** Second line segment for home/calendar: EBD hierarchy or legacy `serviceType` text. */

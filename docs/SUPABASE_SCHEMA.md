@@ -1,6 +1,6 @@
 # Supabase schema sketch (from Flutter / Firestore)
 
-**Status:** Implemented as SQL in [`supabase/migrations/`](../supabase/migrations/) (`001` core, `002` catalogs, `003` treatment photos + storage, `004` admin user listing + RPC, `005` service-type brands, `006` appointments, `007` skin condition → service/laser map, **`008` EBD clinical categories**). The **Expo app does not apply** these files; your cloud project must run them via [SQL Editor or CLI `db push`](./SUPABASE_SETUP.md). Names use `snake_case` in Postgres; mappers convert to/from TS `camelCase` as needed.
+**Status:** Implemented as SQL in [`supabase/migrations/`](../supabase/migrations/) (`001` core, `002` catalogs, `003` treatment photos + storage, `004` admin user listing + RPC, `005` service-type brands, `006` appointments, `007` skin condition → service/laser map, **`008` EBD clinical categories**, **`009` EBD ↔ laser_types junction**). The **Expo app does not apply** these files; your cloud project must run them via [SQL Editor or CLI `db push`](./SUPABASE_SETUP.md). Names use `snake_case` in Postgres; mappers convert to/from TS `camelCase` as needed.
 
 ---
 
@@ -127,6 +127,7 @@ Replaces top-level `providers` collection.
 | (per–service-type brands) | `service_type_brands` | Migration `005_service_type_brands.sql` — FK → `service_types`; `is_other` row → free-text detail in app; seeds e.g. neuromodulator + filler stubs |
 | Skin analyzer recommendations | `condition_service_map` | Migration **`007_condition_service_map.sql`** — FK → `service_types` and optionally `laser_types`; optional **`ebd_indication_id`** (migration **`008_ebd_indications.sql`**) → `ebd_indications`; `condition_key` matches app/model ids (`melasma`, `solar_lentigines`, `freckles`, `pih`); optional `severity_band` for future tiered rules |
 | EBD treatment categories | `ebd_indications` | Migration **`008_ebd_indications.sql`** — `modality` ∈ `laser` \| `photofacial`; `name` = treatment category (master lists); seeded 20 rows; RLS like other catalogs |
+| EBD category → device list | `ebd_indication_laser_types` | Migration **`009_ebd_indication_laser_types.sql`** — many-to-many `ebd_indications` ↔ `laser_types`; `sort_order` per pair; seeds editorial device↔category links + **Other** on every category; RLS: authenticated read when both parents active; admin CRUD; app filters device picker by selected `ebd_indication_id` (like `service_type_brands` → `service_types` for injectables) |
 
 **`ebd_indications`:** clinical **Energy Based Devices** categories per modality; laser appointments/treatments set `ebd_indication_id` and store the category name in `service_type` for readable lists.
 

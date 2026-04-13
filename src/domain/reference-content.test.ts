@@ -51,6 +51,20 @@ describe("parseReferenceCatalogBundleJson", () => {
     expect(parsed).not.toBeNull();
     expect(parsed?.laserTypes[0]?.name).toBe("CO2");
     expect(parsed?.serviceTypes[0]?.appliesTo).toBe("injectable");
+    expect(parsed?.ebdIndicationLaserTypeLinks).toEqual([]);
+  });
+
+  it("defaults missing ebdIndicationLaserTypeLinks to empty array", () => {
+    const bundle = {
+      laserTypes: [{ id: "a", name: "CO2" }],
+      serviceTypes: [{ id: "b", name: "Botox", appliesTo: "injectable" as const }],
+      serviceTypeBrands: [],
+      treatmentAreas: [{ id: "c", name: "Forehead" }],
+      providerServices: [{ id: "d", name: "Injectables" }],
+      ebdIndications: [],
+    };
+    const parsed = parseReferenceCatalogBundleJson(JSON.stringify(bundle));
+    expect(parsed?.ebdIndicationLaserTypeLinks).toEqual([]);
   });
 
   it("returns null on invalid json", () => {

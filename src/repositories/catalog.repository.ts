@@ -1,6 +1,8 @@
 import {
   appliesToSchema,
   type EbdIndication,
+  type EbdIndicationLaserTypeLink,
+  ebdIndicationLaserTypeLinkSchema,
   ebdIndicationSchema,
   type LaserType,
   laserTypeSchema,
@@ -99,6 +101,14 @@ function mapEbdIndicationRow(row: Record<string, unknown>): EbdIndication {
   });
 }
 
+function mapEbdLaserLinkRow(row: Record<string, unknown>): EbdIndicationLaserTypeLink {
+  return ebdIndicationLaserTypeLinkSchema.parse({
+    ebdIndicationId: String(row.ebd_indication_id ?? ""),
+    laserTypeId: String(row.laser_type_id ?? ""),
+    order: toInt(row.sort_order),
+  });
+}
+
 function toInt(v: unknown, fallback = 0): number {
   if (typeof v === "number" && Number.isFinite(v)) {
     return v;
@@ -117,7 +127,7 @@ function toInt(v: unknown, fallback = 0): number {
 async function fetchReferenceCatalogBundleFromRemote(): Promise<ReferenceCatalogBundle> {
   const supabase = getSupabase();
 
-  const [laserRes, serviceRes, brandRes, areaRes, provRes, ebdRes] = await Promise.all([
+  const [laserRes, serviceRes, brandRes, areaRes, provRes, ebdRes, ebdLaserRes] = await Promise.all([
     supabase.from("laser_types").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
     supabase.from("service_types").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
     supabase
@@ -132,6 +142,11 @@ async function fetchReferenceCatalogBundleFromRemote(): Promise<ReferenceCatalog
       .eq("is_active", true)
       .order("sort_order", { ascending: true }),
     supabase.from("ebd_indications").select("*").eq("is_active", true).order("modality", { ascending: true }).order("sort_order", { ascending: true }),
+    supabase
+      .from("ebd_indication_laser_types")
+      .select("ebd_indication_id,laser_type_id,sort_order")
+      .order("ebd_indication_id", { ascending: true })
+      .order("sort_order", { ascending: true }),
   ]);
 
   const err =
@@ -140,7 +155,8 @@ async function fetchReferenceCatalogBundleFromRemote(): Promise<ReferenceCatalog
     brandRes.error?.message ||
     areaRes.error?.message ||
     provRes.error?.message ||
-    ebdRes.error?.message;
+    ebdRes.error?.message ||
+    ebdLaserRes.error?.message;
   if (err) {
     throw new Error(err);
   }
@@ -152,6 +168,9 @@ async function fetchReferenceCatalogBundleFromRemote(): Promise<ReferenceCatalog
     treatmentAreas: (areaRes.data ?? []).map((r) => mapAreaRow(r as Record<string, unknown>)),
     providerServices: (provRes.data ?? []).map((r) => mapProviderServiceRow(r as Record<string, unknown>)),
     ebdIndications: (ebdRes.data ?? []).map((r) => mapEbdIndicationRow(r as Record<string, unknown>)),
+    ebdIndicationLaserTypeLinks: (ebdLaserRes.data ?? []).map((r) =>
+      mapEbdLaserLinkRow(r as Record<string, unknown>),
+    ),
   };
 }
 
@@ -167,6 +186,7 @@ export async function fetchReferenceCatalogBundle(): Promise<ReferenceCatalogBun
     treatmentAreas: [],
     providerServices: [],
     ebdIndications: [],
+    ebdIndicationLaserTypeLinks: [],
   };
   if (!isSupabaseConfigured()) {
     return empty;

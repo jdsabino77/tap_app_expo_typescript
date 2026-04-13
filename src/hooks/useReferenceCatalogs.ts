@@ -10,6 +10,7 @@ const emptyBundle: ReferenceCatalogBundle = {
   treatmentAreas: [],
   providerServices: [],
   ebdIndications: [],
+  ebdIndicationLaserTypeLinks: [],
 };
 
 export function useReferenceCatalogs() {
@@ -48,6 +49,7 @@ export function useReferenceCatalogs() {
     treatmentAreas: bundle.treatmentAreas,
     providerServices: bundle.providerServices,
     ebdIndications: bundle.ebdIndications,
+    ebdIndicationLaserTypeLinks: bundle.ebdIndicationLaserTypeLinks,
     loading,
     error,
     refresh,

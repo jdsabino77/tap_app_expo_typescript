@@ -15,6 +15,7 @@ import type { AppliesTo } from "../../src/domain/reference-content";
 import {
   adminDeleteEbdIndication,
   adminDeleteLaserType,
+  adminListEbdIndicationLaserTypeLinks,
   adminDeleteProviderService,
   adminDeleteServiceType,
   adminDeleteTreatmentArea,
@@ -33,7 +34,9 @@ import {
   adminUpdateProviderService,
   adminUpdateServiceType,
   adminUpdateTreatmentArea,
+  adminReplaceEbdIndicationLaserLinks,
   type AdminEbdIndicationRow,
+  type AdminEbdLaserLinkRow,
   type AdminLaserTypeRow,
   type AdminProviderServiceRow,
   type AdminServiceTypeRow,
@@ -55,6 +58,9 @@ export default function CatalogAdminScreen() {
   const [areas, setAreas] = useState<AdminTreatmentAreaRow[]>([]);
   const [provSvcs, setProvSvcs] = useState<AdminProviderServiceRow[]>([]);
   const [ebdRows, setEbdRows] = useState<AdminEbdIndicationRow[]>([]);
+  const [ebdLaserCatalog, setEbdLaserCatalog] = useState<AdminLaserTypeRow[]>([]);
+  const [ebdLaserLinks, setEbdLaserLinks] = useState<AdminEbdLaserLinkRow[]>([]);
+  const [laserLinkSavingEbdId, setLaserLinkSavingEbdId] = useState<string | null>(null);
 
   const gate = useCallback(async () => {
     const p = await fetchOwnProfileRow();
@@ -76,7 +82,14 @@ export default function CatalogAdminScreen() {
       if (tab === "laser") {
         setLasers(await adminListLaserTypes());
       } else if (tab === "ebd") {
-        setEbdRows(await adminListEbdIndications());
+        const [rows, lasers, links] = await Promise.all([
+          adminListEbdIndications(),
+          adminListLaserTypes(),
+          adminListEbdIndicationLaserTypeLinks(),
+        ]);
+        setEbdRows(rows);
+        setEbdLaserCatalog(lasers);
+        setEbdLaserLinks(links);
       } else if (tab === "service") {
         setServices(await adminListServiceTypes());
       } else if (tab === "area") {
@@ -214,6 +227,32 @@ export default function CatalogAdminScreen() {
                 <EbdIndicationEditor
                   key={r.id}
                   row={r}
+                  laserCatalog={ebdLaserCatalog}
+                  linkedLaserTypeIds={ebdLaserLinks
+                    .filter((x) => x.ebd_indication_id === r.id)
+                    .sort((a, b) => a.sort_order - b.sort_order)
+                    .map((x) => x.laser_type_id)}
+                  laserLinksSaving={laserLinkSavingEbdId === r.id}
+                  onToggleLaserType={async (laserTypeId) => {
+                    const set = new Set(
+                      ebdLaserLinks.filter((x) => x.ebd_indication_id === r.id).map((x) => x.laser_type_id),
+                    );
+                    if (set.has(laserTypeId)) {
+                      set.delete(laserTypeId);
+                    } else {
+                      set.add(laserTypeId);
+                    }
+                    const nextIds = ebdLaserCatalog.filter((lt) => set.has(lt.id)).map((lt) => lt.id);
+                    setLaserLinkSavingEbdId(r.id);
+                    try {
+                      await adminReplaceEbdIndicationLaserLinks(r.id, nextIds);
+                      setEbdLaserLinks(await adminListEbdIndicationLaserTypeLinks());
+                    } catch (e) {
+                      Alert.alert("Update failed", e instanceof Error ? e.message : String(e));
+                    } finally {
+                      setLaserLinkSavingEbdId(null);
+                    }
+                  }}
                   saving={savingId === r.id}
                   onSave={async (patch) => {
                     setSavingId(r.id);
@@ -389,11 +428,19 @@ export default function CatalogAdminScreen() {
 
 function EbdIndicationEditor({
   row,
+  laserCatalog,
+  linkedLaserTypeIds,
+  laserLinksSaving,
+  onToggleLaserType,
   saving,
   onSave,
   onDelete,
 }: {
   row: AdminEbdIndicationRow;
+  laserCatalog: AdminLaserTypeRow[];
+  linkedLaserTypeIds: string[];
+  laserLinksSaving: boolean;
+  onToggleLaserType: (laserTypeId: string) => Promise<void>;
   saving: boolean;
   onSave: (p: Partial<AdminEbdIndicationRow>) => Promise<void>;
   onDelete: () => void;
@@ -439,6 +486,29 @@ function EbdIndicationEditor({
       <View style={styles.switchRow}>
         <Text>Active</Text>
         <Switch value={active} onValueChange={setActive} />
+      </View>
+      <Text style={styles.cardLabel}>{appStrings.catalogAdminEbdAllowedDevicesLabel}</Text>
+      {laserLinksSaving ? (
+        <ActivityIndicator color={colors.primaryNavy} style={styles.ebdLaserLinksSpinner} />
+      ) : null}
+      <View style={styles.ebdLaserLinkList}>
+        {laserCatalog.map((lt) => {
+          const on = linkedLaserTypeIds.includes(lt.id);
+          return (
+            <Pressable
+              key={lt.id}
+              style={[styles.ebdLaserLinkRow, laserLinksSaving && styles.disabled]}
+              disabled={laserLinksSaving}
+              onPress={() => void onToggleLaserType(lt.id)}
+            >
+              <Text style={styles.ebdLaserLinkCheck}>{on ? "☑" : "☐"}</Text>
+              <View style={styles.ebdLaserLinkMeta}>
+                <Text style={styles.ebdLaserLinkName}>{lt.name}</Text>
+                {!lt.is_active ? <Text style={styles.ebdLaserLinkInactive}>inactive</Text> : null}
+              </View>
+            </Pressable>
+          );
+        })}
       </View>
       <View style={styles.cardActions}>
         <Pressable
@@ -850,4 +920,17 @@ const styles = StyleSheet.create({
   chipOn: { backgroundColor: colors.primaryGold, borderColor: colors.primaryGold },
   chipText: { fontSize: 13, color: colors.textPrimary, fontWeight: "500" },
   chipTextOn: { color: colors.primaryNavy },
+  ebdLaserLinksSpinner: { marginVertical: 8 },
+  ebdLaserLinkList: { marginBottom: 10 },
+  ebdLaserLinkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.borderSubtle,
+  },
+  ebdLaserLinkCheck: { fontSize: 18, marginRight: 10, color: colors.textPrimary },
+  ebdLaserLinkMeta: { flex: 1 },
+  ebdLaserLinkName: { fontSize: 15, color: colors.textPrimary },
+  ebdLaserLinkInactive: { fontSize: 12, color: colors.textLight, marginTop: 2 },
 });

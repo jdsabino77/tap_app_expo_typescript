@@ -446,3 +446,59 @@ export async function adminDeleteEbdIndication(id: string): Promise<void> {
   }
   await afterCatalogMutation();
 }
+
+// --- EBD indication ↔ laser_types (device pick list per category) ---
+
+export type AdminEbdLaserLinkRow = {
+  ebd_indication_id: string;
+  laser_type_id: string;
+  sort_order: number;
+};
+
+export async function adminListEbdIndicationLaserTypeLinks(): Promise<AdminEbdLaserLinkRow[]> {
+  requireConfigured();
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("ebd_indication_laser_types")
+    .select("ebd_indication_id,laser_type_id,sort_order")
+    .order("ebd_indication_id", { ascending: true })
+    .order("sort_order", { ascending: true });
+  if (error) {
+    throw new Error(error.message);
+  }
+  return (data ?? []).map((r) => ({
+    ebd_indication_id: String(r.ebd_indication_id ?? ""),
+    laser_type_id: String(r.laser_type_id ?? ""),
+    sort_order: typeof r.sort_order === "number" ? r.sort_order : 0,
+  }));
+}
+
+/** Replaces all device links for one EBD category. Order follows `laserTypeIds`. */
+export async function adminReplaceEbdIndicationLaserLinks(
+  ebdIndicationId: string,
+  laserTypeIds: string[],
+): Promise<void> {
+  requireConfigured();
+  const supabase = getSupabase();
+  const { error: delErr } = await supabase
+    .from("ebd_indication_laser_types")
+    .delete()
+    .eq("ebd_indication_id", ebdIndicationId);
+  if (delErr) {
+    throw new Error(delErr.message);
+  }
+  if (laserTypeIds.length === 0) {
+    await afterCatalogMutation();
+    return;
+  }
+  const rows = laserTypeIds.map((laser_type_id, i) => ({
+    ebd_indication_id: ebdIndicationId,
+    laser_type_id,
+    sort_order: (i + 1) * 10,
+  }));
+  const { error: insErr } = await supabase.from("ebd_indication_laser_types").insert(rows);
+  if (insErr) {
+    throw new Error(insErr.message);
+  }
+  await afterCatalogMutation();
+}

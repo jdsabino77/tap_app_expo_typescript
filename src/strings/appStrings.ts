@@ -108,6 +108,10 @@ export const appStrings = {
   treatmentServiceTypeEmptyList:
     "No service types for this treatment type. Check your connection or ask an admin to add rows in Catalog admin.",
 
+  /** Top-level treatment modality chip (maps to `treatment_type` = laser in DB). */
+  treatmentTypeEnergyBasedDevicesLabel: "Energy Based Devices",
+  treatmentTypeInjectableLabel: "Injectable",
+  /** Long-form EBD name where useful (e.g. admin copy). */
   ebdTypeLabel: "EBD (Energy Based Devices)",
   ebdModalityLabel: "Modality",
   ebdModalityLaser: "Laser",
@@ -116,7 +120,9 @@ export const appStrings = {
   ebdTreatmentCategorySheetTitle: "Treatment category",
   ebdTreatmentCategoryPlaceholder: "Choose a treatment category",
 
-  treatmentBrandLabel: "Brand",
+  /** Field label above the picker — matches sheet title per treatment modality. */
+  treatmentBrandLabelInjectable: "Product / brand",
+  treatmentBrandLabelLaser: "Laser / device",
   treatmentBrandLaserTitle: "Laser / device",
   treatmentBrandInjectableTitle: "Product / brand",
   treatmentBrandPlaceholder: "Choose a brand or product",
@@ -252,6 +258,7 @@ export const appStrings = {
     "Changes clear the local catalog cache and apply on next fetch. Assign admins in Supabase: update profiles set is_admin = true where id = '…'.",
   catalogAdminDeleteConfirmTitle: "Delete this row?",
   catalogAdminDeleteConfirmBody: "This cannot be undone. Chips may still show cached data until refresh.",
+  catalogAdminEbdAllowedDevicesLabel: "Allowed devices (laser types)",
 
   adminUsersTitle: "User admin",
   adminUsersAccessDenied: "You need an admin account to manage other users.",
