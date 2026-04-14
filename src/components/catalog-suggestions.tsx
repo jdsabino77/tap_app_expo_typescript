@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -8,24 +8,33 @@ import {
   TextInput,
   View,
 } from "react-native";
-import type { LaserType, ProviderServiceCatalogItem, TreatmentArea } from "../domain/reference-content";
+import type {
+  LaserType,
+  ProviderServiceCatalogItem,
+  TreatmentArea,
+  TreatmentAreaRegion,
+} from "../domain/reference-content";
 import { toggleCommaListItem } from "../lib/catalog-text";
 import { appStrings } from "../strings/appStrings";
 import { colors } from "../theme/tokens";
 
-const UNCATEGORIZED_KEY = "__other__";
+const REGION_ORDER: TreatmentAreaRegion[] = ["head", "upper_body", "lower_body"];
 
 function areaSortOrder(it: TreatmentArea): number {
   return it.order ?? 1_000_000;
 }
 
-function categoryBucketKey(category: string | undefined): string {
-  const t = category?.trim() ?? "";
-  return t === "" ? UNCATEGORIZED_KEY : t;
-}
-
-function categoryTitle(key: string): string {
-  return key === UNCATEGORIZED_KEY ? appStrings.treatmentAreasCategoryOther : key;
+function regionTitle(r: TreatmentAreaRegion): string {
+  switch (r) {
+    case "head":
+      return appStrings.treatmentAreasRegionHead;
+    case "upper_body":
+      return appStrings.treatmentAreasRegionUpperBody;
+    case "lower_body":
+      return appStrings.treatmentAreasRegionLowerBody;
+    default:
+      return r;
+  }
 }
 
 export function CatalogLoadState({ loading, error }: { loading: boolean; error: string | null }) {
@@ -147,6 +156,17 @@ export function TreatmentAreaCatalogChips({
   );
 }
 
+function selectedCountInRegion(
+  region: TreatmentAreaRegion,
+  catalog: TreatmentArea[],
+  selected: string[],
+): number {
+  const inRegion = new Set(
+    catalog.filter((it) => it.region === region).map((it) => it.name.trim().toLowerCase()),
+  );
+  return selected.filter((s) => inRegion.has(s.trim().toLowerCase())).length;
+}
+
 function TreatmentAreaGroupedChips({
   items,
   selected,
@@ -158,26 +178,24 @@ function TreatmentAreaGroupedChips({
 }) {
   const [filterText, setFilterText] = useState("");
   const query = filterText.trim().toLowerCase();
+  const [expanded, setExpanded] = useState<Record<TreatmentAreaRegion, boolean>>({
+    head: false,
+    upper_body: false,
+    lower_body: false,
+  });
 
-  const groupedSections = useMemo(() => {
-    const filtered =
-      query === ""
-        ? items
-        : items.filter((it) => it.name.trim().toLowerCase().includes(query));
-
-    const byKey = new Map<string, TreatmentArea[]>();
-    for (const it of filtered) {
-      const key = categoryBucketKey(it.category);
-      const list = byKey.get(key);
-      if (list) {
-        list.push(it);
-      } else {
-        byKey.set(key, [it]);
-      }
-    }
-
-    const sections = [...byKey.entries()].map(([key, areas]) => {
-      const sorted = [...areas].sort((a, b) => {
+  const areasByRegion = useMemo(() => {
+    const q = query;
+    const result: Record<TreatmentAreaRegion, TreatmentArea[]> = {
+      head: [],
+      upper_body: [],
+      lower_body: [],
+    };
+    for (const reg of REGION_ORDER) {
+      const inReg = items.filter((it) => it.region === reg);
+      const filtered =
+        q === "" ? inReg : inReg.filter((it) => it.name.trim().toLowerCase().includes(q));
+      result[reg] = [...filtered].sort((a, b) => {
         const oa = areaSortOrder(a);
         const ob = areaSortOrder(b);
         if (oa !== ob) {
@@ -185,19 +203,37 @@ function TreatmentAreaGroupedChips({
         }
         return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
       });
-      const minOrder = sorted.reduce((m, a) => Math.min(m, areaSortOrder(a)), Number.POSITIVE_INFINITY);
-      return { key, title: categoryTitle(key), areas: sorted, minOrder };
-    });
-
-    sections.sort((a, b) => {
-      if (a.minOrder !== b.minOrder) {
-        return a.minOrder - b.minOrder;
-      }
-      return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
-    });
-
-    return sections;
+    }
+    return result;
   }, [items, query]);
+
+  const anyVisible =
+    areasByRegion.head.length +
+      areasByRegion.upper_body.length +
+      areasByRegion.lower_body.length >
+    0;
+
+  useEffect(() => {
+    setExpanded((prev) => {
+      const next = { ...prev };
+      const q = query.trim().toLowerCase();
+      for (const reg of REGION_ORDER) {
+        const inReg = items.filter((it) => it.region === reg);
+        const vis =
+          q === "" ? inReg : inReg.filter((it) => it.name.trim().toLowerCase().includes(q));
+        const hasSel = selected.some((s) =>
+          inReg.some((it) => it.name.trim().toLowerCase() === s.trim().toLowerCase()),
+        );
+        if (vis.length > 0 && q !== "") {
+          next[reg] = true;
+        }
+        if (hasSel) {
+          next[reg] = true;
+        }
+      }
+      return next;
+    });
+  }, [items, selected, query]);
 
   const toggle = (rawName: string) => {
     const row = items.find((it) => it.name.trim().toLowerCase() === rawName.trim().toLowerCase());
@@ -211,6 +247,10 @@ function TreatmentAreaGroupedChips({
     } else {
       onChangeSelected([...selected, canon]);
     }
+  };
+
+  const toggleRegion = (reg: TreatmentAreaRegion) => {
+    setExpanded((p) => ({ ...p, [reg]: !p[reg] }));
   };
 
   return (
@@ -227,37 +267,65 @@ function TreatmentAreaGroupedChips({
         autoCapitalize="none"
         clearButtonMode="while-editing"
       />
-      {groupedSections.length === 0 ? (
+      {!anyVisible && items.length > 0 ? (
         <Text style={styles.filterEmpty}>{appStrings.treatmentAreasFilterEmpty}</Text>
       ) : (
-        groupedSections.map((section) => (
-          <View key={section.key} style={styles.section}>
-            <Text style={styles.sectionTitle} accessibilityRole="header">
-              {section.title}
-            </Text>
-            <View style={styles.chipWrapRow}>
-              {section.areas.map((it) => {
-                const on = selected.some(
-                  (s) => s.trim().toLowerCase() === it.name.trim().toLowerCase(),
-                );
-                return (
-                  <Pressable
-                    key={it.id}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: on }}
-                    accessibilityLabel={it.name}
-                    style={[styles.chip, styles.chipWrap, on && styles.chipOn]}
-                    onPress={() => toggle(it.name)}
-                  >
-                    <Text style={[styles.chipText, on && styles.chipTextOn]} numberOfLines={2}>
-                      {it.name}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+        REGION_ORDER.map((reg) => {
+          const title = regionTitle(reg);
+          const count = selectedCountInRegion(reg, items, selected);
+          const suffix = appStrings.treatmentAreasRegionSelectedInRegion(count);
+          const isOpen = expanded[reg];
+          const chips = areasByRegion[reg];
+          return (
+            <View key={reg} style={styles.regionBlock}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: isOpen }}
+                accessibilityLabel={`${title}${suffix}`}
+                accessibilityHint={appStrings.treatmentAreasRegionHeaderHint}
+                onPress={() => toggleRegion(reg)}
+                style={styles.regionHeader}
+              >
+                <Text style={styles.regionHeaderText}>
+                  {isOpen ? "▾ " : "▸ "}
+                  {title}
+                  {suffix ? (
+                    <Text style={styles.regionHeaderMeta}>{suffix}</Text>
+                  ) : null}
+                </Text>
+              </Pressable>
+              {isOpen ? (
+                chips.length === 0 ? (
+                  query ? (
+                    <Text style={styles.regionEmpty}>{appStrings.treatmentAreasFilterEmpty}</Text>
+                  ) : null
+                ) : (
+                  <View style={styles.chipWrapRow}>
+                    {chips.map((it) => {
+                      const on = selected.some(
+                        (s) => s.trim().toLowerCase() === it.name.trim().toLowerCase(),
+                      );
+                      return (
+                        <Pressable
+                          key={it.id}
+                          accessibilityRole="checkbox"
+                          accessibilityState={{ checked: on }}
+                          accessibilityLabel={it.name}
+                          style={[styles.chip, styles.chipWrap, on && styles.chipOn]}
+                          onPress={() => toggle(it.name)}
+                        >
+                          <Text style={[styles.chipText, on && styles.chipTextOn]} numberOfLines={2}>
+                            {it.name}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )
+              ) : null}
             </View>
-          </View>
-        ))
+          );
+        })
       )}
     </View>
   );
@@ -299,19 +367,26 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   filterEmpty: { fontSize: 13, color: colors.textSecondary, marginBottom: 4 },
-  section: { marginBottom: 12 },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: colors.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-    marginBottom: 8,
+  regionBlock: { marginBottom: 4 },
+  regionHeader: {
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderSubtle,
   },
+  regionHeaderText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  },
+  regionHeaderMeta: { fontWeight: "500", color: colors.textSecondary },
+  regionEmpty: { fontSize: 13, color: colors.textSecondary, paddingVertical: 6, paddingLeft: 4 },
   chipWrapRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "flex-start",
+    paddingTop: 8,
+    paddingBottom: 4,
   },
   chip: {
     paddingHorizontal: 12,

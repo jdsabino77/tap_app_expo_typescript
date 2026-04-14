@@ -122,7 +122,7 @@ Replaces top-level `providers` collection.
 |-----------|----------------|--------|
 | `laserTypes` | `laser_types` | Migration `002_reference_catalogs.sql` |
 | `serviceTypes` | `service_types` | + `applies_to` ∈ `injectable` \| `laser` \| `both` |
-| `treatmentAreas` | `treatment_areas` | Optional `category` |
+| `treatmentAreas` | `treatment_areas` | Optional `category` (admin notes); **`region`** `head` \| `upper_body` \| `lower_body` groups the treatment-form accordion (migration **`012_treatment_areas_region.sql`**) |
 | `providerServices` | `provider_service_catalog` | |
 | (per–service-type brands) | `service_type_brands` | Migration `005_service_type_brands.sql` — FK → `service_types`; `is_other` row → free-text detail in app; seeds e.g. neuromodulator + filler stubs |
 | Skin analyzer recommendations | `condition_service_map` | Migration **`007_condition_service_map.sql`** — FK → `service_types` and optionally `laser_types`; optional **`ebd_indication_id`** (migration **`008_ebd_indications.sql`**) → `ebd_indications`; `condition_key` matches app/model ids (`melasma`, `solar_lentigines`, `freckles`, `pih`); optional `severity_band` for future tiered rules |

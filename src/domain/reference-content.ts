@@ -58,11 +58,17 @@ export const serviceTypeBrandSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+/** `treatment_areas.region` — accordion grouping in treatment forms. */
+export const treatmentAreaRegionSchema = z.enum(["head", "upper_body", "lower_body"]);
+export type TreatmentAreaRegion = z.infer<typeof treatmentAreaRegionSchema>;
+
 /** `treatmentAreas` collection */
 export const treatmentAreaSchema = z.object({
   id: z.string(),
   name: z.string(),
   category: z.string().optional(),
+  /** Body region for expandable area picker; defaults for legacy cached bundles. */
+  region: treatmentAreaRegionSchema.default("head"),
   order: z.number().int().optional(),
   isDefault: z.boolean().optional(),
   isActive: z.boolean().optional(),
