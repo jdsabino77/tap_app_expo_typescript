@@ -142,6 +142,11 @@ export const appStrings = {
   treatmentAreasSummaryPrefix: "Areas selected:",
   treatmentAreasLegacyNote:
     "These areas are not in the current catalog. Tap × to remove, or keep them and they will still be saved.",
+  treatmentAreasSuggestionsLabel: "Area suggestions (tap to add or remove)",
+  treatmentAreasSearchPlaceholder: "Search areas",
+  treatmentAreasSearchAccessibilityLabel: "Filter treatment areas by name",
+  treatmentAreasCategoryOther: "Other",
+  treatmentAreasFilterEmpty: "No areas match your search.",
 
   /** Full-screen treatment photo viewer (issue #25). */
   /** Full-screen photo viewer — top-right control (see treatment-photo-viewer). */
