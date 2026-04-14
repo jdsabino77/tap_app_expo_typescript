@@ -91,6 +91,13 @@ export default function SettingsScreen() {
       ) : null}
 
       <Text style={styles.section}>Account</Text>
+      {supabaseEnabled ? (
+        <Link href="/profile-settings" asChild>
+          <Pressable style={styles.row}>
+            <Text style={styles.linkish}>{appStrings.profileSettingsTitle}</Text>
+          </Pressable>
+        </Link>
+      ) : null}
       <Pressable style={styles.row} onPress={onLogout}>
         <Text style={styles.danger}>Log out</Text>
       </Pressable>

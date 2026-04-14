@@ -22,6 +22,7 @@ export default function AppGroupLayout() {
       <Stack.Screen name="appointments" options={{ headerShown: false }} />
       <Stack.Screen name="medical-profile" options={{ title: appStrings.navMedicalProfile }} />
       <Stack.Screen name="settings" options={{ title: appStrings.navSettings }} />
+      <Stack.Screen name="profile-settings" options={{ title: appStrings.profileSettingsTitle }} />
       <Stack.Screen name="catalog-admin" options={{ title: appStrings.catalogAdminTitle }} />
       <Stack.Screen name="admin-users" options={{ title: appStrings.adminUsersTitle }} />
     </Stack>
