@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import type { Treatment } from "../../../src/domain/treatment";
 import { treatmentTypeFlagsForSlug } from "../../../src/domain/reference-content";
-import { formatDisplayDateTime } from "../../../src/lib/datetime";
+import { formatDisplayDate, formatDisplayDateTime } from "../../../src/lib/datetime";
 import {
   treatmentServiceLine,
   treatmentTypeDisplayLabel,
@@ -179,17 +179,21 @@ export default function TreatmentDetailScreen() {
           <Text style={styles.photosLabel}>Photos</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoStrip}>
             {photoUrls.map((uri, i) => (
-              <Pressable
-                key={`${uri}-${i}`}
-                accessibilityRole="imagebutton"
-                accessibilityLabel={appStrings.treatmentPhotoThumbnailA11y}
-                onPress={() => {
-                  setPhotoViewerIndex(i);
-                  setPhotoViewerOpen(true);
-                }}
-              >
-                <Image source={{ uri }} style={styles.photo} />
-              </Pressable>
+              <View key={`${uri}-${i}`} style={styles.photoThumbCol}>
+                <Pressable
+                  accessibilityRole="imagebutton"
+                  accessibilityLabel={appStrings.treatmentPhotoThumbnailA11y}
+                  onPress={() => {
+                    setPhotoViewerIndex(i);
+                    setPhotoViewerOpen(true);
+                  }}
+                >
+                  <Image source={{ uri }} style={styles.photo} />
+                </Pressable>
+                <Text style={styles.photoThumbDate} numberOfLines={1}>
+                  {formatDisplayDate(row.photoCapturedAt[i] ?? row.treatmentDate)}
+                </Text>
+              </View>
             ))}
           </ScrollView>
         </>
@@ -229,11 +233,17 @@ const styles = StyleSheet.create({
   notes: { marginTop: 16, fontSize: 15, color: colors.textSecondary, lineHeight: 22 },
   photosLabel: { marginTop: 20, fontSize: 13, fontWeight: "600", color: colors.textSecondary },
   photoStrip: { marginTop: 10, flexGrow: 0 },
+  photoThumbCol: { marginRight: 10 },
+  photoThumbDate: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 4,
+    maxWidth: 120,
+  },
   photo: {
     width: 120,
     height: 120,
     borderRadius: 8,
-    marginRight: 10,
     backgroundColor: colors.borderSubtle,
   },
   p: { marginTop: 8, color: colors.textPrimary },

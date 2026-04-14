@@ -35,7 +35,8 @@ import {
 } from "../../../../src/lib/treatment-brand-form";
 import type { TreatmentType } from "../../../../src/domain/treatment";
 import { useReferenceCatalogs } from "../../../../src/hooks/useReferenceCatalogs";
-import { pickTreatmentImages } from "../../../../src/lib/pick-treatment-photos";
+import { formatDisplayDate } from "../../../../src/lib/datetime";
+import { pickTreatmentImages, type TreatmentPhotoPick } from "../../../../src/lib/pick-treatment-photos";
 import { isWriteQueuedError } from "../../../../src/lib/write-queued-error";
 import {
   fetchProviderByIdForCurrentUser,
@@ -88,7 +89,9 @@ export default function EditTreatmentScreen() {
 
   const initialPathsRef = useRef<string[]>([]);
   const [committedPaths, setCommittedPaths] = useState<string[]>([]);
-  const [localPicks, setLocalPicks] = useState<{ uri: string; mimeType?: string }[]>([]);
+  const [localPicks, setLocalPicks] = useState<TreatmentPhotoPick[]>([]);
+  /** Capture dates for committed storage paths (from server). */
+  const [photoDateByPath, setPhotoDateByPath] = useState<Record<string, Date>>({});
   const [signedByPath, setSignedByPath] = useState<Record<string, string>>({});
   const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
@@ -108,6 +111,8 @@ export default function EditTreatmentScreen() {
     () => treatmentTypeFlagsForSlug(treatmentType, catalogs.treatmentTypes ?? []),
     [treatmentType, catalogs.treatmentTypes],
   );
+
+  const treatmentDatePreview = useMemo(() => parseDateInput(dateStr), [dateStr]);
   const useEbdLaser =
     typeFlags.useEbdServiceFlow && (catalogs.ebdIndications?.length ?? 0) > 0;
   const useLaserPicker = typeFlags.useLaserDeviceBrandPicker;
@@ -363,6 +368,11 @@ export default function EditTreatmentScreen() {
         const paths = [...t.photoUrls];
         initialPathsRef.current = paths;
         setCommittedPaths(paths);
+        const nextDates: Record<string, Date> = {};
+        paths.forEach((p, i) => {
+          nextDates[p] = t.photoCapturedAt[i] ?? t.treatmentDate;
+        });
+        setPhotoDateByPath(nextDates);
         setLocalPicks([]);
         void loadProviders(pid);
       })
@@ -788,6 +798,11 @@ export default function EditTreatmentScreen() {
               ) : (
                 <View style={[styles.thumb, styles.thumbPlaceholder]} />
               )}
+              <Text style={styles.thumbDate} numberOfLines={1}>
+                {formatDisplayDate(
+                  photoDateByPath[path] ?? treatmentDatePreview ?? new Date(),
+                )}
+              </Text>
               <Pressable
                 style={styles.thumbRemove}
                 onPress={() => setCommittedPaths((cur) => cur.filter((p) => p !== path))}
@@ -805,6 +820,9 @@ export default function EditTreatmentScreen() {
               >
                 <Image source={{ uri: p.uri }} style={styles.thumb} />
               </Pressable>
+              <Text style={styles.thumbDate} numberOfLines={1}>
+                {formatDisplayDate(p.capturedAt ?? treatmentDatePreview ?? new Date())}
+              </Text>
               <Pressable
                 style={styles.thumbRemove}
                 onPress={() => setLocalPicks((cur) => cur.filter((_, j) => j !== i))}
@@ -939,6 +957,12 @@ const styles = StyleSheet.create({
   thumbWrap: { marginRight: 10, position: "relative" },
   thumb: { width: 88, height: 88, borderRadius: 8, backgroundColor: colors.borderSubtle },
   thumbPlaceholder: { borderWidth: 1, borderColor: colors.borderMuted },
+  thumbDate: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    marginTop: 4,
+    maxWidth: 88,
+  },
   thumbRemove: {
     position: "absolute",
     top: 4,

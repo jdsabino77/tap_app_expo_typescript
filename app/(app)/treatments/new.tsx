@@ -34,7 +34,8 @@ import {
 } from "../../../src/lib/treatment-brand-form";
 import type { TreatmentType } from "../../../src/domain/treatment";
 import { useReferenceCatalogs } from "../../../src/hooks/useReferenceCatalogs";
-import { pickTreatmentImages } from "../../../src/lib/pick-treatment-photos";
+import { formatDisplayDate } from "../../../src/lib/datetime";
+import { pickTreatmentImages, type TreatmentPhotoPick } from "../../../src/lib/pick-treatment-photos";
 import { isWriteQueuedError } from "../../../src/lib/write-queued-error";
 import {
   fetchAppointmentByIdForCurrentUser,
@@ -91,7 +92,7 @@ export default function NewTreatmentScreen() {
   const [dateStr, setDateStr] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [notes, setNotes] = useState("");
   const [costText, setCostText] = useState("");
-  const [localPicks, setLocalPicks] = useState<{ uri: string; mimeType?: string }[]>([]);
+  const [localPicks, setLocalPicks] = useState<TreatmentPhotoPick[]>([]);
   const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
 
@@ -485,6 +486,8 @@ export default function NewTreatmentScreen() {
 
   const photoViewerUris = useMemo(() => localPicks.map((p) => p.uri), [localPicks]);
 
+  const treatmentDateForPreview = useMemo(() => parseDateInput(dateStr), [dateStr]);
+
   if (!supabaseEnabled) {
     return (
       <View style={styles.padded}>
@@ -691,6 +694,9 @@ export default function NewTreatmentScreen() {
               >
                 <Image source={{ uri: p.uri }} style={styles.thumb} />
               </Pressable>
+              <Text style={styles.thumbDate} numberOfLines={1}>
+                {formatDisplayDate(p.capturedAt ?? treatmentDateForPreview ?? new Date())}
+              </Text>
               <Pressable
                 style={styles.thumbRemove}
                 onPress={() => setLocalPicks((cur) => cur.filter((_, j) => j !== i))}
@@ -804,6 +810,12 @@ const styles = StyleSheet.create({
   photoStrip: { flexGrow: 0, marginBottom: 8 },
   thumbWrap: { marginRight: 10, position: "relative" },
   thumb: { width: 88, height: 88, borderRadius: 8, backgroundColor: colors.borderSubtle },
+  thumbDate: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    marginTop: 4,
+    maxWidth: 88,
+  },
   thumbRemove: {
     position: "absolute",
     top: 4,

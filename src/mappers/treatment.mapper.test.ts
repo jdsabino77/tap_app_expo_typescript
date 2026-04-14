@@ -20,6 +20,7 @@ describe("treatmentFromRow", () => {
     expect(t.providerId).toBe("");
     expect(t.cost).toBe(99.5);
     expect(t.photoUrls).toEqual([]);
+    expect(t.photoCapturedAt).toEqual([]);
   });
 
   it("accepts skin_treatments slug", () => {

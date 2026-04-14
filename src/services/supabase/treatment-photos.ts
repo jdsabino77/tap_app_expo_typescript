@@ -32,7 +32,7 @@ export async function uploadTreatmentPhotoFiles(
   supabase: SupabaseClient,
   userId: string,
   treatmentId: string,
-  picks: { uri: string; mimeType?: string }[],
+  picks: { uri: string; mimeType?: string; capturedAt?: Date }[],
 ): Promise<string[]> {
   const paths: string[] = [];
   for (const pick of picks) {

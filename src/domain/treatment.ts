@@ -24,6 +24,8 @@ export const treatmentSchema = z.object({
   cost: z.number().nullable().optional(),
   /** Supabase Storage object paths in bucket `treatment-photos` (userId/treatmentId/file.ext). */
   photoUrls: z.array(z.string()).optional().default([]),
+  /** Parallel to `photoUrls` — when shorter or missing, UI falls back to `treatmentDate`. */
+  photoCapturedAt: z.array(z.coerce.date()).optional().default([]),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
 });
