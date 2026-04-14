@@ -142,6 +142,16 @@ export const appStrings = {
   treatmentAreasSummaryPrefix: "Areas selected:",
   treatmentAreasLegacyNote:
     "These areas are not in the current catalog. Tap × to remove, or keep them and they will still be saved.",
+  treatmentAreasSuggestionsLabel: "Area suggestions (tap to add or remove)",
+  treatmentAreasSearchPlaceholder: "Search areas",
+  treatmentAreasSearchAccessibilityLabel: "Filter treatment areas by name",
+  treatmentAreasFilterEmpty: "No areas match your search.",
+  treatmentAreasRegionHead: "Head",
+  treatmentAreasRegionUpperBody: "Upper body",
+  treatmentAreasRegionLowerBody: "Lower body",
+  treatmentAreasRegionHeaderHint: "Shows or hides area options for this region",
+  treatmentAreasRegionSelectedInRegion: (count: number) =>
+    count === 0 ? "" : ` · ${count} selected`,
 
   /** Full-screen treatment photo viewer (issue #25). */
   /** Full-screen photo viewer — top-right control (see treatment-photo-viewer). */
@@ -273,6 +283,11 @@ export const appStrings = {
   catalogAdminDeleteConfirmTitle: "Delete this row?",
   catalogAdminDeleteConfirmBody: "This cannot be undone. Chips may still show cached data until refresh.",
   catalogAdminEbdAllowedDevicesLabel: "Allowed devices (laser types)",
+  catalogAdminAreaBodyRegion: "Body region",
+  catalogAdminAreaBodyRegionHead: "Head",
+  catalogAdminAreaBodyRegionUpper: "Upper body",
+  catalogAdminAreaBodyRegionLower: "Lower body",
+  catalogAdminAreaCategoryNotes: "Category notes (optional)",
 
   adminUsersTitle: "User admin",
   adminUsersAccessDenied: "You need an admin account to manage other users.",

@@ -197,21 +197,32 @@ export async function adminDeleteServiceType(id: string): Promise<void> {
 
 // --- Treatment areas ---
 
+export type TreatmentAreaRegionSlug = "head" | "upper_body" | "lower_body";
+
 export type AdminTreatmentAreaRow = {
   id: string;
   name: string;
   category: string;
+  region: TreatmentAreaRegionSlug;
   sort_order: number;
   is_active: boolean;
   is_default: boolean;
 };
+
+function parseAdminTreatmentAreaRegion(raw: unknown): TreatmentAreaRegionSlug {
+  const s = raw == null ? "" : String(raw).trim().toLowerCase();
+  if (s === "upper_body" || s === "lower_body") {
+    return s;
+  }
+  return "head";
+}
 
 export async function adminListTreatmentAreas(): Promise<AdminTreatmentAreaRow[]> {
   requireConfigured();
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from("treatment_areas")
-    .select("id,name,category,sort_order,is_active,is_default")
+    .select("id,name,category,region,sort_order,is_active,is_default")
     .order("sort_order", { ascending: true });
   if (error) {
     throw new Error(error.message);
@@ -220,6 +231,7 @@ export async function adminListTreatmentAreas(): Promise<AdminTreatmentAreaRow[]
     id: String(r.id),
     name: String(r.name ?? ""),
     category: r.category == null ? "" : String(r.category),
+    region: parseAdminTreatmentAreaRegion(r.region),
     sort_order: typeof r.sort_order === "number" ? r.sort_order : 0,
     is_active: Boolean(r.is_active),
     is_default: Boolean(r.is_default),
@@ -229,7 +241,10 @@ export async function adminListTreatmentAreas(): Promise<AdminTreatmentAreaRow[]
 export async function adminUpdateTreatmentArea(
   id: string,
   patch: Partial<
-    Pick<AdminTreatmentAreaRow, "name" | "category" | "sort_order" | "is_active" | "is_default">
+    Pick<
+      AdminTreatmentAreaRow,
+      "name" | "category" | "region" | "sort_order" | "is_active" | "is_default"
+    >
   >,
 ): Promise<void> {
   requireConfigured();
@@ -256,6 +271,7 @@ export async function adminInsertTreatmentArea(): Promise<string> {
     .insert({
       name: "New area",
       category: "",
+      region: "head",
       sort_order: 999,
       is_active: true,
       is_default: false,

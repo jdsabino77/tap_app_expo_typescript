@@ -70,11 +70,20 @@ function mapServiceRow(row: Record<string, unknown>): ServiceType {
   });
 }
 
+function parseTreatmentAreaRegion(raw: unknown): "head" | "upper_body" | "lower_body" {
+  const s = raw == null ? "" : String(raw).trim().toLowerCase();
+  if (s === "upper_body" || s === "lower_body") {
+    return s;
+  }
+  return "head";
+}
+
 function mapAreaRow(row: Record<string, unknown>): TreatmentArea {
   return treatmentAreaSchema.parse({
     id: String(row.id),
     name: String(row.name ?? ""),
     category: row.category == null ? undefined : String(row.category),
+    region: parseTreatmentAreaRegion(row.region),
     order: toInt(row.sort_order),
     isDefault: Boolean(row.is_default),
     isActive: row.is_active == null ? undefined : Boolean(row.is_active),

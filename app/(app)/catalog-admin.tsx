@@ -41,6 +41,7 @@ import {
   type AdminProviderServiceRow,
   type AdminServiceTypeRow,
   type AdminTreatmentAreaRow,
+  type TreatmentAreaRegionSlug,
 } from "../../src/repositories/catalog-admin.repository";
 import { fetchOwnProfileRow } from "../../src/repositories/profile.repository";
 import { appStrings } from "../../src/strings/appStrings";
@@ -697,6 +698,12 @@ function ServiceEditor({
   );
 }
 
+const AREA_REGION_OPTIONS: { key: TreatmentAreaRegionSlug; label: string }[] = [
+  { key: "head", label: appStrings.catalogAdminAreaBodyRegionHead },
+  { key: "upper_body", label: appStrings.catalogAdminAreaBodyRegionUpper },
+  { key: "lower_body", label: appStrings.catalogAdminAreaBodyRegionLower },
+];
+
 function AreaEditor({
   row,
   saving,
@@ -710,6 +717,7 @@ function AreaEditor({
 }) {
   const [name, setName] = useState(row.name);
   const [category, setCategory] = useState(row.category);
+  const [region, setRegion] = useState<TreatmentAreaRegionSlug>(row.region);
   const [sort, setSort] = useState(String(row.sort_order));
   const [active, setActive] = useState(row.is_active);
   const [def, setDef] = useState(row.is_default);
@@ -717,6 +725,7 @@ function AreaEditor({
   useEffect(() => {
     setName(row.name);
     setCategory(row.category);
+    setRegion(row.region);
     setSort(String(row.sort_order));
     setActive(row.is_active);
     setDef(row.is_default);
@@ -726,7 +735,19 @@ function AreaEditor({
     <View style={styles.card}>
       <Text style={styles.cardLabel}>Name</Text>
       <TextInput style={styles.input} value={name} onChangeText={setName} placeholderTextColor={colors.textLight} />
-      <Text style={styles.cardLabel}>Category</Text>
+      <Text style={styles.cardLabel}>{appStrings.catalogAdminAreaBodyRegion}</Text>
+      <View style={styles.chips}>
+        {AREA_REGION_OPTIONS.map((opt) => (
+          <Pressable
+            key={opt.key}
+            style={[styles.chip, region === opt.key && styles.chipOn]}
+            onPress={() => setRegion(opt.key)}
+          >
+            <Text style={[styles.chipText, region === opt.key && styles.chipTextOn]}>{opt.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <Text style={styles.cardLabel}>{appStrings.catalogAdminAreaCategoryNotes}</Text>
       <TextInput style={styles.input} value={category} onChangeText={setCategory} placeholderTextColor={colors.textLight} />
       <Text style={styles.cardLabel}>Sort order</Text>
       <TextInput
@@ -752,6 +773,7 @@ function AreaEditor({
             void onSave({
               name: name.trim(),
               category: category.trim(),
+              region,
               sort_order: Number.parseInt(sort, 10) || 0,
               is_active: active,
               is_default: def,
