@@ -8,25 +8,40 @@ import Animated, {
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 5;
+/** Double-tap zoom when at 1× (helps iOS Simulator where pinch is awkward). */
+const DOUBLE_TAP_ZOOM = 2.2;
 
 type ZoomableImageProps = {
   uri: string;
   width: number;
   height: number;
+  /** `cover` fills the frame (uniform tiles); `contain` shows full image with possible letterboxing. */
+  resizeMode?: "contain" | "cover";
 };
 
 /**
- * Pinch-to-zoom and pan when zoomed; double-tap resets. For use inside a bounded cell (e.g. compare grid).
+ * Pinch-to-zoom and pan when zoomed.
+ *
+ * **Physical device:** use a two-finger pinch in or out on the image.
+ *
+ * **iOS Simulator:** pinch is not a real trackpad gesture — hold **⌥ (Option)** until two
+ * touch circles appear, then drag to pinch. Alternatively **double-tap** the image to
+ * zoom in, double-tap again to reset (works everywhere).
+ *
+ * Pan uses `maxPointers(1)` so it does not compete with the two-finger pinch gesture.
  */
-export function ZoomableImage({ uri, width, height }: ZoomableImageProps) {
+export function ZoomableImage({
+  uri,
+  width,
+  height,
+  resizeMode = "contain",
+}: ZoomableImageProps) {
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const pinchBase = useSharedValue(1);
 
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
-  const savedTx = useSharedValue(0);
-  const savedTy = useSharedValue(0);
   const panOriginX = useSharedValue(0);
   const panOriginY = useSharedValue(0);
 
@@ -43,6 +58,7 @@ export function ZoomableImage({ uri, width, height }: ZoomableImageProps) {
     });
 
   const pan = Gesture.Pan()
+    .maxPointers(1)
     .onStart(() => {
       panOriginX.value = translateX.value;
       panOriginY.value = translateY.value;
@@ -53,22 +69,22 @@ export function ZoomableImage({ uri, width, height }: ZoomableImageProps) {
       }
       translateX.value = panOriginX.value + e.translationX;
       translateY.value = panOriginY.value + e.translationY;
-    })
-    .onEnd(() => {
-      savedTx.value = translateX.value;
-      savedTy.value = translateY.value;
     });
 
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
     .onEnd(() => {
-      scale.value = withTiming(MIN_SCALE);
-      savedScale.value = MIN_SCALE;
-      pinchBase.value = MIN_SCALE;
-      translateX.value = withTiming(0);
-      translateY.value = withTiming(0);
-      savedTx.value = 0;
-      savedTy.value = 0;
+      if (scale.value <= 1.01) {
+        scale.value = DOUBLE_TAP_ZOOM;
+        savedScale.value = DOUBLE_TAP_ZOOM;
+        pinchBase.value = DOUBLE_TAP_ZOOM;
+      } else {
+        scale.value = withTiming(MIN_SCALE);
+        savedScale.value = MIN_SCALE;
+        pinchBase.value = MIN_SCALE;
+        translateX.value = withTiming(0);
+        translateY.value = withTiming(0);
+      }
     });
 
   const composed = Gesture.Simultaneous(pinch, pan, doubleTap);
@@ -85,7 +101,7 @@ export function ZoomableImage({ uri, width, height }: ZoomableImageProps) {
     <View style={[styles.clip, { width, height }]}>
       <GestureDetector gesture={composed}>
         <Animated.View style={[styles.fill, animatedStyle]}>
-          <Image source={{ uri }} style={styles.fill} resizeMode="contain" />
+          <Image source={{ uri }} style={styles.fill} resizeMode={resizeMode} />
         </Animated.View>
       </GestureDetector>
     </View>
