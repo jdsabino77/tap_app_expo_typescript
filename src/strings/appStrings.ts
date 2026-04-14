@@ -214,6 +214,28 @@ export const appStrings = {
   privacyPolicy: "Privacy Policy",
   settingsVersionLabel: "Version",
   settingsBuildLabel: "Native build",
+  profileSettingsTitle: "Profile",
+  profileSettingsIntro:
+    "Update the name and email on your account, and choose a profile photo. Email changes may require confirmation from your inbox.",
+  profileSettingsAvatarHint: "Tap the image to choose a new photo from your library.",
+  profileSettingsRemovePhoto: "Remove photo",
+  profileSettingsChangePhoto: "Change photo",
+  profileSettingsFirstName: "First name",
+  profileSettingsLastName: "Last name",
+  profileSettingsEmail: "Email",
+  profileSettingsUserId: "User ID",
+  profileSettingsAccountCreated: "Account created",
+  profileSettingsSave: "Save changes",
+  profileSettingsSavedTitle: "Saved",
+  profileSettingsSavedBody: "Your profile was updated.",
+  profileSettingsEmailInvalid: "Enter a valid email address.",
+  profileSettingsNameRequired: "First and last name cannot be empty.",
+  profileSettingsEmailConfirmTitle: "Confirm your email",
+  profileSettingsEmailConfirmBody:
+    "Your name and profile photo were saved. We sent a message to the new address — open the link there to finish the email change. Until then, you may still sign in with your current email.",
+  profileSettingsPendingEmailBanner: (email: string) =>
+    `Confirm ${email} from the message we sent — your sign-in email has not switched yet.`,
+  profileSettingsStubUnavailable: "Profile editing requires a signed-in Supabase account.",
   legalOpenFullPrivacyWebsite: "View full privacy policy on yasalaser.com",
   legalOpenFullTermsWebsite: "View terms of use on yasalaser.com",
   legalPrivacySummaryLead:

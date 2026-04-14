@@ -22,6 +22,8 @@ export type SessionContextValue = {
   supabaseEnabled: boolean;
   userId: string | null;
   email: string | null;
+  /** Set while Supabase is waiting for the user to confirm a new email address. */
+  pendingNewEmail: string | null;
   /**
    * Supabase: null while loading gate for signed-in user; stub mode uses boolean only.
    * false → welcome (login path); true → app.
@@ -42,6 +44,13 @@ export type SessionContextValue = {
   requestPasswordReset: (email: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   refreshMedicalProfileGate: () => Promise<void>;
+  /** Refetch JWT + user (e.g. after profile or email updates). */
+  refreshAuthSession: () => Promise<void>;
+  /**
+   * Starts Supabase email change (confirmation email if enabled in project).
+   * `profiles.email` syncs from `auth.users` after confirmation via DB trigger.
+   */
+  requestAuthEmailChange: (email: string) => Promise<{ error?: string }>;
   /** Stub mode (no env) — Phase 3 dev buttons. */
   devSignInStub: (returningUser: boolean) => void;
   devSignUpStub: () => void;
@@ -252,6 +261,34 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const refreshAuthSession = useCallback(async () => {
+    if (!isSupabaseConfigured()) {
+      return;
+    }
+    const supabase = getSupabase();
+    await supabase.auth.refreshSession();
+  }, []);
+
+  const requestAuthEmailChange = useCallback(async (email: string) => {
+    if (!isSupabaseConfigured()) {
+      return { error: "Supabase is not configured." };
+    }
+    try {
+      const supabase = getSupabase();
+      const { error } = await supabase.auth.updateUser(
+        { email: email.trim() },
+        { emailRedirectTo: getAuthEmailRedirectUri() },
+      );
+      if (error) {
+        return { error: mapAuthErrorToUserMessage(error) };
+      }
+      await supabase.auth.refreshSession();
+      return {};
+    } catch (e) {
+      return { error: mapAuthErrorToUserMessage(e) };
+    }
+  }, []);
+
   const value = useMemo((): SessionContextValue => {
     if (!isSupabaseConfigured()) {
       return {
@@ -259,6 +296,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         supabaseEnabled: false,
         userId: stubUserId,
         email: null,
+        pendingNewEmail: null,
         hasMedicalProfile: stubHasMedical,
         signupDashboardBypass: false,
         signInWithPassword: async () => ({ error: "Supabase is not configured." }),
@@ -266,6 +304,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         requestPasswordReset: async () => ({ error: "Supabase is not configured." }),
         signOut,
         refreshMedicalProfileGate: async () => {},
+        refreshAuthSession: async () => {},
+        requestAuthEmailChange: async () => ({ error: "Supabase is not configured." }),
         devSignInStub,
         devSignUpStub,
         completeStubMedicalOnboarding,
@@ -277,6 +317,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       supabaseEnabled: true,
       userId: session?.user?.id ?? null,
       email: session?.user?.email ?? null,
+      pendingNewEmail: session?.user?.new_email ?? null,
       hasMedicalProfile,
       signupDashboardBypass,
       signInWithPassword,
@@ -284,6 +325,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       requestPasswordReset,
       signOut,
       refreshMedicalProfileGate,
+      refreshAuthSession,
+      requestAuthEmailChange,
       devSignInStub,
       devSignUpStub,
       completeStubMedicalOnboarding,
@@ -292,6 +335,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     initialized,
     session?.user?.id,
     session?.user?.email,
+    session?.user?.new_email,
     hasMedicalProfile,
     signupDashboardBypass,
     signInWithPassword,
@@ -299,6 +343,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     requestPasswordReset,
     signOut,
     refreshMedicalProfileGate,
+    refreshAuthSession,
+    requestAuthEmailChange,
     stubUserId,
     stubHasMedical,
     devSignInStub,
