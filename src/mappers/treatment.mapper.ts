@@ -15,6 +15,7 @@ export type TreatmentRow = {
   notes: string | null;
   cost: string | number | null;
   photo_urls?: string[] | null;
+  photo_captured_at?: string[] | null;
   created_at?: string;
   updated_at?: string;
   ebd_indication_id?: string | null;
@@ -61,6 +62,7 @@ export function treatmentFromRow(row: TreatmentRow): Treatment {
     notes: row.notes ?? "",
     cost: row.cost == null ? null : typeof row.cost === "string" ? parseFloat(row.cost) : row.cost,
     photoUrls: row.photo_urls ?? [],
+    photoCapturedAt: (row.photo_captured_at ?? []).map((s) => new Date(s)),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   });

@@ -58,6 +58,7 @@ module.exports = {
           photosPermission: "Allow $(PRODUCT_NAME) to attach photos to your treatments.",
         },
       ],
+      "expo-screen-orientation",
     ],
     extra: {
       eas: {

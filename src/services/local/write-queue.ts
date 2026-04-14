@@ -216,6 +216,7 @@ const treatmentCreatePayload = z.object({
     notes: z.string(),
     cost: z.number().nullable(),
     photoUrls: z.array(z.string()).optional(),
+    photoCapturedAt: z.array(z.string()).optional(),
   }),
 });
 
@@ -267,6 +268,10 @@ async function executeOutboxRow(
           ? p.input.ebdIndicationId.trim()
           : null;
       const usesEbd = treatmentTypeFlagsForSlug(p.input.treatmentType, []).useEbdServiceFlow;
+      const urls = p.input.photoUrls ?? [];
+      const fb = new Date(p.input.treatmentDate);
+      const explicit = (p.input.photoCapturedAt ?? []).map((s) => new Date(s));
+      const photoCapturedAtIso = urls.map((_, i) => (explicit[i] ?? fb).toISOString());
       const insertRow = {
         id: p.clientRowId,
         user_id: userId,
@@ -280,7 +285,8 @@ async function executeOutboxRow(
         treatment_date: new Date(p.input.treatmentDate).toISOString(),
         notes: p.input.notes.trim(),
         cost: p.input.cost,
-        photo_urls: p.input.photoUrls ?? [],
+        photo_urls: urls,
+        photo_captured_at: photoCapturedAtIso,
       };
       const { error } = await supabase.from("treatments").insert(insertRow).select("id").maybeSingle();
       if (error) {
@@ -482,8 +488,11 @@ export function serializeTreatmentCreatePayload(
     notes: string;
     cost: number | null;
     photoUrls?: string[];
+    photoCapturedAt?: Date[];
   },
 ): string {
+  const photoUrls = input.photoUrls ?? [];
+  const photoCapturedAt = (input.photoCapturedAt ?? []).map((d) => d.toISOString());
   return JSON.stringify({
     clientRowId,
     input: {
@@ -498,7 +507,8 @@ export function serializeTreatmentCreatePayload(
       treatmentDate: input.treatmentDate.toISOString(),
       notes: input.notes,
       cost: input.cost,
-      photoUrls: input.photoUrls ?? [],
+      photoUrls,
+      photoCapturedAt: photoCapturedAt.length ? photoCapturedAt : undefined,
     },
   });
 }

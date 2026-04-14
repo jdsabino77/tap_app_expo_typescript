@@ -42,14 +42,24 @@ export type CreateTreatmentInput = {
   cost: number | null;
   /** Offline-queued creates only (storage paths). Local uploads use `photoChanges`. */
   photoUrls?: string[];
+  /** Parallel to `photoUrls` when queued with paths (optional). */
+  photoCapturedAt?: Date[];
 };
 
 export type UpdateTreatmentInput = CreateTreatmentInput;
 
 export type TreatmentPhotoChanges = {
-  addLocal?: { uri: string; mimeType?: string }[];
+  addLocal?: { uri: string; mimeType?: string; capturedAt?: Date }[];
   removeStoragePaths?: string[];
 };
+
+function alignedPhotoCapturedAt(photoUrls: string[], explicit: Date[] | undefined, fallback: Date): Date[] {
+  return photoUrls.map((_, i) => explicit?.[i] ?? fallback);
+}
+
+function isoTimestamptzArray(dates: Date[]): string[] {
+  return dates.map((d) => d.toISOString());
+}
 
 function hasPhotoWork(c?: TreatmentPhotoChanges): boolean {
   return Boolean(c?.addLocal?.length || c?.removeStoragePaths?.length);
@@ -183,11 +193,13 @@ async function queueTreatmentCreate(uid: string, input: CreateTreatmentInput): P
       notes: input.notes,
       cost: input.cost,
       photoUrls,
+      photoCapturedAt: input.photoCapturedAt,
     }),
   );
   const syn = syntheticTreatmentFromInput(id, uid, {
     ...input,
     photoUrls,
+    photoCapturedAt: alignedPhotoCapturedAt(photoUrls, input.photoCapturedAt, input.treatmentDate),
     ebdTreatmentCategory: input.treatmentType === "laser" ? input.serviceType.trim() : "",
     ebdModality: input.ebdModality ?? null,
   });
@@ -220,6 +232,11 @@ async function queueTreatmentUpdate(uid: string, id: string, input: UpdateTreatm
   const syn = syntheticTreatmentFromInput(id, uid, {
     ...input,
     photoUrls,
+    photoCapturedAt: alignedPhotoCapturedAt(
+      photoUrls,
+      input.photoCapturedAt ?? prev?.photoCapturedAt,
+      input.treatmentDate,
+    ),
     ebdTreatmentCategory: input.treatmentType === "laser" ? input.serviceType.trim() : "",
     ebdModality: input.ebdModality ?? null,
   });
@@ -250,7 +267,11 @@ export async function createTreatmentForCurrentUser(
   await assertOnlineForTreatmentPhotos(photoChanges);
 
   if (await isDeviceOffline()) {
-    await queueTreatmentCreate(uid, { ...input, photoUrls: input.photoUrls ?? [] });
+    await queueTreatmentCreate(uid, {
+      ...input,
+      photoUrls: input.photoUrls ?? [],
+      photoCapturedAt: input.photoCapturedAt,
+    });
   }
 
   const providerId =
@@ -267,6 +288,12 @@ export async function createTreatmentForCurrentUser(
       ? input.ebdIndicationId.trim()
       : null;
 
+  const initialCaptured = alignedPhotoCapturedAt(
+    initialPhotos,
+    input.photoCapturedAt,
+    input.treatmentDate,
+  );
+
   const row = {
     user_id: uid,
     treatment_type: input.treatmentType,
@@ -280,6 +307,7 @@ export async function createTreatmentForCurrentUser(
     notes: input.notes.trim(),
     cost: input.cost,
     photo_urls: initialPhotos,
+    photo_captured_at: isoTimestamptzArray(initialCaptured),
   };
 
   try {
@@ -296,10 +324,13 @@ export async function createTreatmentForCurrentUser(
     if (photoChanges?.addLocal?.length) {
       const uploaded = await uploadTreatmentPhotoFiles(supabase, uid, t.id, photoChanges.addLocal);
       const merged = [...initialPhotos, ...uploaded];
+      const addCaptured = photoChanges.addLocal.map((pick) => pick.capturedAt ?? input.treatmentDate);
+      const mergedCaptured = [...initialCaptured, ...addCaptured];
       const { data: u2, error: e2 } = await supabase
         .from("treatments")
         .update({
           photo_urls: merged,
+          photo_captured_at: isoTimestamptzArray(mergedCaptured),
           updated_at: new Date().toISOString(),
         })
         .eq("id", t.id)
@@ -319,7 +350,11 @@ export async function createTreatmentForCurrentUser(
     return t;
   } catch (e) {
     if (await isDeviceOffline()) {
-      await queueTreatmentCreate(uid, { ...input, photoUrls: input.photoUrls ?? [] });
+      await queueTreatmentCreate(uid, {
+        ...input,
+        photoUrls: input.photoUrls ?? [],
+        photoCapturedAt: input.photoCapturedAt,
+      });
     }
     throw e instanceof Error ? e : new Error(String(e));
   }
@@ -374,20 +409,32 @@ export async function updateTreatmentForCurrentUser(
     if (!existing) {
       throw new Error("Treatment not found or access denied.");
     }
+    const fb = existing.treatmentDate;
+    const effectiveCaptured = existing.photoUrls.map(
+      (_, i) => existing.photoCapturedAt[i] ?? fb,
+    );
     let nextPhotos = [...existing.photoUrls];
+    let nextCaptured = [...effectiveCaptured];
     const remove = photoChanges?.removeStoragePaths ?? [];
     removeFromStorage = remove;
     if (remove.length) {
       nextPhotos = nextPhotos.filter((p) => !remove.includes(p));
+      nextCaptured = existing.photoUrls
+        .map((p, i) => ({ p, c: effectiveCaptured[i] }))
+        .filter((x) => !remove.includes(x.p))
+        .map((x) => x.c);
     }
     if (photoChanges?.addLocal?.length) {
       const uploaded = await uploadTreatmentPhotoFiles(supabase, uid, id, photoChanges.addLocal);
+      const addCaptured = photoChanges.addLocal.map((pick) => pick.capturedAt ?? input.treatmentDate);
       nextPhotos = [...nextPhotos, ...uploaded];
+      nextCaptured = [...nextCaptured, ...addCaptured];
     }
     if (nextPhotos.length > MAX_TREATMENT_PHOTOS) {
       throw new Error(`At most ${MAX_TREATMENT_PHOTOS} photos per treatment.`);
     }
     upd.photo_urls = nextPhotos;
+    upd.photo_captured_at = isoTimestamptzArray(nextCaptured);
   }
 
   try {

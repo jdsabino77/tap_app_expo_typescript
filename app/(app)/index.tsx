@@ -243,6 +243,13 @@ export default function DashboardScreen() {
           onPress={() => router.push("/skin-analyzer")}
         />
       </View>
+      <View style={styles.qaRow}>
+        <QuickActionCard
+          title={appStrings.quickActionPhotoLibrary}
+          subtitle={appStrings.quickActionPhotoLibrarySub}
+          onPress={() => router.push("/photo-library")}
+        />
+      </View>
 
       <Text style={styles.sectionTitle}>{appStrings.upcomingAppointments}</Text>
       {!supabaseEnabled ? (

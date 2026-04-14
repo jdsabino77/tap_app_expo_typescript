@@ -28,6 +28,13 @@ export const appStrings = {
   quickActionProfileSub: "Medical info",
   quickActionSkinAnalyzer: "Face / Skin Analyzer",
   quickActionSkinAnalyzerSub: "On-device pigmentation preview (iOS)",
+  quickActionPhotoLibrary: "Photo Library",
+  quickActionPhotoLibrarySub: "Browse and compare progress photos",
+  photoLibraryTitle: "Photo Library",
+  photoLibraryEmpty: "No treatment photos yet. Add photos when you log a treatment.",
+  photoLibraryCompareCta: "Compare",
+  photoLibrarySelectionCount: (n: number) => `${n} of 4 selected`,
+  photoCompareTitle: "Compare photos",
   /** Header: Face / Skin Analyzer screen */
   skinAnalyzerScreenTitle: "Skin analyzer",
   /** Beta / trust — shown prominently above the analyzer UI. */

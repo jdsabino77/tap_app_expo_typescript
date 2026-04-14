@@ -56,6 +56,7 @@ export function syntheticTreatmentFromInput(
     notes: string;
     cost: number | null;
     photoUrls?: string[];
+    photoCapturedAt?: Date[];
   },
 ): Treatment {
   const ebdId = input.ebdIndicationId?.trim() ? input.ebdIndicationId.trim() : null;
@@ -76,6 +77,7 @@ export function syntheticTreatmentFromInput(
     notes: input.notes.trim(),
     cost: input.cost,
     photoUrls: input.photoUrls ?? [],
+    photoCapturedAt: input.photoCapturedAt ?? [],
     createdAt: new Date(),
     updatedAt: new Date(),
   });
