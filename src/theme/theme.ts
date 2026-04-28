@@ -156,4 +156,4 @@ export const textOnNavy = {
   featureSub: { fontSize: 14, lineHeight: 20, color: colors.onNavySubtle },
 } as const;
 
-export type AppTheme = typeof lightTheme;
+export type AppTheme = typeof lightTheme | typeof darkTheme;

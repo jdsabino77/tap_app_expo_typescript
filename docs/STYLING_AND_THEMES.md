@@ -12,7 +12,7 @@ This document describes **how styling works in the app today**: where colors and
 | **Themes (bundles)** | [`src/theme/theme.ts`](../src/theme/theme.ts) | `lightTheme` and `darkTheme`: each bundles `colors` (tokens plus aliases like `background`), `spacing`, `radii`, `typography`, and `component` (app bar, buttons, cards). |
 | **Barrel export** | [`src/theme/index.ts`](../src/theme/index.ts) | Re-exports tokens and theme objects. Screens usually `import { colors }` or `import { colors, lightTheme }`. |
 
-There is **no runtime theme switch** in the app binary: the device does not choose between themes automatically. `darkTheme` exists as a **defined bundle** in code for parity with the Flutter app and for any screen that chooses to import it later. Day-to-day UI follows **`colors` + `lightTheme`** patterns.
+Runtime theme switching is now available through a `ThemeProvider` (`light`, `dark`, `system`) with persisted user preference. Theme selection is exposed in Settings and resolves against device appearance when `system` is selected.
 
 ---
 
@@ -67,7 +67,7 @@ In code, **two named bundles** are defined:
 | **theme_1** (default light) | `lightTheme` in [`theme.ts`](../src/theme/theme.ts) | Dashboard, auth (login/signup), Welcome, most forms: `lightGray` canvas, navy/gold accents. |
 | **theme_2** | `darkTheme` in [`theme.ts`](../src/theme/theme.ts) | Structured dark palette for parity with Flutter `darkTheme`; import where needed—**not** wired app-wide. |
 
-There is **no** `ThemeProvider` or settings toggle: switching “which theme is active” today means **choosing which object you import** (`lightTheme` vs `darkTheme`) or changing `colors` in tokens. A future multi-theme setup would typically add a small registry (e.g. `themes = { theme_1: lightTheme, theme_2: darkTheme }`) and a single hook; that is **outside** the current beta wiring described here.
+The app now uses a runtime `ThemeProvider` from [`src/store/theme.tsx`](../src/store/theme.tsx) and a Settings appearance selector. New screens should consume the resolved theme through that provider instead of hardcoding `lightTheme`.
 
 ---
 
