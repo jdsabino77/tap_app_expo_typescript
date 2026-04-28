@@ -243,6 +243,9 @@ export const appStrings = {
   photoPermissionDeniedTitle: "Photo access needed",
   photoPermissionDeniedMessage:
     "Allow photo library access to attach images, or enable it under Settings → T.A.P → Photos.",
+  cameraPermissionDeniedTitle: "Camera access needed",
+  cameraPermissionDeniedMessage:
+    "Allow camera access to take treatment photos, or enable it under Settings → T.A.P → Camera.",
   photoPermissionOpenSettings: "Open Settings",
   termsCheckboxLead: "I agree to the ",
   acceptTermsToContinue: "Please accept the terms and conditions to continue",
