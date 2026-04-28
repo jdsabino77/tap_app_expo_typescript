@@ -214,6 +214,10 @@ export const appStrings = {
   privacyPolicy: "Privacy Policy",
   settingsVersionLabel: "Version",
   settingsBuildLabel: "Native build",
+  settingsAppearanceSection: "Appearance",
+  settingsThemeLight: "Light",
+  settingsThemeDark: "Dark",
+  settingsThemeSystem: "System (follow device)",
   profileSettingsTitle: "Profile",
   profileSettingsIntro:
     "Update the name and email on your account, and choose a profile photo. Email changes may require confirmation from your inbox.",

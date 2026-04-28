@@ -54,7 +54,7 @@ Defer if time-constrained; not required to get meaningful feedback on core + Ski
 
 - [ ] **Profile editing** (name/email/photo) — if testers use **dedicated test accounts**, read-only profile may suffice.
 - [ ] **Change password** — same note as above.
-- [ ] **Dark mode** — polish.
+- [x] **Dark mode** — light/dark/system mode selector in Settings with persisted local preference.
 - [ ] **Push notifications** — extra Apple setup; skip unless reminders are the main hypothesis.
 - [ ] **Export data / delete account / backup** — defer until after UX validation.
 

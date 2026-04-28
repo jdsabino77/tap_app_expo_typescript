@@ -5,9 +5,15 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { WriteQueueSync } from "../src/components/WriteQueueSync";
 import { SessionProvider } from "../src/store/session";
+import { ThemeProvider, useThemePreference } from "../src/store/theme";
 import { colors } from "../src/theme/tokens";
 
-type BoundaryProps = { children: ReactNode };
+type BoundaryProps = {
+  children: ReactNode;
+  surfaceColor: string;
+  textPrimaryColor: string;
+  textSecondaryColor: string;
+};
 type BoundaryState = { error: Error | null };
 
 class RootErrorBoundary extends Component<BoundaryProps, BoundaryState> {
@@ -24,11 +30,11 @@ class RootErrorBoundary extends Component<BoundaryProps, BoundaryState> {
   render(): ReactNode {
     if (this.state.error) {
       return (
-        <View style={boundaryStyles.wrap}>
-          <Text style={boundaryStyles.title}>App failed to render</Text>
+        <View style={[boundaryStyles.wrap, { backgroundColor: this.props.surfaceColor }]}>
+          <Text style={[boundaryStyles.title, { color: this.props.textPrimaryColor }]}>App failed to render</Text>
           <Text style={boundaryStyles.msg}>{this.state.error.message}</Text>
           <ScrollView style={boundaryStyles.scroll}>
-            <Text style={boundaryStyles.stack}>{this.state.error.stack}</Text>
+            <Text style={[boundaryStyles.stack, { color: this.props.textSecondaryColor }]}>{this.state.error.stack}</Text>
           </ScrollView>
         </View>
       );
@@ -42,12 +48,11 @@ const boundaryStyles = StyleSheet.create({
     flex: 1,
     padding: 20,
     paddingTop: 56,
-    backgroundColor: colors.cleanWhite,
   },
-  title: { fontSize: 18, fontWeight: "700", color: colors.primaryNavy, marginBottom: 8 },
+  title: { fontSize: 18, fontWeight: "700", marginBottom: 8 },
   msg: { fontSize: 15, color: colors.errorRed, marginBottom: 12 },
   scroll: { flex: 1 },
-  stack: { fontSize: 11, color: colors.textSecondary },
+  stack: { fontSize: 11 },
 });
 
 /**
@@ -56,24 +61,38 @@ const boundaryStyles = StyleSheet.create({
  */
 export default function RootLayout() {
   return (
-    <RootErrorBoundary>
-      <SafeAreaProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
         <SessionProvider>
-          <WriteQueueSync />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.lightGray },
-            }}
-          >
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(app)" />
-            <Stack.Screen name="auth" />
-            <Stack.Screen name="legal" />
-          </Stack>
+          <RootNavigator />
         </SessionProvider>
-      </SafeAreaProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
+  );
+}
+
+function RootNavigator() {
+  const { theme } = useThemePreference();
+
+  return (
+    <RootErrorBoundary
+      surfaceColor={theme.colors.surface}
+      textPrimaryColor={theme.colors.textPrimary}
+      textSecondaryColor={theme.colors.textSecondary}
+    >
+      <WriteQueueSync />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: theme.colors.background },
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(app)" />
+        <Stack.Screen name="auth" />
+        <Stack.Screen name="legal" />
+      </Stack>
     </RootErrorBoundary>
   );
 }

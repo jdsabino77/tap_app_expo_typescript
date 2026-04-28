@@ -91,7 +91,8 @@ export async function pickTreatmentImages(
   if (res.canceled) {
     return [];
   }
-  return res.assets.map((a) => ({
+  const assets = res.assets ?? [];
+  return assets.map((a) => ({
     uri: a.uri,
     mimeType: a.mimeType ?? undefined,
     capturedAt: capturedAtFromAsset(a),

@@ -1,15 +1,20 @@
 import { Stack } from "expo-router";
 import { appStrings } from "../../src/strings/appStrings";
-import { colors } from "../../src/theme/tokens";
+import { useThemePreference } from "../../src/store/theme";
 
 /** Signed-in stack (Flutter `DashboardPage` and all `Navigator.push` targets). */
 export default function AppGroupLayout() {
+  const { theme } = useThemePreference();
+
   return (
     <Stack
       screenOptions={{
         headerShown: true,
         headerBackTitle: "Back",
-        headerTintColor: colors.primaryNavy,
+        headerTintColor: theme.mode === "dark" ? theme.colors.primaryGold : theme.colors.primaryNavy,
+        headerStyle: { backgroundColor: theme.colors.surface },
+        headerTitleStyle: { color: theme.colors.textPrimary },
+        contentStyle: { backgroundColor: theme.colors.background },
       }}
     >
       <Stack.Screen name="index" options={{ title: appStrings.dashboardTitle }} />
