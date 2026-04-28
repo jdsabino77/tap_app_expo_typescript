@@ -706,18 +706,32 @@ export default function NewTreatmentScreen() {
             </View>
           ))}
         </ScrollView>
-        <Pressable
-          style={styles.addPhotos}
-          onPress={() =>
-            void pickTreatmentImages(localPicks.length).then((next) => {
-              if (next.length) {
-                setLocalPicks((cur) => [...cur, ...next]);
-              }
-            })
-          }
-        >
-          <Text style={styles.addPhotosText}>Add photos</Text>
-        </Pressable>
+        <View style={styles.photoActions}>
+          <Pressable
+            style={styles.addPhotos}
+            onPress={() =>
+              void pickTreatmentImages(localPicks.length, "library").then((next) => {
+                if (next.length) {
+                  setLocalPicks((cur) => [...cur, ...next]);
+                }
+              })
+            }
+          >
+            <Text style={styles.addPhotosText}>Add from library</Text>
+          </Pressable>
+          <Pressable
+            style={styles.addPhotos}
+            onPress={() =>
+              void pickTreatmentImages(localPicks.length, "camera").then((next) => {
+                if (next.length) {
+                  setLocalPicks((cur) => [...cur, ...next]);
+                }
+              })
+            }
+          >
+            <Text style={styles.addPhotosText}>Take photo</Text>
+          </Pressable>
+        </View>
 
         {error ? <Text style={styles.err}>{error}</Text> : null}
 
@@ -837,4 +851,5 @@ const styles = StyleSheet.create({
     borderColor: colors.primaryNavy,
   },
   addPhotosText: { color: colors.primaryNavy, fontWeight: "600" },
+  photoActions: { flexDirection: "row", gap: 10 },
 });

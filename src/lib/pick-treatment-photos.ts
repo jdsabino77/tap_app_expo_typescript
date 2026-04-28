@@ -10,6 +10,8 @@ export type TreatmentPhotoPick = {
   capturedAt?: Date;
 };
 
+export type TreatmentPhotoSource = "library" | "camera";
+
 /** Parses EXIF DateTime / DateTimeOriginal (e.g. "2024:03:15 14:30:00"). */
 function parseExifDateTime(exif: Record<string, unknown> | null | undefined): Date | undefined {
   if (!exif) {
@@ -35,26 +37,57 @@ function capturedAtFromAsset(a: ImagePicker.ImagePickerAsset): Date | undefined 
   return undefined;
 }
 
-export async function pickTreatmentImages(currentCount: number): Promise<TreatmentPhotoPick[]> {
-  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!perm.granted) {
-    Alert.alert(appStrings.photoPermissionDeniedTitle, appStrings.photoPermissionDeniedMessage, [
-      { text: "Cancel", style: "cancel" },
-      { text: appStrings.photoPermissionOpenSettings, onPress: () => void Linking.openSettings() },
-    ]);
-    return [];
-  }
+function openPermissionsAlert(title: string, body: string) {
+  Alert.alert(title, body, [
+    { text: "Cancel", style: "cancel" },
+    { text: appStrings.photoPermissionOpenSettings, onPress: () => void Linking.openSettings() },
+  ]);
+}
+
+export async function pickTreatmentImages(
+  currentCount: number,
+  source: TreatmentPhotoSource = "library",
+): Promise<TreatmentPhotoPick[]> {
   const remaining = MAX_TREATMENT_PHOTOS - currentCount;
   if (remaining <= 0) {
     return [];
   }
-  const res = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    allowsMultipleSelection: true,
-    selectionLimit: remaining,
-    quality: 0.85,
-    exif: true,
-  });
+
+  const res =
+    source === "camera"
+      ? await (async () => {
+          const perm = await ImagePicker.requestCameraPermissionsAsync();
+          if (!perm.granted) {
+            openPermissionsAlert(
+              appStrings.cameraPermissionDeniedTitle,
+              appStrings.cameraPermissionDeniedMessage,
+            );
+            return { canceled: true, assets: null };
+          }
+          return ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            quality: 0.85,
+            exif: true,
+          });
+        })()
+      : await (async () => {
+          const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (!perm.granted) {
+            openPermissionsAlert(
+              appStrings.photoPermissionDeniedTitle,
+              appStrings.photoPermissionDeniedMessage,
+            );
+            return { canceled: true, assets: null };
+          }
+          return ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsMultipleSelection: true,
+            selectionLimit: remaining,
+            quality: 0.85,
+            exif: true,
+          });
+        })();
+
   if (res.canceled) {
     return [];
   }
