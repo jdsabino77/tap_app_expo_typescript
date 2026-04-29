@@ -31,7 +31,7 @@ const authEmailRedirectUrl = process.env.EXPO_PUBLIC_SUPABASE_AUTH_REDIRECT_URL 
 
 module.exports = {
   expo: {
-    name: "DermaPass by Yasa",
+    name: "DermaPass",
     slug: "tap-app-expo-typescript",
     version: "1.0.1",
     icon: "./assets/branding/app-icon.png",
@@ -49,6 +49,10 @@ module.exports = {
       bundleIdentifier: "com.yasalaser.tap",
       /** CFBundleVersion; EAS bumps this when `eas.json` uses `appVersionSource: remote` + `autoIncrement`. */
       buildNumber: "1",
+      /** Home screen label under the icon (committed `ios/` uses Info.plist; keep in sync). */
+      infoPlist: {
+        CFBundleDisplayName: "DermaPass",
+      },
     },
     android: {
       package: "com.yasalaser.tap",
