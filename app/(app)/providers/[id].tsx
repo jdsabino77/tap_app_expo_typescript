@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,6 +20,19 @@ import {
 } from "../../../src/repositories/provider.repository";
 import { useSession } from "../../../src/store/session";
 import { colors } from "../../../src/theme/tokens";
+
+/** Ensures http(s) URL for Linking.openURL; prepends https:// when missing. */
+function normalizeProviderWebsiteUrl(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return "";
+  }
+  const lower = trimmed.toLowerCase();
+  if (lower.startsWith("http://") || lower.startsWith("https://")) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+}
 
 export default function ProviderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -73,6 +87,16 @@ export default function ProviderDetailScreen() {
       void load();
     }, [load]),
   );
+
+  const openWebsite = () => {
+    const url = normalizeProviderWebsiteUrl(website);
+    if (!url) {
+      return;
+    }
+    void Linking.openURL(url).catch((e) => {
+      Alert.alert("Could not open website", e instanceof Error ? e.message : "Unknown error");
+    });
+  };
 
   const onRemove = () => {
     if (!id || !canMutate) {
@@ -176,7 +200,13 @@ export default function ProviderDetailScreen() {
       {website ? (
         <>
           <Text style={styles.section}>Website</Text>
-          <Text style={styles.line}>{website}</Text>
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={`Open website ${website}`}
+            onPress={openWebsite}
+          >
+            <Text style={styles.websiteLink}>{website}</Text>
+          </Pressable>
         </>
       ) : null}
 
@@ -237,6 +267,14 @@ const styles = StyleSheet.create({
   inactive: { marginTop: 8, color: colors.errorRed, fontWeight: "600" },
   section: { marginTop: 20, fontSize: 13, fontWeight: "700", color: colors.textSecondary },
   line: { marginTop: 6, fontSize: 16, color: colors.textPrimary, lineHeight: 22 },
+  websiteLink: {
+    marginTop: 6,
+    fontSize: 16,
+    lineHeight: 22,
+    color: colors.infoBlue,
+    textDecorationLine: "underline",
+    fontWeight: "600",
+  },
   actions: { marginTop: 28, gap: 12 },
   primaryBtn: {
     backgroundColor: colors.primaryGold,
