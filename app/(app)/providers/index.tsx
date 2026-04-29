@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -87,15 +88,30 @@ export default function ProvidersScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} />
         }
         ListEmptyComponent={<Text style={styles.empty}>No providers found.</Text>}
-        renderItem={({ item }) => (
-          <Pressable style={styles.card} onPress={() => router.push(`/providers/${item.id}`)}>
-            <Text style={styles.name}>{item.name}</Text>
-            <Text style={styles.sub}>{providerFullAddress(item)}</Text>
-            {item.services.length > 0 ? (
-              <Text style={styles.tags}>{item.services.join(" · ")}</Text>
-            ) : null}
-          </Pressable>
-        )}
+        renderItem={({ item }) => {
+          const showLogo = item.isGlobal && item.logoUrl.length > 0;
+          return (
+            <Pressable style={styles.card} onPress={() => router.push(`/providers/${item.id}`)}>
+              <View style={styles.cardRow}>
+                {showLogo ? (
+                  <Image
+                    source={{ uri: item.logoUrl }}
+                    style={styles.thumb}
+                    resizeMode="cover"
+                    accessibilityIgnoresInvertColors
+                  />
+                ) : null}
+                <View style={styles.cardText}>
+                  <Text style={styles.name}>{item.name}</Text>
+                  <Text style={styles.sub}>{providerFullAddress(item)}</Text>
+                  {item.services.length > 0 ? (
+                    <Text style={styles.tags}>{item.services.join(" · ")}</Text>
+                  ) : null}
+                </View>
+              </View>
+            </Pressable>
+          );
+        }}
       />
       <Link href="/providers/new" asChild>
         <Pressable style={styles.fab}>
@@ -119,6 +135,14 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: colors.cleanWhite,
     borderRadius: 12,
+  },
+  cardRow: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  cardText: { flex: 1, minWidth: 0 },
+  thumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 6,
+    backgroundColor: colors.borderSubtle,
   },
   name: { fontSize: 17, fontWeight: "600", color: colors.primaryNavy },
   sub: { marginTop: 6, fontSize: 14, color: colors.textSecondary },

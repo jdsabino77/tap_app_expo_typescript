@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -32,6 +33,7 @@ export default function ProviderDetailScreen() {
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState("");
   const [isGlobal, setIsGlobal] = useState(false);
+  const [logoUrl, setLogoUrl] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [removing, setRemoving] = useState(false);
 
@@ -57,6 +59,7 @@ export default function ProviderDetailScreen() {
       setEmail(provider.email);
       setWebsite(provider.website);
       setIsGlobal(provider.isGlobal);
+      setLogoUrl(provider.logoUrl);
       setIsActive(provider.isActive);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load");
@@ -129,9 +132,20 @@ export default function ProviderDetailScreen() {
     );
   }
 
+  const showLogo = isGlobal && logoUrl.length > 0;
+
   return (
     <ScrollView contentContainerStyle={styles.body}>
       <Text style={styles.title}>{name}</Text>
+      {showLogo ? (
+        <Image
+          source={{ uri: logoUrl }}
+          style={styles.logo}
+          resizeMode="contain"
+          accessibilityLabel={`${name} logo`}
+          accessibilityIgnoresInvertColors
+        />
+      ) : null}
       {isGlobal ? (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>Clinic directory</Text>
@@ -194,6 +208,14 @@ const styles = StyleSheet.create({
   padded: { flex: 1, padding: 16, backgroundColor: colors.lightGray },
   centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.lightGray },
   title: { fontSize: 22, fontWeight: "700", color: colors.primaryNavy },
+  logo: {
+    marginTop: 12,
+    width: "100%",
+    maxWidth: 200,
+    height: 96,
+    borderRadius: 8,
+    backgroundColor: colors.borderSubtle,
+  },
   badge: {
     alignSelf: "flex-start",
     marginTop: 8,
