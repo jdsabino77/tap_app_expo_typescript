@@ -54,15 +54,16 @@ Always validate risky changes (auth, photos, Core ML) on a **production-profile*
 
 1. Land and **merge** changes on **`main`** (or whatever branch policy you use for beta).
 2. Confirm **EAS production environment variables** for Supabase (and any other `EXPO_PUBLIC_*` your app reads).
-3. **`npm run eas:build:ios`** — wait until the build succeeds on [expo.dev](https://expo.dev) (fix credential or compile errors as prompted).
-4. **Upload to App Store Connect**  
-   - **`npm run eas:submit:ios`** (submits latest **`production`** iOS build), or  
+3. **App icon (committed `ios/` tree):** If you change **app icon** or **splash** assets, or icons look wrong in TestFlight, ensure **`ios/TAPbyYasaLaser/Images.xcassets/AppIcon.appiconset/`** contains **`App-Icon-1024x1024@1x.png`** and it is **committed** (EAS only ships what git has). Alternatively run **`npm run prebuild:ios`** and commit any **new or updated** files under that `AppIcon.appiconset`. Source artwork for the store icon lives under **`assets/branding/`** (see `expo.icon` in [`app.config.js`](../app.config.js)). Run **`pod install`** in **`ios/`** only when native deps change — see [Native and Core ML changes](#native-and-core-ml-changes).
+4. **`npm run eas:build:ios`** — wait until the build succeeds on [expo.dev](https://expo.dev) (fix credential or compile errors as prompted).
+5. **Upload to App Store Connect**  
+   - **`npm run eas:submit:ios`** (submits the **latest** **`production`** iOS build — matches `eas submit … --latest` in [`package.json`](../package.json)), or  
    - Download the **`.ipa`** / use **Transporter**, or submit from the Expo build page.
-5. **App Store Connect**  
+6. **App Store Connect**  
    - Wait for **processing** to finish.  
    - Assign the build to an **Internal testing** group (and **External** if needed — first external group may trigger **Beta App Review**).  
    - Update **What to Test** (e.g. skin analyzer is **non-diagnostic** / demo; known limitations).
-6. **Smoke on device** using the same bar as **[SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md)** section **A** (auth, core journeys, skin analyzer, photos, legal / About).
+7. **Smoke on device** using the same bar as **[SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md)** section **A** (auth, core journeys, skin analyzer, photos, legal / About).
 
 ## TestFlight tester experience
 
@@ -79,6 +80,7 @@ Always validate risky changes (auth, photos, Core ML) on a **production-profile*
 | **Email confirm / reset links fail** | Supabase **Redirect URLs** must exactly match the app’s **`redirectTo`** (e.g. `tap://auth/callback`). **Site URL** should be a real HTTPS landing if you use web fallbacks. |
 | **Wrong Supabase in TestFlight** | Release binary was built **without** the right EAS **production** env vars; fix secrets and rebuild. |
 | **Bundle ID mismatch** | Native **`ios/`** project wins over `app.config.js` when both exist — align Xcode, Apple portal, and App Store Connect. |
+| **Blank / white app icon** (TestFlight list, home screen) | **`AppIcon.appiconset/Contents.json`** references **`App-Icon-1024x1024@1x.png`** but that file was missing from git — EAS built without real icon art. Add/commit that PNG (e.g. export from [`assets/branding/app-icon.png`](../assets/branding/app-icon.png) or the JPG source at 1024×1024). |
 
 ## Optional: Xcode Archive
 

@@ -34,7 +34,7 @@ module.exports = {
     name: "DermaPass by Yasa",
     slug: "tap-app-expo-typescript",
     version: "1.0.1",
-    icon: "./assets/branding/app-icon.jpg",
+    icon: "./assets/branding/app-icon.png",
     orientation: "portrait",
     scheme: "tap",
     userInterfaceStyle: "automatic",
@@ -53,7 +53,7 @@ module.exports = {
     android: {
       package: "com.yasalaser.tap",
       adaptiveIcon: {
-        foregroundImage: "./assets/branding/app-icon.jpg",
+        foregroundImage: "./assets/branding/app-icon.png",
         backgroundColor: "#1A2332",
       },
     },
