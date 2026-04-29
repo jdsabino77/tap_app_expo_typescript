@@ -118,12 +118,14 @@ function calendarActiveFilterLabel(state: CalendarDateFilterState): string {
 
 const MONTHS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const;
 
+/** Newest first: current year, then past years descending; future years (for scheduling) at the end. */
 function yearOptions(): number[] {
   const y = new Date().getFullYear();
   const out: number[] = [];
-  for (let i = y - 10; i <= y + 2; i += 1) {
-    out.push(i);
+  for (let yr = y; yr >= y - 10; yr -= 1) {
+    out.push(yr);
   }
+  out.push(y + 1, y + 2);
   return out;
 }
 
