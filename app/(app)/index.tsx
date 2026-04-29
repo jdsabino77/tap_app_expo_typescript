@@ -232,9 +232,9 @@ export default function DashboardScreen() {
           onPress={() => router.push("/treatments/new")}
         />
         <QuickActionCard
-          title={appStrings.quickActionFaceMap}
-          subtitle={appStrings.quickActionFaceMapSub}
-          onPress={() => router.push("/face-map")}
+          title={appStrings.quickActionCalendar}
+          subtitle={appStrings.quickActionCalendarSub}
+          onPress={() => router.push("/calendar")}
         />
       </View>
       <View style={styles.qaRow}>
@@ -244,24 +244,17 @@ export default function DashboardScreen() {
           onPress={() => router.push("/providers")}
         />
         <QuickActionCard
-          title={appStrings.quickActionCalendar}
-          subtitle={appStrings.quickActionCalendarSub}
-          onPress={() => router.push("/calendar")}
-        />
-      </View>
-      <View style={styles.qaRow}>
-        <QuickActionCard
           title={appStrings.quickActionProfile}
           subtitle={appStrings.quickActionProfileSub}
           onPress={() => router.push("/medical-profile")}
         />
+      </View>
+      <View style={styles.qaRow}>
         <QuickActionCard
           title={appStrings.quickActionSkinAnalyzer}
           subtitle={appStrings.quickActionSkinAnalyzerSub}
           onPress={() => router.push("/skin-analyzer")}
         />
-      </View>
-      <View style={styles.qaRow}>
         <QuickActionCard
           title={appStrings.quickActionPhotoLibrary}
           subtitle={appStrings.quickActionPhotoLibrarySub}
