@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -23,6 +23,14 @@ import { useSession } from "../../../src/store/session";
 import { colors } from "../../../src/theme/tokens";
 
 export default function AddProviderScreen() {
+  const params = useLocalSearchParams<{
+    returnTo?: string | string[];
+    fromAppointment?: string | string[];
+    draft?: string | string[];
+  }>();
+  const returnTo = firstParam(params.returnTo);
+  const fromAppointment = firstParam(params.fromAppointment);
+  const draft = firstParam(params.draft);
   const { supabaseEnabled } = useSession();
   const catalogs = useReferenceCatalogs();
   const [name, setName] = useState("");
@@ -57,7 +65,7 @@ export default function AddProviderScreen() {
 
     setSaving(true);
     try {
-      await createProviderForCurrentUser({
+      const created = await createProviderForCurrentUser({
         name: n,
         address: address.trim(),
         city: city.trim(),
@@ -68,6 +76,17 @@ export default function AddProviderScreen() {
         website: website.trim(),
         specialties,
       });
+      if (returnTo) {
+        router.replace({
+          pathname: returnTo as "/(app)/treatments/new",
+          params: {
+            selectedProviderId: created.id,
+            fromAppointment,
+            draft,
+          },
+        });
+        return;
+      }
       router.back();
     } catch (e) {
       if (isWriteQueuedError(e)) {
@@ -219,3 +238,13 @@ const styles = StyleSheet.create({
   saveDisabled: { opacity: 0.6 },
   saveText: { color: colors.primaryNavy, fontWeight: "700", fontSize: 16 },
 });
+
+function firstParam(v: string | string[] | undefined): string | undefined {
+  if (typeof v === "string") {
+    return v;
+  }
+  if (Array.isArray(v)) {
+    return v[0];
+  }
+  return undefined;
+}

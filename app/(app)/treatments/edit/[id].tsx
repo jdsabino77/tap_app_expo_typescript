@@ -82,7 +82,7 @@ export default function EditTreatmentScreen() {
   const [brandOtherDetail, setBrandOtherDetail] = useState("");
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
   const [unitsText, setUnitsText] = useState("0");
-  const [providerId, setProviderId] = useState<string | null>(null);
+  const [providerId, setProviderId] = useState("");
   const [dateStr, setDateStr] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [notes, setNotes] = useState("");
   const [costText, setCostText] = useState("");
@@ -360,7 +360,7 @@ export default function EditTreatmentScreen() {
         setBrandOtherDetail("");
         setSelectedAreas([...t.treatmentAreas]);
         setUnitsText(String(t.units));
-        const pid = t.providerId && t.providerId !== "" ? t.providerId : null;
+        const pid = t.providerId && t.providerId !== "" ? t.providerId : "";
         setProviderId(pid);
         setDateStr(format(t.treatmentDate, "yyyy-MM-dd"));
         setNotes(t.notes ?? "");
@@ -498,6 +498,11 @@ export default function EditTreatmentScreen() {
       return;
     }
     const d = parseDateInput(dateStr);
+    const selectedProviderId = providerId.trim();
+    if (!selectedProviderId) {
+      setError("Provider is required.");
+      return;
+    }
     if (!d) {
       setError("Use treatment date as YYYY-MM-DD.");
       return;
@@ -551,7 +556,7 @@ export default function EditTreatmentScreen() {
           ebdModality: ebdMod,
           treatmentAreas: areas,
           units,
-          providerId,
+          providerId: selectedProviderId,
           treatmentDate: d,
           notes: notes.trim(),
           cost,
@@ -732,17 +737,11 @@ export default function EditTreatmentScreen() {
         <Text style={styles.label}>Treatment date (YYYY-MM-DD) *</Text>
         <TextInput style={styles.input} autoCapitalize="none" value={dateStr} onChangeText={setDateStr} />
 
-        <Text style={styles.label}>Provider</Text>
+        <Text style={styles.label}>Provider *</Text>
         {loadingProviders ? (
           <ActivityIndicator color={colors.primaryNavy} style={styles.loader} />
         ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.providerStrip}>
-            <Pressable
-              style={[styles.chip, providerId === null && styles.chipOn]}
-              onPress={() => setProviderId(null)}
-            >
-              <Text style={[styles.chipText, providerId === null && styles.chipTextOn]}>None</Text>
-            </Pressable>
             {providers.map((p) => (
               <Pressable
                 key={p.id}

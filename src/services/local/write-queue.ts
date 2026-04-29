@@ -211,7 +211,7 @@ const treatmentCreatePayload = z.object({
     ebdModality: z.enum(["laser", "photofacial"]).nullable().optional(),
     treatmentAreas: z.array(z.string()),
     units: z.number(),
-    providerId: z.string().nullable(),
+    providerId: z.string().min(1),
     treatmentDate: z.string(),
     notes: z.string(),
     cost: z.number().nullable(),
@@ -261,8 +261,7 @@ async function executeOutboxRow(
   switch (row.kind) {
     case "treatment_create": {
       const p = treatmentCreatePayload.parse(JSON.parse(row.payload));
-      const providerId =
-        p.input.providerId && p.input.providerId.trim() !== "" ? p.input.providerId.trim() : null;
+      const providerId = p.input.providerId.trim();
       const ebdId =
         p.input.ebdIndicationId && p.input.ebdIndicationId.trim() !== ""
           ? p.input.ebdIndicationId.trim()
@@ -297,8 +296,7 @@ async function executeOutboxRow(
     }
     case "treatment_update": {
       const p = treatmentUpdatePayload.parse(JSON.parse(row.payload));
-      const providerId =
-        p.input.providerId && p.input.providerId.trim() !== "" ? p.input.providerId.trim() : null;
+      const providerId = p.input.providerId.trim();
       const ebdId =
         p.input.ebdIndicationId && p.input.ebdIndicationId.trim() !== ""
           ? p.input.ebdIndicationId.trim()
@@ -483,7 +481,7 @@ export function serializeTreatmentCreatePayload(
     ebdModality?: "laser" | "photofacial" | null;
     treatmentAreas: string[];
     units: number;
-    providerId: string | null;
+    providerId: string;
     treatmentDate: Date;
     notes: string;
     cost: number | null;
@@ -523,7 +521,7 @@ export function serializeTreatmentUpdatePayload(
     ebdModality?: "laser" | "photofacial" | null;
     treatmentAreas: string[];
     units: number;
-    providerId: string | null;
+    providerId: string;
     treatmentDate: Date;
     notes: string;
     cost: number | null;
