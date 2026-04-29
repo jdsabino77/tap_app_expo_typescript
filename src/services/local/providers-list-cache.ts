@@ -65,5 +65,6 @@ export function syntheticProviderFromInput(
     isActive: true,
     services: input.specialties,
     isGlobal: false,
+    logoUrl: "",
   });
 }

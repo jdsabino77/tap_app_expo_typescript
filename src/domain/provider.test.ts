@@ -46,6 +46,21 @@ describe("providerFromRemote", () => {
     });
     expect(p.services).toEqual(["A"]);
   });
+
+  it("maps logo_url to logoUrl", () => {
+    const p = providerFromRemote("id", {
+      name: "N",
+      address: "",
+      city: "",
+      province: "",
+      postal_code: "",
+      phone: "",
+      email: "",
+      specialties: [],
+      logo_url: "https://example.com/l.png",
+    });
+    expect(p.logoUrl).toBe("https://example.com/l.png");
+  });
 });
 
 describe("providerFullAddress", () => {

@@ -17,6 +17,8 @@ export const providerSchema = z.object({
   isActive: z.boolean().default(true),
   services: z.array(z.string()).default([]),
   isGlobal: z.boolean().default(true),
+  /** Public HTTPS logo; set in DB for global directory providers only. */
+  logoUrl: z.string().default(""),
 });
 
 export type Provider = z.infer<typeof providerSchema>;
@@ -68,6 +70,10 @@ export function providerFromRemote(
         : typeof raw.isGlobal === "boolean"
           ? raw.isGlobal
           : true,
+    logoUrl: (() => {
+      const v = raw.logo_url ?? raw.logoUrl;
+      return typeof v === "string" ? v : "";
+    })(),
   });
 }
 

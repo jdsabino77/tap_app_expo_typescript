@@ -1,6 +1,6 @@
 # Supabase schema sketch (from Flutter / Firestore)
 
-**Status:** Implemented as SQL in [`supabase/migrations/`](../supabase/migrations/) (`001` core, `002` catalogs, `003` treatment photos + storage, `004` admin user listing + RPC, `005` service-type brands, `006` appointments, `007` skin condition → service/laser map, **`008` EBD clinical categories**, **`009` EBD ↔ laser_types junction**). The **Expo app does not apply** these files; your cloud project must run them via [SQL Editor or CLI `db push`](./SUPABASE_SETUP.md). Names use `snake_case` in Postgres; mappers convert to/from TS `camelCase` as needed.
+**Status:** Implemented as SQL in [`supabase/migrations/`](../supabase/migrations/) (`001` core, `002` catalogs, `003` treatment photos + storage, `004` admin user listing + RPC, `005` service-type brands, `006` appointments, `007` skin condition → service/laser map, **`008` EBD clinical categories**, **`009` EBD ↔ laser_types junction**, **`014` provider `logo_url`**). The **Expo app does not apply** these files; your cloud project must run them via [SQL Editor or CLI `db push`](./SUPABASE_SETUP.md). Names use `snake_case` in Postgres; mappers convert to/from TS `camelCase` as needed.
 
 ---
 
@@ -115,6 +115,7 @@ Replaces top-level `providers` collection.
 | `is_active` | `boolean` default true | |
 | `created_at` | `timestamptz` | |
 | `updated_at` | `timestamptz` | |
+| `logo_url` | `text` nullable | Optional public HTTPS URL (PNG/JPEG) for **global** directory providers; set in SQL or Storage, not the mobile app (migration `014`) |
 
 ### Reference catalogs (Firestore top-level collections)
 
