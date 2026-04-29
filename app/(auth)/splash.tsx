@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useEffect, useRef } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { appStrings } from "../../src/strings/appStrings";
 import { colors } from "../../src/theme/tokens";
@@ -38,7 +38,11 @@ export default function SplashScreen() {
       <Pressable onPress={onSkip} style={[styles.skipBtn, { top: 12 + insets.top }]} hitSlop={12}>
         <Text style={styles.skipText}>{appStrings.splashSkip}</Text>
       </Pressable>
-      <Text style={styles.title}>{appStrings.appShortName}</Text>
+      <Image
+        source={require("../../assets/branding/splash-logo.jpg")}
+        style={styles.logo}
+        resizeMode="contain"
+      />
       <ActivityIndicator size="large" color={colors.primaryGold} style={styles.spinner} />
       <Text style={styles.muted}>{appStrings.splashRedirecting}</Text>
     </View>
@@ -60,7 +64,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   skipText: { fontSize: 16, fontWeight: "600", color: colors.primaryGold },
-  title: { fontSize: 32, fontWeight: "700", color: colors.cleanWhite },
+  logo: {
+    width: 220,
+    height: 220,
+  },
   spinner: { marginTop: 24 },
   muted: { marginTop: 16, color: colors.onNavySubtle },
 });

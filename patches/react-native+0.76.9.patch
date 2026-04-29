@@ -1,0 +1,14 @@
+diff --git a/node_modules/react-native/React/CoreModules/RCTDeviceInfo.mm b/node_modules/react-native/React/CoreModules/RCTDeviceInfo.mm
+index 454a325..78fa984 100644
+--- a/node_modules/react-native/React/CoreModules/RCTDeviceInfo.mm
++++ b/node_modules/react-native/React/CoreModules/RCTDeviceInfo.mm
+@@ -162,7 +162,8 @@ - (NSDictionary *)_exportedDimensions
+   RCTAssert(_moduleRegistry, @"Failed to get exported dimensions: RCTModuleRegistry is nil");
+   RCTAccessibilityManager *accessibilityManager =
+       (RCTAccessibilityManager *)[_moduleRegistry moduleForName:"AccessibilityManager"];
+-  RCTAssert(accessibilityManager, @"Failed to get exported dimensions: AccessibilityManager is nil");
++  // During early bridge init, DeviceInfo constants can be read before AccessibilityManager is registered
++  // (observed on iOS 26 simulators). Default font scale to 1.0 until the module is available.
+   CGFloat fontScale = accessibilityManager ? accessibilityManager.multiplier : 1.0;
+   return RCTExportedDimensions(fontScale);
+ }

@@ -3,12 +3,14 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Appointment } from "../../src/domain/appointment";
 import type { Treatment } from "../../src/domain/treatment";
 import { formatDisplayDate, formatDisplayDateTime } from "../../src/lib/datetime";
@@ -72,6 +74,7 @@ function QuickActionCard({
 }
 
 export default function DashboardScreen() {
+  const insets = useSafeAreaInsets();
   const net = useNetworkStatus();
   const { supabaseEnabled, email } = useSession();
   const [displayName, setDisplayName] = useState<string | null>(null);
@@ -178,7 +181,22 @@ export default function DashboardScreen() {
   );
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 8 }]}
+      contentInsetAdjustmentBehavior="never"
+      automaticallyAdjustContentInsets={false}
+      automaticallyAdjustsScrollIndicatorInsets={false}
+    >
+      <View style={styles.dashboardBanner}>
+        <View style={styles.dashboardBannerCrop}>
+          <Image
+            source={require("../../assets/branding/splash-logo.jpg")}
+            style={styles.dashboardBannerLogo}
+            resizeMode="contain"
+          />
+        </View>
+      </View>
       {net === "offline" ? (
         <View style={styles.offlineBanner}>
           <Text style={styles.offlineText}>{appStrings.offlineBanner}</Text>
@@ -346,7 +364,26 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: colors.lightGray },
-  scrollContent: { paddingTop: 8, paddingBottom: 32 },
+  scrollContent: { paddingBottom: 32 },
+  dashboardBanner: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    alignItems: "center",
+    paddingVertical: 0,
+  },
+  dashboardBannerCrop: {
+    width: "100%",
+    maxWidth: 420,
+    height: 96,
+    alignItems: "center",
+    justifyContent: "flex-start",
+    overflow: "hidden",
+  },
+  dashboardBannerLogo: {
+    width: 500,
+    height: 150,
+    transform: [{ translateY: -20 }],
+  },
   offlineBanner: {
     marginHorizontal: 16,
     marginBottom: 12,

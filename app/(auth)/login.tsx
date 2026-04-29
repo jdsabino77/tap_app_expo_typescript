@@ -2,6 +2,7 @@ import { Link, router } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -11,7 +12,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { PassportLogo } from "../../src/components/PassportLogo";
 import { appStrings } from "../../src/strings/appStrings";
 import { useSession } from "../../src/store/session";
 import { colors } from "../../src/theme/tokens";
@@ -50,7 +50,13 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <PassportLogo size={100} />
+        <View style={styles.authLogoCrop}>
+          <Image
+            source={require("../../assets/branding/splash-logo.jpg")}
+            style={styles.authLogo}
+            resizeMode="contain"
+          />
+        </View>
         <Text style={styles.headline}>{appStrings.loginHeadline}</Text>
         <Text style={styles.sub}>{appStrings.loginSubtitle}</Text>
 
@@ -153,8 +159,16 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.lightGray },
   container: { padding: 24, paddingBottom: 48 },
+  authLogoCrop: {
+    width: "100%",
+    height: 142,
+    alignItems: "center",
+    justifyContent: "flex-start",
+    overflow: "hidden",
+  },
+  authLogo: { width: "100%", height: 220, alignSelf: "center", transform: [{ translateY: -30 }] },
   headline: {
-    marginTop: 16,
+    marginTop: 0,
     fontSize: 22,
     fontWeight: "700",
     color: colors.primaryNavy,

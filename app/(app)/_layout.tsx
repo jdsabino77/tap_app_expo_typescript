@@ -17,7 +17,12 @@ export default function AppGroupLayout() {
         contentStyle: { backgroundColor: theme.colors.background },
       }}
     >
-      <Stack.Screen name="index" options={{ title: appStrings.dashboardTitle }} />
+      <Stack.Screen
+        name="index"
+        options={{
+          headerShown: false,
+        }}
+      />
       <Stack.Screen name="treatments" options={{ headerShown: false }} />
       <Stack.Screen name="providers" options={{ headerShown: false }} />
       <Stack.Screen name="face-map" options={{ title: appStrings.faceMapScreenTitle }} />

@@ -11,13 +11,11 @@ export default function FaceMapScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.p}>
-        The original app ties this area to treatment planning and visual overlays. The Expo build does not run the
-        skin analyzer pipeline yet (CoreML / camera capture / segmentation).
+        Place holder for an option to enter a treatment via a medical image of a human body part where a user can pick the area of treatment.
       </Text>
       <Text style={styles.sub}>Planned capabilities (high level)</Text>
-      <Text style={styles.bullet}>• Capture or import a photo with guided framing</Text>
-      <Text style={styles.bullet}>• On-device inference with a bundled model (size + platform constraints TBD)</Text>
-      <Text style={styles.bullet}>• Overlays and metrics aligned with clinical review workflows</Text>
+      <Text style={styles.bullet}>• User selects area of treatment based on locatoins of the body</Text>
+      <Text style={styles.bullet}>• due to the nataure of multi location treatments, this will likely be removed</Text>
       <Text style={styles.bullet}>• Optional sync with treatment history in this app</Text>
       <Link href="/treatments" asChild>
         <Pressable style={styles.linkBtn}>
