@@ -380,8 +380,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   dashboardBannerLogo: {
-    width: 500,
-    height: 150,
+    width: 600,
+    height: 180,
     transform: [{ translateY: -20 }],
   },
   offlineBanner: {
