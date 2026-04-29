@@ -1,4 +1,4 @@
-# T.A.P Settings & User Preferences
+# DermaPass by Yasa Settings & User Preferences
 
 ## Overview
 
@@ -37,7 +37,7 @@ Use this to gate the first TestFlight. Check boxes as you confirm each item on a
 | A1 | **Auth end-to-end** | **Required before wider beta.** Sign up, sign in, sign out; password reset if you expose it. Use **release** `EXPO_PUBLIC_*` Supabase URLs/keys; **`tap`** scheme + Supabase **Redirect URLs** so email/magic links return to the app; align with **[Before production: Supabase email confirmation](#before-production-supabase-email-confirmation)** and **[SUPABASE_SETUP.md](./SUPABASE_SETUP.md)**. |
 | A2 | **Core patient journeys** | Smoke-test **dashboard**, **treatments** (list / add / edit as shipped), **appointments / calendar** if testers should review them — same flows as **main**, on the **TF binary**. |
 | A3 | **Skin analyzer (demo)** | `/skin-analyzer`: pick photo → on-device inference → mask + condition preview + recommended treatments stubs; UI clearly **non-diagnostic** / educational. |
-| A4 | **Photo permission + one happy path** | On the **TestFlight build** (not only Xcode debug/dev client): first-time **photo library** prompt appears; **Settings → T.A.P → Photos** is correct after a pick. Complete at least **one** path: e.g. Skin analyzer pick **or** one **treatment photo** attach — whichever you ship. *Release-only breakages are common; treat this as explicit QA.* |
+| A4 | **Photo permission + one happy path** | On the **TestFlight build** (not only Xcode debug/dev client): first-time **photo library** prompt appears; **Settings → DermaPass → Photos** is correct after a pick. Complete at least **one** path: e.g. Skin analyzer pick **or** one **treatment photo** attach — whichever you ship. *Release-only breakages are common; treat this as explicit QA.* |
 | A5 | **Legal / trust (minimal)** | Testers can open **Privacy policy** and **Terms** (in-app or Safari to stable URLs). **About** shows **version/build** if the screen exists (helps support). |
 
 **Suggested ownership:** mark each **A** row `[x]` below when done.
@@ -78,7 +78,7 @@ Bundle ID in **`app.config.js`** is **`com.yasalaser.tap`** — must match the *
 **Apple & Connect**
 
 - [ ] **Apple Developer Program** membership active (**$99/yr**).
-- [ ] **App Store Connect** → **My Apps** → create (or link) the **T.A.P** app with bundle ID **`com.yasalaser.tap`**.
+- [ ] **App Store Connect** → **My Apps** → create (or link) the **DermaPass by Yasa** app with bundle ID **`com.yasalaser.tap`**.
 - [ ] **Signing:** iOS **Distribution** certificate + **App Store** provisioning profile (or let **EAS** create/manage them).
 - [ ] Increment **marketing version** (`expo.version` in **`app.config.js`**) and **build number** (`ios.buildNumber` or EAS auto-increment) for **each** upload TestFlight expects a new build number).
 
@@ -313,11 +313,11 @@ Switch(
 
 ### About & Legal
 
-**About T.A.P** (Medium Priority)
+**About DermaPass by Yasa** (Medium Priority)
 - App name: "The Aesthetic Passport"
 - Version number (from pubspec.yaml)
 - Build number
-- YasaLaser branding
+- DermaPass by Yasa branding
 - Credits and acknowledgments
 - Contact information
 
@@ -393,7 +393,7 @@ Switch(
 1. Notification preferences
 2. Profile Settings editor
 3. Help & Support section
-4. About T.A.P page
+4. About DermaPass by Yasa page
 
 ### Phase 3 (Future)
 1. Export Data functionality

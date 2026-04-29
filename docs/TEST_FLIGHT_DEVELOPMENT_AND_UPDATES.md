@@ -1,6 +1,6 @@
 # TestFlight development and shipping (POC beta)
 
-Operational runbook for **T.A.P by YasaLaser** (Expo): change the app, produce a **store-quality iOS binary**, upload to **App Store Connect**, and refresh **TestFlight** testers.
+Operational runbook for **DermaPass by Yasa** (Expo): change the app, produce a **store-quality iOS binary**, upload to **App Store Connect**, and refresh **TestFlight** testers.
 
 ## Purpose and scope
 

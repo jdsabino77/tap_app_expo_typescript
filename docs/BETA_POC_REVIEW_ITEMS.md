@@ -1,6 +1,6 @@
 # Beta POC — review and follow-up items
 
-Track **non-blocking notices**, **tester feedback**, and **action items** discovered during the **TestFlight POC** for T.A.P (Expo). Use this as a living list; close or move items to your issue tracker when you pick them up.
+Track **non-blocking notices**, **tester feedback**, and **action items** discovered during the **TestFlight POC** for DermaPass by Yasa (Expo). Use this as a living list; close or move items to your issue tracker when you pick them up.
 
 **Related:** [SETTINGS_FEATURES.md](./SETTINGS_FEATURES.md) (beta scope A–C), [TEST_FLIGHT_DEVELOPMENT_AND_UPDATES.md](./TEST_FLIGHT_DEVELOPMENT_AND_UPDATES.md) (shipping builds).
 

@@ -31,7 +31,7 @@ const authEmailRedirectUrl = process.env.EXPO_PUBLIC_SUPABASE_AUTH_REDIRECT_URL 
 
 module.exports = {
   expo: {
-    name: "T.A.P by YasaLaser",
+    name: "DermaPass by Yasa",
     slug: "tap-app-expo-typescript",
     version: "1.0.1",
     orientation: "portrait",

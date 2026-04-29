@@ -1,6 +1,6 @@
-# T.A.P — Expo (TypeScript)
+# DermaPass by Yasa — Expo (TypeScript)
 
-React Native rebuild of **T.A.P by YasaLaser** (Treatment & Aesthetic Procedures), migrated from the Flutter app at `../tap_app`.
+React Native rebuild of **DermaPass by Yasa** (Treatment & Aesthetic Procedures), migrated from the Flutter app at `../tap_app`.
 
 ## Migration docs
 

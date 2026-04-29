@@ -1,4 +1,4 @@
-# Skin analyzer: end-to-end workflow (train → CoreML → T.A.P iOS)
+# Skin analyzer: end-to-end workflow (train → CoreML → DermaPass iOS)
 
 Use this while **`skin_analyzer_model`** training runs or after it finishes. It ties the ML repo to the Expo app.
 
@@ -67,7 +67,7 @@ Confirm **`exports/pigment_segmentation.mlpackage`** exists (it is a **folder** 
 
 1. Open **`tap_app_expo_typescript/ios/*.xcworkspace`** in Xcode.
 2. Drag **`pigment_segmentation.mlpackage`** (the whole bundle) into the app project (e.g. from `skin_analyzer_model/exports/`).
-3. Enable **Copy items if needed** and the **T.A.P** app **target**.
+3. Enable **Copy items if needed** and the **DermaPass** app **target**.
 4. Build once; Xcode compiles the package into the app bundle. Verify **Build Phases → Copy Bundle Resources** includes **`pigment_segmentation.mlpackage`**.
 
 ### B3. Native bridge (implemented)

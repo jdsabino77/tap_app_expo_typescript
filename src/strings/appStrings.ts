@@ -5,12 +5,12 @@
 
 export const appStrings = {
   /** MaterialApp `title` in Flutter `main.dart`. */
-  appDisplayName: "T.A.P by YasaLaser",
+  appDisplayName: "DermaPass by Yasa",
   /** Short product name (headers, logo). */
-  appShortName: "T.A.P",
+  appShortName: "DermaPass",
   tagline: "Treatment & Aesthetic Procedures",
   /** Flutter `HomePage` AppBar */
-  dashboardTitle: "T.A.P Dashboard",
+  dashboardTitle: "DermaPass Dashboard",
 
   welcomeBackTitle: "Welcome back!",
   welcomeBackSubtitle: "Track your aesthetic journey with confidence",
@@ -198,7 +198,7 @@ export const appStrings = {
 
   /** Sign up (`signup_page.dart`) */
   createAccount: "Create Account",
-  joinHeadline: "Join T.A.P by YasaLaser",
+  joinHeadline: "Join DermaPass by Yasa",
   joinSubtitle: "Create your account to start tracking treatments",
   /** Shown on sign-up — keeps expectations aligned with Auth + `profiles` trigger + separate medical form. */
   signUpWhatHappensHint:
@@ -213,7 +213,7 @@ export const appStrings = {
   /** Welcome (`welcome_page.dart`) — returns to sign-in (signs out the session). */
   welcomeExitSignOut: "Sign out",
   /** Welcome (`welcome_page.dart`) */
-  welcomeTitle: "Welcome to T.A.P",
+  welcomeTitle: "Welcome to DermaPass",
   welcomeBody:
     "Let's get started by setting up your medical profile. This information helps us provide you with personalized treatment tracking.",
   welcomeFeature1Title: "Track Your Treatments",
@@ -264,10 +264,10 @@ export const appStrings = {
     "YASA Laser Clinic describes how we handle personal information on our website and services. The full policy lives on our site — use the button below to read it in Safari.",
   photoPermissionDeniedTitle: "Photo access needed",
   photoPermissionDeniedMessage:
-    "Allow photo library access to attach images, or enable it under Settings → T.A.P → Photos.",
+    "Allow photo library access to attach images, or enable it under Settings → DermaPass → Photos.",
   cameraPermissionDeniedTitle: "Camera access needed",
   cameraPermissionDeniedMessage:
-    "Allow camera access to take treatment photos, or enable it under Settings → T.A.P → Camera.",
+    "Allow camera access to take treatment photos, or enable it under Settings → DermaPass → Camera.",
   photoPermissionOpenSettings: "Open Settings",
   termsCheckboxLead: "I agree to the ",
   acceptTermsToContinue: "Please accept the terms and conditions to continue",
