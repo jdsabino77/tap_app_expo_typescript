@@ -24,6 +24,7 @@
     "eas:submit:ios": "eas submit --platform ios --profile production --latest"
   },
   "dependencies": {
+    "@react-native-community/datetimepicker": "8.2.0",
     "@react-native-community/netinfo": "11.4.1",
     "@supabase/supabase-js": "^2.101.1",
     "base64-arraybuffer": "^1.0.2",

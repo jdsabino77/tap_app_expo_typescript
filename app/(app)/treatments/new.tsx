@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { CatalogItemSelect } from "../../../src/components/catalog-item-select";
+import { DateInputField } from "../../../src/components/date-input-field";
 import { TreatmentTypeSelectGrid } from "../../../src/components/treatment-type-select-grid";
 import { TreatmentPhotoViewer } from "../../../src/components/treatment-photo-viewer";
 import { TreatmentBrandFields } from "../../../src/components/treatment-brand-fields";
@@ -676,13 +677,8 @@ export default function NewTreatmentScreen() {
           </>
         ) : null}
 
-        <Text style={styles.label}>Treatment date (YYYY-MM-DD) *</Text>
-        <TextInput
-          style={styles.input}
-          autoCapitalize="none"
-          value={dateStr}
-          onChangeText={setDateStr}
-        />
+        <Text style={styles.label}>{appStrings.treatmentDateLabel} *</Text>
+        <DateInputField valueYmd={dateStr} onChangeYmd={setDateStr} inputStyle={styles.input} />
 
         <Text style={styles.label}>Provider *</Text>
         {loadingProviders ? (
