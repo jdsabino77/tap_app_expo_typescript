@@ -47,7 +47,7 @@ export default function TermsScreen() {
       </Pressable>
       <Text style={styles.h1}>Terms &amp; Conditions (placeholder)</Text>
       <Text style={styles.p}>
-        By using T.A.P (&quot;the App&quot;), you agree to these terms. If you do not agree, do not use the App.
+        By using DermaPass by Yasa (&quot;the App&quot;), you agree to these terms. If you do not agree, do not use the App.
       </Text>
       <Text style={styles.h2}>1. Medical information</Text>
       <Text style={styles.p}>

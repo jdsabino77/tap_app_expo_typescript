@@ -6,7 +6,7 @@ import { colors } from "../theme/tokens";
 export function PassportLogo({ size = 80 }: { size?: number }) {
   const borderRadius = 12;
   const iconSize = size * 0.4;
-  const tapFontSize = Math.max(10, size * 0.16);
+  const brandFontSize = Math.max(8, size * 0.13);
 
   return (
     <View
@@ -28,7 +28,7 @@ export function PassportLogo({ size = 80 }: { size?: number }) {
       <View style={[styles.iconCenter, { paddingBottom: size * 0.1 }]}>
         <MaterialIcons name="medical-services" size={iconSize} color={colors.primaryGold} />
       </View>
-      <Text style={[styles.tap, { fontSize: tapFontSize, bottom: size * 0.1 }]}>T.A.P</Text>
+      <Text style={[styles.brand, { fontSize: brandFontSize, bottom: size * 0.1 }]}>DermaPass</Text>
       <View style={[styles.lineBottom, { bottom: size * 0.05, left: size * 0.2, right: size * 0.2 }]} />
     </View>
   );
@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  tap: {
+  brand: {
     position: "absolute",
     left: 0,
     right: 0,

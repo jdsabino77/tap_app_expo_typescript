@@ -1,4 +1,4 @@
-# Styling and themes (T.A.P Expo)
+# Styling and themes (DermaPass by Yasa Expo)
 
 This document describes **how styling works in the app today**: where colors and type are defined, how navigation chrome is set, and how to change them safely for releases (including beta). It is maintainer documentation, not a product spec.
 
