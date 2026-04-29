@@ -35,8 +35,8 @@ export type CreateTreatmentInput = {
   ebdModality?: EbdModality | null;
   treatmentAreas: string[];
   units: number;
-  /** Empty or null → stored as null */
-  providerId: string | null;
+  /** Required provider id */
+  providerId: string;
   treatmentDate: Date;
   notes: string;
   cost: number | null;
@@ -63,6 +63,14 @@ function isoTimestamptzArray(dates: Date[]): string[] {
 
 function hasPhotoWork(c?: TreatmentPhotoChanges): boolean {
   return Boolean(c?.addLocal?.length || c?.removeStoragePaths?.length);
+}
+
+function normalizeRequiredProviderId(providerId: string): string {
+  const trimmed = providerId.trim();
+  if (!trimmed) {
+    throw new Error("Provider is required.");
+  }
+  return trimmed;
 }
 
 async function assertOnlineForTreatmentPhotos(c?: TreatmentPhotoChanges): Promise<void> {
@@ -274,8 +282,7 @@ export async function createTreatmentForCurrentUser(
     });
   }
 
-  const providerId =
-    input.providerId && input.providerId.trim() !== "" ? input.providerId.trim() : null;
+  const providerId = normalizeRequiredProviderId(input.providerId);
 
   const initialPhotos = input.photoUrls ?? [];
   const addCount = photoChanges?.addLocal?.length ?? 0;
@@ -381,8 +388,7 @@ export async function updateTreatmentForCurrentUser(
     await queueTreatmentUpdate(uid, id, input);
   }
 
-  const providerId =
-    input.providerId && input.providerId.trim() !== "" ? input.providerId.trim() : null;
+  const providerId = normalizeRequiredProviderId(input.providerId);
 
   const ebdId =
     input.ebdIndicationId && input.ebdIndicationId.trim() !== ""

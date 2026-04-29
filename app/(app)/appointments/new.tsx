@@ -1,6 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { addDays, format } from "date-fns";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -37,6 +37,12 @@ import { useSession } from "../../../src/store/session";
 import { colors } from "../../../src/theme/tokens";
 
 export default function NewAppointmentScreen() {
+  const params = useLocalSearchParams<{
+    selectedProviderId?: string | string[];
+    draft?: string | string[];
+  }>();
+  const selectedProviderParam = firstParam(params.selectedProviderId);
+  const draftParam = firstParam(params.draft);
   const { supabaseEnabled } = useSession();
   const catalogs = useReferenceCatalogs();
   useFocusEffect(
@@ -73,6 +79,49 @@ export default function NewAppointmentScreen() {
     typeFlags.useEbdServiceFlow &&
     (catalogs.ebdIndications?.length ?? 0) > 0;
   const useLaserPicker = typeFlags.useLaserDeviceBrandPicker;
+  const restoredDraftRef = useRef(false);
+  const skipBrandResetRef = useRef(false);
+
+  useEffect(() => {
+    if (restoredDraftRef.current) {
+      return;
+    }
+    skipBrandResetRef.current = true;
+    if (draftParam) {
+      try {
+        const draft = JSON.parse(draftParam) as {
+          appointmentKind?: AppointmentKind;
+          treatmentType?: TreatmentType;
+          serviceType?: string;
+          ebdModality?: EbdModality;
+          ebdIndicationId?: string;
+          brandRowId?: string;
+          brandOtherDetail?: string;
+          dateStr?: string;
+          timeStr?: string;
+          durationText?: string;
+          notes?: string;
+        };
+        if (draft.appointmentKind) setAppointmentKind(draft.appointmentKind);
+        if (draft.treatmentType) setTreatmentType(draft.treatmentType);
+        if (typeof draft.serviceType === "string") setServiceType(draft.serviceType);
+        if (draft.ebdModality) setEbdModality(draft.ebdModality);
+        if (typeof draft.ebdIndicationId === "string") setEbdIndicationId(draft.ebdIndicationId);
+        if (typeof draft.brandRowId === "string") setBrandRowId(draft.brandRowId);
+        if (typeof draft.brandOtherDetail === "string") setBrandOtherDetail(draft.brandOtherDetail);
+        if (typeof draft.dateStr === "string") setDateStr(draft.dateStr);
+        if (typeof draft.timeStr === "string") setTimeStr(draft.timeStr);
+        if (typeof draft.durationText === "string") setDurationText(draft.durationText);
+        if (typeof draft.notes === "string") setNotes(draft.notes);
+      } catch {
+        /* ignore invalid draft payload */
+      }
+    }
+    if (selectedProviderParam) {
+      setProviderId(selectedProviderParam);
+    }
+    restoredDraftRef.current = true;
+  }, [draftParam, selectedProviderParam]);
 
   useEffect(() => {
     if (appointmentKind !== "treatment" || catalogs.loading || !catalogs.treatmentTypes?.length) {
@@ -140,6 +189,12 @@ export default function NewAppointmentScreen() {
   const prevServiceRef = useRef<string | null>(null);
   useEffect(() => {
     if (appointmentKind !== "treatment") {
+      return;
+    }
+    if (skipBrandResetRef.current) {
+      prevModalityRef.current = treatmentType;
+      prevServiceRef.current = serviceType;
+      skipBrandResetRef.current = false;
       return;
     }
     if (prevModalityRef.current !== null && prevModalityRef.current !== treatmentType) {
@@ -235,6 +290,12 @@ export default function NewAppointmentScreen() {
       durationMinutes = n;
     }
 
+    const selectedProviderId = providerId?.trim() ?? "";
+    if (!selectedProviderId) {
+      setError("Provider is required.");
+      return;
+    }
+
     let st = "";
     let tt: TreatmentType | null = null;
     let brandValue = "";
@@ -283,7 +344,7 @@ export default function NewAppointmentScreen() {
         ebdIndicationId: ebdIndicationIdForSave,
         scheduledAt,
         durationMinutes,
-        providerId,
+        providerId: selectedProviderId,
         notes,
       });
       router.back();
@@ -450,29 +511,54 @@ export default function NewAppointmentScreen() {
           onChangeText={setDurationText}
         />
 
-        <Text style={styles.label}>Provider</Text>
+        <Text style={styles.label}>Provider *</Text>
         {loadingProviders ? (
           <ActivityIndicator color={colors.primaryNavy} style={styles.loader} />
         ) : (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.providerStrip}>
+          <>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.providerStrip}>
+              {providers.map((p) => (
+                <Pressable
+                  key={p.id}
+                  style={[styles.chip, providerId === p.id && styles.chipOn]}
+                  onPress={() => setProviderId(p.id)}
+                >
+                  <Text style={[styles.chipText, providerId === p.id && styles.chipTextOn]} numberOfLines={1}>
+                    {p.name}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+            {providers.length === 0 ? (
+              <Text style={styles.catalogWarn}>No providers found. Add one to continue.</Text>
+            ) : null}
             <Pressable
-              style={[styles.chip, providerId === null && styles.chipOn]}
-              onPress={() => setProviderId(null)}
+              style={styles.addProviderButton}
+              onPress={() =>
+                router.push({
+                  pathname: "/(app)/providers/new",
+                  params: {
+                    returnTo: "/(app)/appointments/new",
+                    draft: JSON.stringify({
+                      appointmentKind,
+                      treatmentType,
+                      serviceType,
+                      ebdModality,
+                      ebdIndicationId,
+                      brandRowId,
+                      brandOtherDetail,
+                      dateStr,
+                      timeStr,
+                      durationText,
+                      notes,
+                    }),
+                  },
+                })
+              }
             >
-              <Text style={[styles.chipText, providerId === null && styles.chipTextOn]}>None</Text>
+              <Text style={styles.addProviderButtonText}>Add provider</Text>
             </Pressable>
-            {providers.map((p) => (
-              <Pressable
-                key={p.id}
-                style={[styles.chip, providerId === p.id && styles.chipOn]}
-                onPress={() => setProviderId(p.id)}
-              >
-                <Text style={[styles.chipText, providerId === p.id && styles.chipTextOn]} numberOfLines={1}>
-                  {p.name}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
+          </>
         )}
 
         <Text style={styles.label}>Notes</Text>
@@ -544,6 +630,16 @@ const styles = StyleSheet.create({
   chipTextRaw: { color: colors.textPrimary, fontWeight: "500" },
   chipTextOn: { color: colors.primaryNavy },
   providerStrip: { flexGrow: 0, marginVertical: 4 },
+  addProviderButton: {
+    marginTop: 8,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: colors.primaryNavy,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  addProviderButtonText: { color: colors.primaryNavy, fontWeight: "600" },
   loader: { marginVertical: 8 },
   err: { color: colors.errorRed, marginTop: 12 },
   save: {
@@ -556,3 +652,13 @@ const styles = StyleSheet.create({
   saveDisabled: { opacity: 0.6 },
   saveText: { color: colors.primaryNavy, fontWeight: "700", fontSize: 16 },
 });
+
+function firstParam(v: string | string[] | undefined): string | undefined {
+  if (typeof v === "string") {
+    return v;
+  }
+  if (Array.isArray(v)) {
+    return v[0];
+  }
+  return undefined;
+}

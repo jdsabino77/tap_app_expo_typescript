@@ -62,13 +62,14 @@ function parseDateInput(s: string): Date | null {
 }
 
 export default function NewTreatmentScreen() {
-  const params = useLocalSearchParams<{ fromAppointment?: string }>();
-  const fromAppointmentId =
-    typeof params.fromAppointment === "string"
-      ? params.fromAppointment
-      : Array.isArray(params.fromAppointment)
-        ? params.fromAppointment[0]
-        : undefined;
+  const params = useLocalSearchParams<{
+    fromAppointment?: string | string[];
+    selectedProviderId?: string | string[];
+    draft?: string | string[];
+  }>();
+  const fromAppointmentId = firstParam(params.fromAppointment);
+  const selectedProviderParam = firstParam(params.selectedProviderId);
+  const draftParam = firstParam(params.draft);
 
   const { supabaseEnabled } = useSession();
   const catalogs = useReferenceCatalogs();
@@ -88,7 +89,7 @@ export default function NewTreatmentScreen() {
   const [brandOtherDetail, setBrandOtherDetail] = useState("");
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
   const [unitsText, setUnitsText] = useState("0");
-  const [providerId, setProviderId] = useState<string | null>(null);
+  const [providerId, setProviderId] = useState("");
   const [dateStr, setDateStr] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [notes, setNotes] = useState("");
   const [costText, setCostText] = useState("");
@@ -107,6 +108,8 @@ export default function NewTreatmentScreen() {
     serviceType: string;
   } | null>(null);
   const lastBrandHydrateKeyRef = useRef("");
+  const restoredDraftRef = useRef(false);
+  const skipBrandResetRef = useRef(false);
 
   const typeFlags = useMemo(
     () => treatmentTypeFlagsForSlug(treatmentType, catalogs.treatmentTypes ?? []),
@@ -115,6 +118,47 @@ export default function NewTreatmentScreen() {
   const useEbdLaser =
     typeFlags.useEbdServiceFlow && (catalogs.ebdIndications?.length ?? 0) > 0;
   const useLaserPicker = typeFlags.useLaserDeviceBrandPicker;
+
+  useEffect(() => {
+    if (restoredDraftRef.current) {
+      return;
+    }
+    skipBrandResetRef.current = true;
+    if (draftParam) {
+      try {
+        const draft = JSON.parse(draftParam) as {
+          treatmentType?: TreatmentType;
+          serviceType?: string;
+          ebdModality?: EbdModality;
+          ebdIndicationId?: string;
+          brandRowId?: string;
+          brandOtherDetail?: string;
+          selectedAreas?: string[];
+          unitsText?: string;
+          dateStr?: string;
+          notes?: string;
+          costText?: string;
+        };
+        if (draft.treatmentType) setTreatmentType(draft.treatmentType);
+        if (typeof draft.serviceType === "string") setServiceType(draft.serviceType);
+        if (draft.ebdModality) setEbdModality(draft.ebdModality);
+        if (typeof draft.ebdIndicationId === "string") setEbdIndicationId(draft.ebdIndicationId);
+        if (typeof draft.brandRowId === "string") setBrandRowId(draft.brandRowId);
+        if (typeof draft.brandOtherDetail === "string") setBrandOtherDetail(draft.brandOtherDetail);
+        if (Array.isArray(draft.selectedAreas)) setSelectedAreas(draft.selectedAreas);
+        if (typeof draft.unitsText === "string") setUnitsText(draft.unitsText);
+        if (typeof draft.dateStr === "string") setDateStr(draft.dateStr);
+        if (typeof draft.notes === "string") setNotes(draft.notes);
+        if (typeof draft.costText === "string") setCostText(draft.costText);
+      } catch {
+        /* ignore invalid draft payload */
+      }
+    }
+    if (selectedProviderParam) {
+      setProviderId(selectedProviderParam);
+    }
+    restoredDraftRef.current = true;
+  }, [draftParam, selectedProviderParam]);
 
   useEffect(() => {
     if (catalogs.loading || !catalogs.treatmentTypes?.length) {
@@ -169,6 +213,12 @@ export default function NewTreatmentScreen() {
   const prevModalityRef = useRef<TreatmentType | null>(null);
   const prevServiceRef = useRef<string | null>(null);
   useEffect(() => {
+    if (skipBrandResetRef.current) {
+      prevModalityRef.current = treatmentType;
+      prevServiceRef.current = serviceType;
+      skipBrandResetRef.current = false;
+      return;
+    }
     if (prevModalityRef.current !== null && prevModalityRef.current !== treatmentType) {
       setBrandRowId("");
       setBrandOtherDetail("");
@@ -280,7 +330,7 @@ export default function NewTreatmentScreen() {
           return;
         }
         setDateStr(format(appt.scheduledAt, "yyyy-MM-dd"));
-        setProviderId(appt.providerId);
+        setProviderId(appt.providerId ?? "");
         if (appt.notes.trim() !== "") {
           setNotes(appt.notes.trim());
         }
@@ -411,6 +461,11 @@ export default function NewTreatmentScreen() {
       return;
     }
     const d = parseDateInput(dateStr);
+    const selectedProviderId = providerId.trim();
+    if (!selectedProviderId) {
+      setError("Provider is required.");
+      return;
+    }
     if (!d) {
       setError("Use treatment date as YYYY-MM-DD.");
       return;
@@ -455,7 +510,7 @@ export default function NewTreatmentScreen() {
           ebdModality: ebdMod,
           treatmentAreas: areas,
           units,
-          providerId,
+          providerId: selectedProviderId,
           treatmentDate: d,
           notes: notes.trim(),
           cost,
@@ -629,32 +684,58 @@ export default function NewTreatmentScreen() {
           onChangeText={setDateStr}
         />
 
-        <Text style={styles.label}>Provider</Text>
+        <Text style={styles.label}>Provider *</Text>
         {loadingProviders ? (
           <ActivityIndicator color={colors.primaryNavy} style={styles.loader} />
         ) : (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.providerStrip}>
-            <Pressable
-              style={[styles.chip, providerId === null && styles.chipOn]}
-              onPress={() => setProviderId(null)}
-            >
-              <Text style={[styles.chipText, providerId === null && styles.chipTextOn]}>None</Text>
-            </Pressable>
-            {providers.map((p) => (
-              <Pressable
-                key={p.id}
-                style={[styles.chip, providerId === p.id && styles.chipOn]}
-                onPress={() => setProviderId(p.id)}
-              >
-                <Text
-                  style={[styles.chipText, providerId === p.id && styles.chipTextOn]}
-                  numberOfLines={1}
+          <>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.providerStrip}>
+              {providers.map((p) => (
+                <Pressable
+                  key={p.id}
+                  style={[styles.chip, providerId === p.id && styles.chipOn]}
+                  onPress={() => setProviderId(p.id)}
                 >
-                  {p.name}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
+                  <Text
+                    style={[styles.chipText, providerId === p.id && styles.chipTextOn]}
+                    numberOfLines={1}
+                  >
+                    {p.name}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+            {providers.length === 0 ? (
+              <Text style={styles.catalogWarn}>No providers found. Add one to continue.</Text>
+            ) : null}
+            <Pressable
+              style={styles.addProviderButton}
+              onPress={() =>
+                router.push({
+                  pathname: "/(app)/providers/new",
+                  params: {
+                    returnTo: "/(app)/treatments/new",
+                    fromAppointment: fromAppointmentId,
+                    draft: JSON.stringify({
+                      treatmentType,
+                      serviceType,
+                      ebdModality,
+                      ebdIndicationId,
+                      brandRowId,
+                      brandOtherDetail,
+                      selectedAreas,
+                      unitsText,
+                      dateStr,
+                      notes,
+                      costText,
+                    }),
+                  },
+                })
+              }
+            >
+              <Text style={styles.addProviderButtonText}>Add provider</Text>
+            </Pressable>
+          </>
         )}
 
         <Text style={styles.label}>Cost</Text>
@@ -809,6 +890,16 @@ const styles = StyleSheet.create({
   ebdChipText: { color: colors.textPrimary, fontWeight: "500" },
   chipTextOn: { color: colors.primaryNavy },
   providerStrip: { flexGrow: 0, marginVertical: 4 },
+  addProviderButton: {
+    marginTop: 8,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: colors.primaryNavy,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  addProviderButtonText: { color: colors.primaryNavy, fontWeight: "600" },
   loader: { marginVertical: 8 },
   err: { color: colors.errorRed, marginTop: 12 },
   save: {
@@ -853,3 +944,13 @@ const styles = StyleSheet.create({
   addPhotosText: { color: colors.primaryNavy, fontWeight: "600" },
   photoActions: { flexDirection: "row", gap: 10 },
 });
+
+function firstParam(v: string | string[] | undefined): string | undefined {
+  if (typeof v === "string") {
+    return v;
+  }
+  if (Array.isArray(v)) {
+    return v[0];
+  }
+  return undefined;
+}
