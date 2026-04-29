@@ -180,7 +180,7 @@ export default function AppointmentDetailScreen() {
 
       {a.providerId ? (
         <Pressable style={styles.linkBtn} onPress={() => router.push(`/providers/${a.providerId}`)}>
-          <Text style={styles.linkBtnText}>{appStrings.navProviders}</Text>
+          <Text style={styles.linkBtnText}>{appStrings.appointmentProviderDetailsLink}</Text>
         </Pressable>
       ) : null}
 
