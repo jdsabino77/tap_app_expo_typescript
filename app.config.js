@@ -59,6 +59,7 @@ module.exports = {
     },
     plugins: [
       "expo-router",
+      "@react-native-community/datetimepicker",
       "expo-dev-client",
       "expo-secure-store",
       "expo-sqlite",

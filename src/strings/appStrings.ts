@@ -72,7 +72,7 @@ export const appStrings = {
   appointmentKindLabel: "Visit type",
   appointmentKindConsult: "Consult",
   appointmentKindTreatment: "Treatment",
-  appointmentDateLabel: "Date (YYYY-MM-DD)",
+  appointmentDateLabel: "Date",
   appointmentTimeLabel: "Time (24h, HH:mm)",
   appointmentDurationHint: "Duration (minutes, optional)",
   appointmentScheduledHint: "Must be a future date and time.",
@@ -85,6 +85,8 @@ export const appStrings = {
   appointmentNotesLabel: "Notes",
   appointmentDurationLabel: "Duration",
   appointmentStatusLabel: "Status",
+  /** Appointment detail: link to `/providers/:id` for the booked provider */
+  appointmentProviderDetailsLink: "Provider Details",
   appointmentCancelCta: "Cancel appointment",
   appointmentCancelTitle: "Cancel this appointment?",
   appointmentCancelMessage: "It will be removed from your upcoming visits. You can add a new one anytime.",
@@ -123,6 +125,7 @@ export const appStrings = {
   noTreatmentsYet: "No treatments yet",
   noTreatmentsHint: "Start tracking your aesthetic procedures",
   addFirstTreatment: "Add First Treatment",
+  treatmentDateLabel: "Treatment date",
 
   offlineBanner: "Offline — changes may queue until you reconnect.",
 

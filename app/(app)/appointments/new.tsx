@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { CatalogItemSelect } from "../../../src/components/catalog-item-select";
+import { DateInputField } from "../../../src/components/date-input-field";
 import { TreatmentTypeSelectGrid } from "../../../src/components/treatment-type-select-grid";
 import { TreatmentBrandFields } from "../../../src/components/treatment-brand-fields";
 import { CatalogLoadState } from "../../../src/components/catalog-suggestions";
@@ -486,12 +487,7 @@ export default function NewAppointmentScreen() {
         )}
 
         <Text style={styles.label}>{appStrings.appointmentDateLabel} *</Text>
-        <TextInput
-          style={styles.input}
-          autoCapitalize="none"
-          value={dateStr}
-          onChangeText={setDateStr}
-        />
+        <DateInputField valueYmd={dateStr} onChangeYmd={setDateStr} inputStyle={styles.input} />
 
         <Text style={styles.label}>{appStrings.appointmentTimeLabel} *</Text>
         <TextInput
