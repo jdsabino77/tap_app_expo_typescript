@@ -18,10 +18,10 @@
     "db:push": "supabase db push",
     "db:link": "supabase link",
     "db:status": "supabase migration list",
-    "eas:configure": "eas build:configure",
-    "eas:build:ios": "eas build --platform ios --profile production",
-    "eas:build:ios:dev": "eas build --platform ios --profile development",
-    "eas:submit:ios": "eas submit --platform ios --profile production --latest"
+    "eas:configure": "npx eas-cli build:configure",
+    "eas:build:ios": "npx eas-cli build --platform ios --profile production",
+    "eas:build:ios:dev": "npx eas-cli build --platform ios --profile development",
+    "eas:submit:ios": "npx eas-cli submit --platform ios --profile production --latest"
   },
   "dependencies": {
     "@react-native-community/netinfo": "11.4.1",
@@ -52,11 +52,20 @@
     "tap-skin-analyzer": "file:./modules/tap-skin-analyzer",
     "zod": "^3.24.2"
   },
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "react-native-image-viewing"
+        ],
+        "listUnknownPackages": false
+      }
+    }
+  },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "@types/react": "^18.3.28",
     "babel-preset-expo": "~12.0.0",
-    "eas-cli": "^16.0.0",
     "patch-package": "^8.0.1",
     "supabase": "^2.85.0",
     "typescript": "^5.7.2",
