@@ -51,6 +51,13 @@ export function treatmentServiceLine(t: Treatment, labels: EbdLineLabels): strin
   if (t.ebdIndicationId && t.ebdModality && t.ebdTreatmentCategory) {
     return ebdLine(t.ebdModality, t.ebdTreatmentCategory, labels);
   }
+  if (
+    t.treatmentType === "surgical" &&
+    t.serviceType.trim().toLowerCase() === "implants" &&
+    (t.surgicalProcedureName ?? "").trim() !== ""
+  ) {
+    return `${t.serviceType} · ${t.surgicalProcedureName}`;
+  }
   return t.serviceType;
 }
 

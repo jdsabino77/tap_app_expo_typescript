@@ -1,6 +1,7 @@
 import type { EbdModality } from "../domain/ebd-modality";
 import type { Treatment } from "../domain/treatment";
 import { parseTreatment } from "../domain/treatment";
+import { parseSurgicalDetailsFromUnknown } from "../domain/surgical-details";
 
 export type TreatmentRow = {
   id: string;
@@ -20,6 +21,9 @@ export type TreatmentRow = {
   updated_at?: string;
   ebd_indication_id?: string | null;
   ebd_indications?: { id: string; modality: string; name: string } | null;
+  surgical_procedure_id?: string | null;
+  surgical_details?: unknown;
+  surgical_procedures?: { id: string; name: string } | null;
 };
 
 function ebdFieldsFromRow(row: TreatmentRow): {
@@ -46,6 +50,11 @@ function ebdFieldsFromRow(row: TreatmentRow): {
 
 export function treatmentFromRow(row: TreatmentRow): Treatment {
   const ebd = ebdFieldsFromRow(row);
+  const sp = row.surgical_procedures;
+  const surgicalProcedureId =
+    sp && typeof sp === "object" && sp.id ? sp.id : row.surgical_procedure_id ?? null;
+  const surgicalProcedureName =
+    sp && typeof sp === "object" && sp.name ? String(sp.name) : "";
   return parseTreatment({
     id: row.id,
     userId: row.user_id,
@@ -65,5 +74,8 @@ export function treatmentFromRow(row: TreatmentRow): Treatment {
     photoCapturedAt: (row.photo_captured_at ?? []).map((s) => new Date(s)),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    surgicalProcedureId,
+    surgicalProcedureName,
+    surgicalDetails: parseSurgicalDetailsFromUnknown(row.surgical_details),
   });
 }

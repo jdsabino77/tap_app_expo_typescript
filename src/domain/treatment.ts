@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ebdModalitySchema } from "./ebd-modality";
+import { surgicalDetailsSchema } from "./surgical-details";
 
 /** Slug from `treatment_types.slug` (e.g. injectable, laser, skin_treatments). */
 export const treatmentTypeSchema = z.string().min(1);
@@ -28,6 +29,10 @@ export const treatmentSchema = z.object({
   photoCapturedAt: z.array(z.coerce.date()).optional().default([]),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
+  /** Surgical → Implants: FK label from `surgical_procedures`. */
+  surgicalProcedureId: z.string().nullable().optional().default(null),
+  surgicalProcedureName: z.string().optional().default(""),
+  surgicalDetails: surgicalDetailsSchema.optional().default({}),
 });
 
 export type Treatment = z.infer<typeof treatmentSchema>;

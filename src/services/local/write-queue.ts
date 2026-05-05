@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import { z } from "zod";
+import { type SurgicalDetails, pruneSurgicalDetailsForStorage } from "../../domain/surgical-details";
 import { treatmentTypeFlagsForSlug } from "../../domain/reference-content";
 import { newUuid } from "../../lib/ids";
 import { getSupabase, isSupabaseConfigured } from "../supabase/client";
@@ -217,6 +218,8 @@ const treatmentCreatePayload = z.object({
     cost: z.number().nullable(),
     photoUrls: z.array(z.string()).optional(),
     photoCapturedAt: z.array(z.string()).optional(),
+    surgicalProcedureId: z.string().nullable().optional(),
+    surgicalDetails: z.record(z.string(), z.string()).nullable().optional(),
   }),
 });
 
@@ -271,6 +274,12 @@ async function executeOutboxRow(
       const fb = new Date(p.input.treatmentDate);
       const explicit = (p.input.photoCapturedAt ?? []).map((s) => new Date(s));
       const photoCapturedAtIso = urls.map((_, i) => (explicit[i] ?? fb).toISOString());
+      const surgicalProcId =
+        p.input.treatmentType === "surgical" && p.input.surgicalProcedureId?.trim()
+          ? p.input.surgicalProcedureId.trim()
+          : null;
+      const surgicalDet =
+        p.input.treatmentType === "surgical" ? (p.input.surgicalDetails ?? null) : null;
       const insertRow = {
         id: p.clientRowId,
         user_id: userId,
@@ -286,6 +295,8 @@ async function executeOutboxRow(
         cost: p.input.cost,
         photo_urls: urls,
         photo_captured_at: photoCapturedAtIso,
+        surgical_procedure_id: surgicalProcId,
+        surgical_details: surgicalDet,
       };
       const { error } = await supabase.from("treatments").insert(insertRow).select("id").maybeSingle();
       if (error) {
@@ -302,6 +313,12 @@ async function executeOutboxRow(
           ? p.input.ebdIndicationId.trim()
           : null;
       const usesEbdUpd = treatmentTypeFlagsForSlug(p.input.treatmentType, []).useEbdServiceFlow;
+      const surgicalProcIdUpd =
+        p.input.treatmentType === "surgical" && p.input.surgicalProcedureId?.trim()
+          ? p.input.surgicalProcedureId.trim()
+          : null;
+      const surgicalDetUpd =
+        p.input.treatmentType === "surgical" ? (p.input.surgicalDetails ?? null) : null;
       const upd = {
         treatment_type: p.input.treatmentType,
         service_type: p.input.serviceType.trim(),
@@ -314,6 +331,8 @@ async function executeOutboxRow(
         notes: p.input.notes.trim(),
         cost: p.input.cost,
         updated_at: new Date().toISOString(),
+        surgical_procedure_id: surgicalProcIdUpd,
+        surgical_details: surgicalDetUpd,
       };
       const { data, error } = await supabase
         .from("treatments")
@@ -487,10 +506,16 @@ export function serializeTreatmentCreatePayload(
     cost: number | null;
     photoUrls?: string[];
     photoCapturedAt?: Date[];
+    surgicalProcedureId?: string | null;
+    surgicalDetails?: SurgicalDetails | null;
   },
 ): string {
   const photoUrls = input.photoUrls ?? [];
   const photoCapturedAt = (input.photoCapturedAt ?? []).map((d) => d.toISOString());
+  const surgicalDet =
+    input.treatmentType === "surgical"
+      ? pruneSurgicalDetailsForStorage(input.surgicalDetails ?? {})
+      : null;
   return JSON.stringify({
     clientRowId,
     input: {
@@ -507,6 +532,8 @@ export function serializeTreatmentCreatePayload(
       cost: input.cost,
       photoUrls,
       photoCapturedAt: photoCapturedAt.length ? photoCapturedAt : undefined,
+      surgicalProcedureId: input.surgicalProcedureId ?? null,
+      surgicalDetails: surgicalDet,
     },
   });
 }
@@ -525,8 +552,14 @@ export function serializeTreatmentUpdatePayload(
     treatmentDate: Date;
     notes: string;
     cost: number | null;
+    surgicalProcedureId?: string | null;
+    surgicalDetails?: SurgicalDetails | null;
   },
 ): string {
+  const surgicalDet =
+    input.treatmentType === "surgical"
+      ? pruneSurgicalDetailsForStorage(input.surgicalDetails ?? {})
+      : null;
   return JSON.stringify({
     id,
     input: {
@@ -541,6 +574,8 @@ export function serializeTreatmentUpdatePayload(
       treatmentDate: input.treatmentDate.toISOString(),
       notes: input.notes,
       cost: input.cost,
+      surgicalProcedureId: input.surgicalProcedureId ?? null,
+      surgicalDetails: surgicalDet,
     },
   });
 }

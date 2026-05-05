@@ -1,4 +1,6 @@
 import type { EbdModality } from "../domain/ebd-modality";
+import type { SurgicalDetails } from "../domain/surgical-details";
+import { pruneSurgicalDetailsForStorage } from "../domain/surgical-details";
 import type { Treatment, TreatmentType } from "../domain/treatment";
 import { newUuid } from "../lib/ids";
 import { isDeviceOffline } from "../lib/device-offline";
@@ -23,7 +25,7 @@ import {
   uploadTreatmentPhotoFiles,
 } from "../services/supabase/treatment-photos";
 
-const TREATMENT_SELECT = "*, ebd_indications ( id, modality, name )";
+const TREATMENT_SELECT = "*, ebd_indications ( id, modality, name ), surgical_procedures ( id, name )";
 
 export type CreateTreatmentInput = {
   treatmentType: TreatmentType;
@@ -44,6 +46,9 @@ export type CreateTreatmentInput = {
   photoUrls?: string[];
   /** Parallel to `photoUrls` when queued with paths (optional). */
   photoCapturedAt?: Date[];
+  /** Surgical → Implants */
+  surgicalProcedureId?: string | null;
+  surgicalDetails?: SurgicalDetails | null;
 };
 
 export type UpdateTreatmentInput = CreateTreatmentInput;
@@ -71,6 +76,21 @@ function normalizeRequiredProviderId(providerId: string): string {
     throw new Error("Provider is required.");
   }
   return trimmed;
+}
+
+function surgicalColumnsForPersistence(input: CreateTreatmentInput): {
+  surgical_procedure_id: string | null;
+  surgical_details: Record<string, string> | null;
+} {
+  if (input.treatmentType !== "surgical") {
+    return { surgical_procedure_id: null, surgical_details: null };
+  }
+  const sid =
+    input.surgicalProcedureId && input.surgicalProcedureId.trim() !== ""
+      ? input.surgicalProcedureId.trim()
+      : null;
+  const det = pruneSurgicalDetailsForStorage(input.surgicalDetails ?? {});
+  return { surgical_procedure_id: sid, surgical_details: det };
 }
 
 async function assertOnlineForTreatmentPhotos(c?: TreatmentPhotoChanges): Promise<void> {
@@ -202,6 +222,8 @@ async function queueTreatmentCreate(uid: string, input: CreateTreatmentInput): P
       cost: input.cost,
       photoUrls,
       photoCapturedAt: input.photoCapturedAt,
+      surgicalProcedureId: input.surgicalProcedureId ?? null,
+      surgicalDetails: input.surgicalDetails ?? null,
     }),
   );
   const syn = syntheticTreatmentFromInput(id, uid, {
@@ -235,6 +257,8 @@ async function queueTreatmentUpdate(uid: string, id: string, input: UpdateTreatm
       treatmentDate: input.treatmentDate,
       notes: input.notes,
       cost: input.cost,
+      surgicalProcedureId: input.surgicalProcedureId ?? null,
+      surgicalDetails: input.surgicalDetails ?? null,
     }),
   );
   const syn = syntheticTreatmentFromInput(id, uid, {
@@ -247,6 +271,7 @@ async function queueTreatmentUpdate(uid: string, id: string, input: UpdateTreatm
     ),
     ebdTreatmentCategory: input.treatmentType === "laser" ? input.serviceType.trim() : "",
     ebdModality: input.ebdModality ?? null,
+    surgicalProcedureName: prev?.surgicalProcedureName ?? "",
   });
   await patchTreatmentsListCache(uid, (curList) => curList.map((t) => (t.id === id ? syn : t)));
   throw new WriteQueuedError();
@@ -315,6 +340,7 @@ export async function createTreatmentForCurrentUser(
     cost: input.cost,
     photo_urls: initialPhotos,
     photo_captured_at: isoTimestamptzArray(initialCaptured),
+    ...surgicalColumnsForPersistence(input),
   };
 
   try {
@@ -407,6 +433,7 @@ export async function updateTreatmentForCurrentUser(
     notes: input.notes.trim(),
     cost: input.cost,
     updated_at: new Date().toISOString(),
+    ...surgicalColumnsForPersistence(input),
   };
 
   let removeFromStorage: string[] = [];

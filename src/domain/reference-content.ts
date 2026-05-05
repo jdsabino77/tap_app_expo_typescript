@@ -110,6 +110,17 @@ export const ebdIndicationLaserTypeLinkSchema = z.object({
 
 export type EbdIndicationLaserTypeLink = z.infer<typeof ebdIndicationLaserTypeLinkSchema>;
 
+/** `surgical_procedures` — implant procedure labels under a `service_types` row (e.g. Implants). */
+export const surgicalProcedureSchema = z.object({
+  id: z.string(),
+  serviceTypeId: z.string(),
+  name: z.string(),
+  order: z.number().int().optional(),
+  isActive: z.boolean().optional(),
+});
+
+export type SurgicalProcedure = z.infer<typeof surgicalProcedureSchema>;
+
 /** Serialized reference data for treatment/provider form chips (API + local cache). */
 export const referenceCatalogBundleSchema = z.object({
   laserTypes: z.array(laserTypeSchema),
@@ -120,6 +131,7 @@ export const referenceCatalogBundleSchema = z.object({
   providerServices: z.array(providerServiceCatalogSchema),
   ebdIndications: z.array(ebdIndicationSchema).optional().default([]),
   ebdIndicationLaserTypeLinks: z.array(ebdIndicationLaserTypeLinkSchema).optional().default([]),
+  surgicalProcedures: z.array(surgicalProcedureSchema).optional().default([]),
 });
 
 export type ReferenceCatalogBundle = z.infer<typeof referenceCatalogBundleSchema>;
@@ -179,6 +191,9 @@ export function treatmentTypeFlagsForSlug(
     return { useEbdServiceFlow: true, useLaserDeviceBrandPicker: true, showUnitsField: false };
   }
   if (slug === "skin_treatments") {
+    return { useEbdServiceFlow: false, useLaserDeviceBrandPicker: false, showUnitsField: false };
+  }
+  if (slug === "surgical") {
     return { useEbdServiceFlow: false, useLaserDeviceBrandPicker: false, showUnitsField: false };
   }
   return { useEbdServiceFlow: false, useLaserDeviceBrandPicker: false, showUnitsField: false };
