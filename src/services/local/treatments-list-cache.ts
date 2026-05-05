@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { SurgicalDetails } from "../../domain/surgical-details";
 import { type Treatment, parseTreatment, treatmentSchema } from "../../domain/treatment";
 import { kvDelete, kvRead, kvWrite } from "./kv-async";
 
@@ -57,9 +58,16 @@ export function syntheticTreatmentFromInput(
     cost: number | null;
     photoUrls?: string[];
     photoCapturedAt?: Date[];
+    surgicalProcedureId?: string | null;
+    surgicalProcedureName?: string;
+    surgicalDetails?: SurgicalDetails | null;
   },
 ): Treatment {
   const ebdId = input.ebdIndicationId?.trim() ? input.ebdIndicationId.trim() : null;
+  const sid =
+    input.treatmentType === "surgical" && input.surgicalProcedureId?.trim()
+      ? input.surgicalProcedureId.trim()
+      : null;
   return parseTreatment({
     id,
     userId,
@@ -80,5 +88,8 @@ export function syntheticTreatmentFromInput(
     photoCapturedAt: input.photoCapturedAt ?? [],
     createdAt: new Date(),
     updatedAt: new Date(),
+    surgicalProcedureId: sid,
+    surgicalProcedureName: (input.surgicalProcedureName ?? "").trim(),
+    surgicalDetails: input.surgicalDetails ?? {},
   });
 }

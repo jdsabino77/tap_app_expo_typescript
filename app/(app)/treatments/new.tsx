@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { CatalogItemSelect } from "../../../src/components/catalog-item-select";
 import { DateInputField } from "../../../src/components/date-input-field";
+import { SurgicalImplantFields } from "../../../src/components/surgical-implant-fields";
 import { TreatmentTypeSelectGrid } from "../../../src/components/treatment-type-select-grid";
 import { TreatmentPhotoViewer } from "../../../src/components/treatment-photo-viewer";
 import { TreatmentBrandFields } from "../../../src/components/treatment-brand-fields";
@@ -33,7 +34,9 @@ import {
   buildTreatmentBrandValue,
   resolveBrandPickFromSaved,
 } from "../../../src/lib/treatment-brand-form";
+import { emptySurgicalDetails } from "../../../src/domain/surgical-details";
 import type { TreatmentType } from "../../../src/domain/treatment";
+import { isSurgicalImplantsFlow, surgicalProceduresForImplantsService } from "../../../src/lib/surgical-implants";
 import { useReferenceCatalogs } from "../../../src/hooks/useReferenceCatalogs";
 import { formatDisplayDate } from "../../../src/lib/datetime";
 import { pickTreatmentImages, type TreatmentPhotoPick } from "../../../src/lib/pick-treatment-photos";
@@ -94,6 +97,8 @@ export default function NewTreatmentScreen() {
   const [dateStr, setDateStr] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [notes, setNotes] = useState("");
   const [costText, setCostText] = useState("");
+  const [surgicalProcedureId, setSurgicalProcedureId] = useState("");
+  const [surgicalDetails, setSurgicalDetails] = useState(emptySurgicalDetails);
   const [localPicks, setLocalPicks] = useState<TreatmentPhotoPick[]>([]);
   const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
@@ -139,6 +144,8 @@ export default function NewTreatmentScreen() {
           dateStr?: string;
           notes?: string;
           costText?: string;
+          surgicalProcedureId?: string;
+          surgicalDetails?: Record<string, string>;
         };
         if (draft.treatmentType) setTreatmentType(draft.treatmentType);
         if (typeof draft.serviceType === "string") setServiceType(draft.serviceType);
@@ -151,6 +158,10 @@ export default function NewTreatmentScreen() {
         if (typeof draft.dateStr === "string") setDateStr(draft.dateStr);
         if (typeof draft.notes === "string") setNotes(draft.notes);
         if (typeof draft.costText === "string") setCostText(draft.costText);
+        if (typeof draft.surgicalProcedureId === "string") setSurgicalProcedureId(draft.surgicalProcedureId);
+        if (draft.surgicalDetails && typeof draft.surgicalDetails === "object") {
+          setSurgicalDetails({ ...emptySurgicalDetails(), ...draft.surgicalDetails });
+        }
       } catch {
         /* ignore invalid draft payload */
       }
@@ -184,6 +195,28 @@ export default function NewTreatmentScreen() {
     () => ebdIndicationsForModality(catalogs.ebdIndications ?? [], ebdModality),
     [catalogs.ebdIndications, ebdModality],
   );
+
+  const useSurgicalImplantFlow = useMemo(
+    () => isSurgicalImplantsFlow(treatmentType, serviceType),
+    [treatmentType, serviceType],
+  );
+
+  const implantProcedureOptions = useMemo(() => {
+    const rows = surgicalProceduresForImplantsService(
+      catalogs.serviceTypes,
+      catalogs.surgicalProcedures ?? [],
+    );
+    return rows.map((r) => ({ id: r.id, name: r.name }));
+  }, [catalogs.serviceTypes, catalogs.surgicalProcedures]);
+
+  const prevSurgicalImplantRef = useRef(false);
+  useEffect(() => {
+    if (prevSurgicalImplantRef.current && !useSurgicalImplantFlow) {
+      setSurgicalProcedureId("");
+      setSurgicalDetails(emptySurgicalDetails());
+    }
+    prevSurgicalImplantRef.current = useSurgicalImplantFlow;
+  }, [useSurgicalImplantFlow]);
 
   useEffect(() => {
     if (useEbdLaser) {
@@ -492,13 +525,22 @@ export default function NewTreatmentScreen() {
       cost = n;
     }
 
-    const brandValue = buildTreatmentBrandValue(
-      useLaserPicker,
-      brandRowId,
-      brandOtherDetail,
-      injectableBrandOptions,
-      catalogs.laserTypes,
-    );
+    if (useSurgicalImplantFlow) {
+      if (!surgicalProcedureId.trim()) {
+        setError("Implant procedure is required.");
+        return;
+      }
+    }
+
+    const brandValue = useSurgicalImplantFlow
+      ? ""
+      : buildTreatmentBrandValue(
+          useLaserPicker,
+          brandRowId,
+          brandOtherDetail,
+          injectableBrandOptions,
+          catalogs.laserTypes,
+        );
 
     setSaving(true);
     try {
@@ -515,6 +557,8 @@ export default function NewTreatmentScreen() {
           treatmentDate: d,
           notes: notes.trim(),
           cost,
+          surgicalProcedureId: useSurgicalImplantFlow ? surgicalProcedureId.trim() : null,
+          surgicalDetails: useSurgicalImplantFlow ? surgicalDetails : null,
         },
         localPicks.length ? { addLocal: localPicks } : undefined,
       );
@@ -641,17 +685,37 @@ export default function NewTreatmentScreen() {
           </>
         )}
 
-        <TreatmentBrandFields
-          useLaserDeviceBrandPicker={useLaserPicker}
-          serviceTypeName={serviceType}
-          serviceTypes={catalogs.serviceTypes}
-          serviceTypeBrands={catalogs.serviceTypeBrands}
-          laserTypes={ebdLaserPickerTypes}
-          brandRowId={brandRowId}
-          onBrandRowId={setBrandRowId}
-          brandOtherDetail={brandOtherDetail}
-          onBrandOtherDetail={setBrandOtherDetail}
-        />
+        {useSurgicalImplantFlow ? (
+          <>
+            <Text style={styles.label}>Implant procedure *</Text>
+            {implantProcedureOptions.length === 0 ? (
+              <Text style={styles.catalogWarn}>{appStrings.treatmentServiceTypeEmptyList}</Text>
+            ) : null}
+            <CatalogItemSelect
+              sheetTitle="Implant procedure"
+              valueKey="id"
+              value={surgicalProcedureId}
+              options={implantProcedureOptions}
+              placeholder="Choose implant type"
+              onChange={setSurgicalProcedureId}
+              disabled={implantProcedureOptions.length === 0}
+            />
+            <Text style={styles.label}>Implant details</Text>
+            <SurgicalImplantFields details={surgicalDetails} onChange={setSurgicalDetails} />
+          </>
+        ) : (
+          <TreatmentBrandFields
+            useLaserDeviceBrandPicker={useLaserPicker}
+            serviceTypeName={serviceType}
+            serviceTypes={catalogs.serviceTypes}
+            serviceTypeBrands={catalogs.serviceTypeBrands}
+            laserTypes={ebdLaserPickerTypes}
+            brandRowId={brandRowId}
+            onBrandRowId={setBrandRowId}
+            brandOtherDetail={brandOtherDetail}
+            onBrandOtherDetail={setBrandOtherDetail}
+          />
+        )}
 
         <Text style={styles.label}>Treatment areas</Text>
         <Text style={styles.areasSummary}>
@@ -724,6 +788,8 @@ export default function NewTreatmentScreen() {
                       dateStr,
                       notes,
                       costText,
+                      surgicalProcedureId,
+                      surgicalDetails,
                     }),
                   },
                 })

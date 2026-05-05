@@ -12,6 +12,8 @@ import {
   type ServiceTypeBrand,
   serviceTypeBrandSchema,
   serviceTypeSchema,
+  surgicalProcedureSchema,
+  type SurgicalProcedure,
   type TreatmentArea,
   treatmentAreaSchema,
   treatmentTypeCatalogRowSchema,
@@ -132,6 +134,16 @@ function mapEbdLaserLinkRow(row: Record<string, unknown>): EbdIndicationLaserTyp
   });
 }
 
+function mapSurgicalProcedureRow(row: Record<string, unknown>): SurgicalProcedure {
+  return surgicalProcedureSchema.parse({
+    id: String(row.id ?? ""),
+    serviceTypeId: String(row.service_type_id ?? ""),
+    name: String(row.name ?? ""),
+    order: toInt(row.sort_order),
+    isActive: row.is_active == null ? undefined : Boolean(row.is_active),
+  });
+}
+
 function toInt(v: unknown, fallback = 0): number {
   if (typeof v === "number" && Number.isFinite(v)) {
     return v;
@@ -150,28 +162,39 @@ function toInt(v: unknown, fallback = 0): number {
 async function fetchReferenceCatalogBundleFromRemote(): Promise<ReferenceCatalogBundle> {
   const supabase = getSupabase();
 
-  const [laserRes, serviceRes, brandRes, ttRes, areaRes, provRes, ebdRes, ebdLaserRes] = await Promise.all([
-    supabase.from("laser_types").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
-    supabase.from("service_types").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
-    supabase
-      .from("service_type_brands")
-      .select("*")
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true }),
-    supabase.from("treatment_types").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
-    supabase.from("treatment_areas").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
-    supabase
-      .from("provider_service_catalog")
-      .select("*")
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true }),
-    supabase.from("ebd_indications").select("*").eq("is_active", true).order("modality", { ascending: true }).order("sort_order", { ascending: true }),
-    supabase
-      .from("ebd_indication_laser_types")
-      .select("ebd_indication_id,laser_type_id,sort_order")
-      .order("ebd_indication_id", { ascending: true })
-      .order("sort_order", { ascending: true }),
-  ]);
+  const [laserRes, serviceRes, brandRes, ttRes, areaRes, provRes, ebdRes, ebdLaserRes, surgicalProcRes] =
+    await Promise.all([
+      supabase.from("laser_types").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
+      supabase.from("service_types").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
+      supabase
+        .from("service_type_brands")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true }),
+      supabase.from("treatment_types").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
+      supabase.from("treatment_areas").select("*").eq("is_active", true).order("sort_order", { ascending: true }),
+      supabase
+        .from("provider_service_catalog")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("ebd_indications")
+        .select("*")
+        .eq("is_active", true)
+        .order("modality", { ascending: true })
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("ebd_indication_laser_types")
+        .select("ebd_indication_id,laser_type_id,sort_order")
+        .order("ebd_indication_id", { ascending: true })
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("surgical_procedures")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true }),
+    ]);
 
   const err =
     laserRes.error?.message ||
@@ -181,7 +204,8 @@ async function fetchReferenceCatalogBundleFromRemote(): Promise<ReferenceCatalog
     areaRes.error?.message ||
     provRes.error?.message ||
     ebdRes.error?.message ||
-    ebdLaserRes.error?.message;
+    ebdLaserRes.error?.message ||
+    surgicalProcRes.error?.message;
   if (err) {
     throw new Error(err);
   }
@@ -196,6 +220,9 @@ async function fetchReferenceCatalogBundleFromRemote(): Promise<ReferenceCatalog
     ebdIndications: (ebdRes.data ?? []).map((r) => mapEbdIndicationRow(r as Record<string, unknown>)),
     ebdIndicationLaserTypeLinks: (ebdLaserRes.data ?? []).map((r) =>
       mapEbdLaserLinkRow(r as Record<string, unknown>),
+    ),
+    surgicalProcedures: (surgicalProcRes.data ?? []).map((r) =>
+      mapSurgicalProcedureRow(r as Record<string, unknown>),
     ),
   };
 }
@@ -214,6 +241,7 @@ export async function fetchReferenceCatalogBundle(): Promise<ReferenceCatalogBun
     providerServices: [],
     ebdIndications: [],
     ebdIndicationLaserTypeLinks: [],
+    surgicalProcedures: [],
   };
   if (!isSupabaseConfigured()) {
     return empty;
