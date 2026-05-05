@@ -717,7 +717,14 @@ export default function NewTreatmentScreen() {
           />
         )}
 
-        <Text style={styles.label}>Treatment areas</Text>
+        <Text style={styles.label}>
+          {useSurgicalImplantFlow ? "Treatment areas (anatomical site)" : "Treatment areas"}
+        </Text>
+        {useSurgicalImplantFlow ? (
+          <Text style={styles.areasHint}>
+            Select where on the body this applies. Implant device details are in Implant details above.
+          </Text>
+        ) : null}
         <Text style={styles.areasSummary}>
           {selectedAreas.length === 0
             ? appStrings.treatmentAreasSummaryNone
@@ -919,6 +926,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 18,
     fontWeight: "600",
+  },
+  areasHint: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: 8,
   },
   areasSummary: {
     fontSize: 14,

@@ -6,6 +6,7 @@ import { z } from "zod";
  */
 export const surgicalDetailsSchema = z.object({
   implantCategory: z.string().optional(),
+  /** Legacy: anatomical site now uses `treatments.treatment_areas`; keep for old JSON. */
   bodyArea: z.string().optional(),
   side: z.string().optional(),
   primaryReasonGoal: z.string().optional(),

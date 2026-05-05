@@ -9,7 +9,6 @@ const GROUPS: { title: string; fields: { key: FieldKey; label: string }[] }[] = 
     title: "Core",
     fields: [
       { key: "implantCategory", label: "Implant category" },
-      { key: "bodyArea", label: "Body area" },
       { key: "side", label: "Side" },
       { key: "primaryReasonGoal", label: "Primary reason / goal" },
     ],
@@ -61,8 +60,8 @@ export function SurgicalImplantFields({ details, onChange }: SurgicalImplantFiel
   return (
     <View>
       <Text style={styles.topHint}>
-        Procedure date, provider, and general notes are captured above. Attach photos in the Photos
-        section below.
+        Procedure date, provider, and general notes are captured above. Use Treatment areas below for
+        anatomical site (head, upper body, lower body). Attach photos in the Photos section below.
       </Text>
       {GROUPS.map((g) => (
         <View key={g.title}>
